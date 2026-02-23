@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gestion-cabinet
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    networks:
+      - pc_project
+
+networks:
+  pc_project:
+    driver: bridge
+
+volumes:
+  db:
+    driver: local
