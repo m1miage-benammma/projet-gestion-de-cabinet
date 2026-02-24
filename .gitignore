@@ -1,50 +1,45 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-###ENV files###
-/backend/server/.env
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
-
-node_modules/
-dist/
+# ─── Environnements ───────────────────────────────────────
 .env
 .env.local
 .env.*.local
-*.log
-.DS_Store
+
+# ─── Dépendances ──────────────────────────────────────────
+node_modules/
+vendor/
+
+# ─── Build / dist ─────────────────────────────────────────
+dist/
+/frontend/dist/
+target/
+build/
+
+# ─── Laravel cache & fichiers générés ─────────────────────
+backend/bootstrap/cache/*.php
+backend/storage/logs/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+!backend/storage/framework/cache/.gitkeep
+!backend/storage/framework/sessions/.gitkeep
+!backend/storage/framework/views/.gitkeep
+!backend/storage/logs/.gitkeep
+
+# ─── Angular cache ────────────────────────────────────────
+frontend/.angular/cache/
+
+# ─── Éditeurs & OS ────────────────────────────────────────
 .idea/
 .vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
 *.swp
 *.swo
 *~
-.git/
+
+# ─── Logs divers ──────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-error.log
