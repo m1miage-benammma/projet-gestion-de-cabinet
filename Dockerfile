@@ -29,8 +29,6 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-script
 
 COPY backend .
 RUN composer dump-autoload --optimize
-
-
 # ─── BACKEND : runtime ───────────────────────────────────────
 FROM php:8.4-fpm-alpine AS backend
 
