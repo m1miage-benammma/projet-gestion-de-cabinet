@@ -36,7 +36,7 @@ FROM php:8.4-fpm-alpine AS backend
 
 WORKDIR /var/www/html
 
-RUN apk add --no-cache \
+RUN apk update && apk add --update --no-cache \
     nginx \
     curl \
     libpng-dev \
