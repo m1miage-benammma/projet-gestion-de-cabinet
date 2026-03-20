@@ -1,8 +1,4 @@
-<?php
+use App\Modules\Utilisateur\Controller\UtilisateurController;
 
-declare(strict_types=1);
-
-use App\Modules\Task\Controller\TaskController;
-use Illuminate\Support\Facades\Route;
-
-Route::apiResource('tasks', TaskController::class);
+Route::apiResource('utilisateurs', UtilisateurController::class)
+    ->only(['index', 'store', 'show', 'destroy']);
