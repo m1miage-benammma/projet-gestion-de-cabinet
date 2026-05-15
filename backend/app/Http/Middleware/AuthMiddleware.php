@@ -9,76 +9,51 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
-final class AuthMiddleware
+class AuthMiddleware
 {
-    public function handle(Request $request, Closure $next, string ...$roles): Response
+    public function handle(Request $request, Closure $next, string $role = ''): Response
     {
-        $token = $request->bearerToken();
+        $authHeader = $request->header('Authorization');
 
-        if (! $token) {
-            return response()->json(['message' => 'Token manquant. Veuillez vous connecter.'], 401);
+        if (!$authHeader || !str_starts_with($authHeader, 'Bearer ')) {
+            return response()->json(['message' => 'Token d\'authentification manquant.'], 401);
         }
 
-        $hashedToken = hash('sha256', $token);
+        $plainToken  = substr($authHeader, 7);
+        $hashedToken = hash('sha256', $plainToken);
 
-        $accessToken = DB::table('personal_access_tokens')
+        // Chercher le token dans personal_access_tokens
+        $token = DB::table('personal_access_tokens')
             ->where('token', $hashedToken)
             ->first();
 
-        if (! $accessToken) {
+        if (!$token) {
             return response()->json(['message' => 'Token invalide ou expiré.'], 401);
         }
 
-        // Admin token
-        if ($accessToken->tokenable_type === 'admin') {
-            $admin = DB::table('admins')
-                ->where('id_admin', $accessToken->tokenable_id)
+        // Injecter l'id_utilisateur dans les attributs de la requête
+        $request->attributes->set('id_utilisateur', (int) $token->tokenable_id);
+        $request->attributes->set('tokenable_type', $token->tokenable_type);
+
+        // Vérification du rôle si exigé (ex: 'admin')
+        if ($role === 'admin') {
+            if ($token->tokenable_type !== 'admin') {
+                return response()->json(['message' => 'Accès réservé aux administrateurs.'], 403);
+            }
+        }
+
+        // Si c'est un utilisateur normal, vérifier qu'il est actif
+        if ($token->tokenable_type === 'utilisateur') {
+            $user = DB::table('utilisateurs')
+                ->where('id_utilisateur', $token->tokenable_id)
                 ->first();
 
-            if (! $admin) {
-                return response()->json(['message' => 'Administrateur introuvable.'], 401);
+            if (!$user || !$user->actif) {
+                return response()->json(['message' => 'Compte désactivé ou introuvable.'], 403);
             }
 
-            // Vérifier rôle si spécifié
-            if (! empty($roles) && ! in_array('admin', $roles)) {
-                return response()->json(['message' => 'Accès refusé. Rôle insuffisant.'], 403);
-            }
-
-            DB::table('personal_access_tokens')
-                ->where('token', $hashedToken)
-                ->update(['last_used_at' => now()]);
-
-            $request->attributes->set('auth_user', (object)[
-                'id_utilisateur' => $admin->id_admin,
-                'login'          => $admin->login,
-                'role'           => 'admin',
-            ]);
-
-            return $next($request);
+            $request->attributes->set('user_role', $user->role);
         }
-
-        // Utilisateur token
-        $user = DB::table('utilisateurs')
-            ->where('id_utilisateur', $accessToken->tokenable_id)
-            ->first();
-
-        if (! $user) {
-            return response()->json(['message' => 'Utilisateur introuvable.'], 401);
-        }
-
-        if (! $user->actif) {
-            return response()->json(['message' => 'Compte désactivé. Contactez l\'administrateur.'], 403);
-        }
-
-        if (! empty($roles) && ! in_array($user->role, $roles)) {
-            return response()->json(['message' => 'Accès refusé. Rôle insuffisant.'], 403);
-        }
-
-        DB::table('personal_access_tokens')
-            ->where('token', $hashedToken)
-            ->update(['last_used_at' => now()]);
-
-        $request->attributes->set('auth_user', $user);
 
         return $next($request);
     }

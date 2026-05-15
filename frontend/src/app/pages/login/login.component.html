@@ -1,0 +1,17 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo" (click)="goHome()">
+      <div class="nb-icon"><svg width="20" height="20" viewBox="0 0 22 22" fill="none"><path d="M11 2v18M2 11h18" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+      <span>MediNova</span>
+    </div>
+    <h2 class="auth-title">Connexion</h2>
+    <p class="auth-sub">Accédez à votre espace de santé</p>
+    <div class="af-inp"><label>Email</label><input type="email" [(ngModel)]="email" name="em" placeholder="vous@exemple.com" (keyup.enter)="login()"/></div>
+    <div class="af-inp"><label>Mot de passe</label><input type="password" [(ngModel)]="password" name="pw" placeholder="••••••••" (keyup.enter)="login()"/></div>
+    <div class="error-msg" *ngIf="error">{{ error }}</div>
+    <button class="btn-prim" style="width:100%;margin-top:8px" (click)="login()" [disabled]="loading">
+      {{ loading ? 'Connexion...' : 'Se connecter' }}
+    </button>
+    <div class="auth-footer">Pas encore inscrit ? <a (click)="goRegister()">Créer un compte</a></div>
+  </div>
+</div>

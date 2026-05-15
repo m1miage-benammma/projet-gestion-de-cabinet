@@ -10,21 +10,35 @@ return new class extends Migration
     {
         Schema::create('rendez_vous', function (Blueprint $table) {
             $table->id('id_rdv');
+
+            // id_patient = id_utilisateur du patient (PK de la table patients)
             $table->unsignedBigInteger('id_patient');
             $table->unsignedBigInteger('id_disponibilite');
+
             $table->date('date_rdv');
             $table->time('heure_rdv');
             $table->string('motif');
-            $table->enum('statut', ['en_attente','confirme','annule','termine'])
-                  ->default('en_attente');
+
+            // CORRECTION : ajout de 'patient_arrive', tout en minuscule pour cohérence MySQL
+            $table->enum('statut', [
+                'en_attente',
+                'confirme',
+                'patient_arrive',
+                'annule',
+                'termine',
+            ])->default('en_attente');
+
+            // FK : id_patient pointe vers patients.id_utilisateur (qui est la PK de patients)
             $table->foreign('id_patient')
                   ->references('id_utilisateur')
                   ->on('patients')
                   ->onDelete('cascade');
+
             $table->foreign('id_disponibilite')
                   ->references('id_disponibilite')
                   ->on('disponibilites')
                   ->onDelete('cascade');
+
             $table->timestamps();
         });
     }
