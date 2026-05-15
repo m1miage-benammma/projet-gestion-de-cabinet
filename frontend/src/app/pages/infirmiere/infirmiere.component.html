@@ -1,0 +1,210 @@
+<div class="dashboard">
+  <app-sidebar [tabs]="TABS" [activeTab]="activeTab" [color]="'infirmiere'"
+    [open]="sidebarOpen" (tabChange)="setTab($event)" (closeOverlay)="sidebarOpen=false">
+  </app-sidebar>
+
+  <main class="dash-main">
+    <app-header [activeTab]="activeTab" (menuClick)="sidebarOpen=!sidebarOpen"></app-header>
+
+    <div class="dash-content">
+
+      <!-- ═══ ACCUEIL ═══ -->
+      <div *ngIf="activeTab==='accueil'">
+        <div class="welcome-banner">
+          <div>
+            <h2>Bonjour, {{ auth.user?.prenom }} {{ auth.user?.nom }}</h2>
+            <p>{{ getDate() }} — Tableau de bord infirmière</p>
+          </div>
+          <button class="btn-w" (click)="setTab('patients')">Voir les patients du jour</button>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div></div>
+            <div class="kpi-value">{{ rdvJour.length }}</div>
+            <div class="kpi-label">RDV aujourd'hui</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+            <div class="kpi-value">{{ countStatut('confirme') }}</div>
+            <div class="kpi-label">Confirmés</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+            <div class="kpi-value">{{ countStatut('en_attente') }}</div>
+            <div class="kpi-label">En attente</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div></div>
+            <div class="kpi-value">{{ soins.length }}</div>
+            <div class="kpi-label">Soins</div>
+          </div>
+        </div>
+        <ng-container *ngTemplateOutlet="rdvJourTemplate"></ng-container>
+      </div>
+
+      <!-- ═══ PATIENTS DU JOUR ═══ -->
+      <div *ngIf="activeTab==='patients'">
+        <div class="page-header">
+          <div class="page-header-left"><h1>Patients du jour</h1><p>{{ rdvJour.length }} rendez-vous</p></div>
+          <button class="btn btn-secondary btn-sm" (click)="chargerRdvJour()">Actualiser</button>
+        </div>
+        <ng-container *ngTemplateOutlet="rdvJourTemplate"></ng-container>
+      </div>
+
+      <!-- ═══ SOINS ═══ -->
+      <div *ngIf="activeTab==='soins'">
+        <div class="page-header">
+          <div class="page-header-left"><h1>Soins infirmiers</h1></div>
+          <button class="btn btn-primary" (click)="showSoinForm=true">+ Nouveau soin</button>
+        </div>
+        <div class="form-card" *ngIf="showSoinForm" style="margin-bottom:16px">
+          <div class="fc-head"><h4>Enregistrer un soin</h4><button class="fc-x" (click)="showSoinForm=false">✕</button></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Patient <span class="req">*</span></label>
+                <select class="form-select" [(ngModel)]="soinPatientId" name="sp">
+                  <option [value]="0">-- Sélectionner --</option>
+                  <option *ngFor="let r of rdvJour" [value]="r.id_patient">{{ r.prenom }} {{ r.nom }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Type de soin <span class="req">*</span></label>
+                <select class="form-select" [(ngModel)]="soinType" name="st">
+                  <option *ngFor="let t of typesSoin" [value]="t">{{ formatSoin(t) }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Observations</label>
+              <textarea class="form-textarea" [(ngModel)]="soinObs" name="so" placeholder="Observations..."></textarea>
+            </div>
+            <div class="alert alert-danger" *ngIf="soinError">{{ soinError }}</div>
+            <div class="alert alert-success" *ngIf="soinSuccess">{{ soinSuccess }}</div>
+            <div class="fc-actions">
+              <button class="btn btn-secondary" (click)="showSoinForm=false">Annuler</button>
+              <button class="btn btn-primary" (click)="enregistrerSoin()" [disabled]="soinLoading||!soinPatientId">
+                <div class="spinner spinner-sm" *ngIf="soinLoading"></div>
+                {{ soinLoading ? 'Enregistrement...' : 'Enregistrer' }}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="loading-inline" *ngIf="loading['soins']"><div class="spinner spinner-sm"></div> Chargement...</div>
+        <div class="table-wrap" *ngIf="!loading['soins'] && soins.length > 0">
+          <table class="table">
+            <thead><tr><th>Date</th><th>Patient</th><th>Type</th><th>Observations</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let s of soins">
+                <td style="font-weight:700;color:var(--primary)">{{ s.date | date:'dd/MM/yyyy' }}</td>
+                <td>{{ s.prenom }} {{ s.nom }}</td>
+                <td><span class="statut statut-confirme">{{ formatSoin(s.type_soin) }}</span></td>
+                <td style="color:var(--muted);font-size:12px">{{ s.observation || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="empty-state" *ngIf="!loading['soins'] && soins.length === 0"><h3>Aucun soin enregistré</h3></div>
+      </div>
+
+      <!-- ═══ PROFIL ═══ -->
+      <div *ngIf="activeTab==='profil'">
+        <div class="page-header"><div class="page-header-left"><h1>Mon profil</h1></div></div>
+        <div class="profil-card">
+          <div class="profil-avatar">{{ auth.initiales() }}</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Prénom</label><input type="text" class="form-input" [(ngModel)]="profilPrenom"/></div>
+            <div class="form-group"><label class="form-label">Nom</label><input type="text" class="form-input" [(ngModel)]="profilNom"/></div>
+            <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" [(ngModel)]="profilEmail"/></div>
+            <div class="form-group"><label class="form-label">Téléphone</label><input type="tel" class="form-input" [(ngModel)]="profilTel"/></div>
+          </div>
+          <div class="alert alert-success" *ngIf="profilSuccess">{{ profilSuccess }}</div>
+          <div class="alert alert-danger"  *ngIf="profilError">{{ profilError }}</div>
+          <button class="btn btn-primary" (click)="sauvegarderProfil()" [disabled]="profilLoading">
+            {{ profilLoading ? 'Sauvegarde...' : 'Sauvegarder' }}
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ═══ TEMPLATE RDV DU JOUR ═══ -->
+<ng-template #rdvJourTemplate>
+  <div class="loading-inline" *ngIf="loading['rdv']"><div class="spinner spinner-sm"></div> Chargement...</div>
+
+  <div class="empty-state" *ngIf="!loading['rdv'] && rdvJour.length === 0">
+    <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+    <h3>Aucun rendez-vous aujourd'hui</h3>
+    <p>Les rendez-vous du jour apparaîtront ici.</p>
+  </div>
+
+  <div *ngIf="!loading['rdv'] && rdvJour.length > 0" style="display:flex;flex-direction:column;gap:12px">
+    <div *ngFor="let r of rdvJour"
+      style="background:white;border:1.5px solid var(--border);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;transition:all .2s"
+      [style.border-left]="'4px solid ' + getBorderColor(r.statut)">
+
+      <!-- Heure -->
+      <div style="text-align:center;min-width:54px;background:var(--primary-light);border-radius:10px;padding:10px;flex-shrink:0">
+        <div style="font-size:18px;font-weight:900;color:var(--primary);line-height:1">{{ r.heure_rdv?.slice(0,5) }}</div>
+        <div style="font-size:10px;color:var(--primary);font-weight:700;margin-top:3px">{{ r.date_rdv | date:'dd/MM' }}</div>
+      </div>
+
+      <!-- Patient -->
+      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+        <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#0A3D62,#1a5c8a);color:white;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;flex-shrink:0">
+          {{ (r.prenom||'?')[0] }}{{ (r.nom||'')[0] }}
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">{{ r.prenom }} {{ r.nom }}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ r.motif }}</div>
+        </div>
+      </div>
+
+      <!-- Statut -->
+      <span class="statut" [ngClass]="'statut-'+r.statut?.toLowerCase()">{{ formatStatut(r.statut) }}</span>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+
+        <!-- EN ATTENTE → Confirmer -->
+        <button *ngIf="r.statut === 'en_attente'"
+          (click)="confirmerRdv(r.id_rdv)"
+          style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--success-bg);color:var(--success);border:1.5px solid var(--success-border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Confirmer
+        </button>
+
+        <!-- CONFIRME → Marquer arrivée -->
+        <button *ngIf="r.statut === 'confirme'"
+          (click)="patientArrive(r.id_rdv)"
+          style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--info-bg);color:var(--info);border:1.5px solid var(--info-border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          Marquer arrivée
+        </button>
+
+        <!-- PATIENT ARRIVE -->
+        <div *ngIf="r.statut === 'patient_arrive'"
+          style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--success-bg);color:var(--success);border:1px solid var(--success-border);border-radius:8px;font-size:12px;font-weight:700">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          En salle — médecin informé
+        </div>
+
+        <!-- TERMINE -->
+        <div *ngIf="r.statut === 'termine'"
+          style="padding:7px 14px;background:var(--bg-hover);color:var(--muted);border-radius:8px;font-size:12px;font-weight:700">
+          Consultation terminée
+        </div>
+
+        <!-- Annuler -->
+        <button *ngIf="r.statut !== 'annule' && r.statut !== 'termine'"
+          (click)="annulerRdv(r.id_rdv)"
+          style="padding:7px 12px;background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
+          Annuler
+        </button>
+
+      </div>
+    </div>
+  </div>
+</ng-template>

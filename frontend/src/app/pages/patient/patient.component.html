@@ -1,0 +1,381 @@
+<div class="dashboard">
+  <app-sidebar [tabs]="TABS" [activeTab]="activeTab" [color]="'patient'"
+    [open]="sidebarOpen" [notifCount]="notifCount()" (tabChange)="setTab($event)" (closeOverlay)="sidebarOpen=false"></app-sidebar>
+  <main class="dash-main">
+    <app-header [activeTab]="activeTab" (menuClick)="sidebarOpen=!sidebarOpen"></app-header>
+
+    <div class="dash-content">
+      <div class="alert alert-danger" *ngIf="errorMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>{{ errorMsg }}</div>
+      <div class="alert alert-success" *ngIf="successMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>{{ successMsg }}</div>
+
+      <!-- ════ ACCUEIL ════ -->
+      <div *ngIf="activeTab==='accueil'">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1>Bonjour, {{ auth.user?.prenom }} {{ auth.user?.nom }}</h1>
+            <p>Bienvenue sur votre espace santé numérique</p>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div></div>
+            <div class="kpi-value">{{ rdvList.length }}</div>
+            <div class="kpi-label">Mes rendez-vous</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+            <div class="kpi-value">{{ countRdvStatut('confirme') }}</div>
+            <div class="kpi-label">Confirmés</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div></div>
+            <div class="kpi-value">{{ ordonnances.length }}</div>
+            <div class="kpi-label">Ordonnances</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div></div>
+            <div class="kpi-value">{{ notifCount() }}</div>
+            <div class="kpi-label">Notifications non lues</div>
+          </div>
+        </div>
+
+        <!-- Analyse IA des symptômes -->
+        <div class="ia-card" style="margin-bottom:16px">
+          <div class="ia-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Analyse intelligente des symptômes
+          </div>
+          <div class="ia-body">
+            <div class="form-group">
+              <label class="form-label">Décrivez vos symptômes</label>
+              <textarea class="form-textarea" [(ngModel)]="symptomes" name="sym" placeholder="Ex : fièvre depuis 3 jours, douleur thoracique, toux persistante..." style="min-height:60px"></textarea>
+            </div>
+            <button class="btn btn-primary btn-sm" (click)="analyserSymptomes()" [disabled]="triageLoading || !symptomes">
+              <div class="spinner spinner-sm" *ngIf="triageLoading"></div>
+              {{ triageLoading ? 'Analyse en cours...' : 'Analyser' }}
+            </button>
+            <div class="ia-result" *ngIf="triageResult">
+              <div class="ia-urgence" [ngClass]="triageResult.urgence?.toLowerCase()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Niveau d'urgence : <strong>{{ triageResult.urgence }}</strong>
+              </div>
+              <div style="font-size:13px;margin-bottom:8px" *ngIf="triageResult.specialite">
+                Spécialité recommandée : <strong>{{ triageResult.specialite }}</strong>
+              </div>
+              <div *ngFor="let r of triageResult.recommandations" style="font-size:12px;margin-bottom:4px;color:var(--text-2)">– {{ r }}</div>
+              <div *ngIf="triageResult.medicaments?.length" style="margin-top:10px">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Médicaments courants associés</div>
+                <div *ngFor="let m of triageResult.medicaments" style="font-size:12px;color:var(--text-2);margin-bottom:3px">• {{ m }}</div>
+              </div>
+              <div class="ia-disclaimer">{{ triageResult.avertissement }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" (click)="setTab('rdv')">Prendre un rendez-vous</button>
+          <button class="btn btn-secondary" (click)="setTab('dossier')">Mon dossier médical</button>
+        </div>
+      </div>
+
+      <!-- ════ RENDEZ-VOUS ════ -->
+      <div *ngIf="activeTab==='rdv'">
+        <div class="page-header">
+          <div class="page-header-left"><h1>Mes rendez-vous</h1><p>Historique et prise de rendez-vous</p></div>
+        </div>
+
+        <!-- Formulaire prise RDV -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">Prendre un rendez-vous</div></div>
+          <div class="card-body">
+
+            <!-- Étape 1 : Choisir médecin -->
+            <div class="form-group">
+              <label class="form-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Choisir un médecin <span class="req">*</span>
+              </label>
+              <div class="loading-inline" *ngIf="loading['medecins']"><div class="spinner spinner-sm"></div> Chargement...</div>
+              <div *ngIf="!loading['medecins']">
+                <div *ngIf="medecins.length === 0" class="alert alert-warning" style="margin:0">
+                  Aucun médecin disponible pour le moment.
+                </div>
+                <div class="medecins-grid" *ngIf="medecins.length > 0">
+                  <div *ngFor="let m of medecins"
+                    class="medecin-card-rdv"
+                    [class.selected]="rdvMedecinId == m.id_utilisateur"
+                    (click)="rdvMedecinId = m.id_utilisateur; chargerDispos()">
+                    <div class="mcr-ava">{{ (m.prenom||'?')[0] }}{{ (m.nom||'')[0] }}</div>
+                    <div>
+                      <div class="mcr-name">Dr. {{ m.prenom }} {{ m.nom }}</div>
+                      <div class="mcr-spec">{{ m.specialite || 'Médecin généraliste' }}</div>
+                    </div>
+                    <div class="mcr-check" *ngIf="rdvMedecinId == m.id_utilisateur">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Étape 2 : Créneaux disponibles -->
+            <div class="form-group" *ngIf="rdvMedecinId">
+              <label class="form-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Choisir un créneau <span class="req">*</span>
+              </label>
+              <div class="loading-inline" *ngIf="loading['dispos']"><div class="spinner spinner-sm"></div> Chargement des créneaux...</div>
+              <div *ngIf="!loading['dispos']">
+                <div *ngIf="rdvSlots.length === 0" class="alert alert-warning" style="margin:0">
+                  Ce médecin n'a pas encore défini son planning. Choisissez un autre médecin.
+                </div>
+                <div *ngIf="rdvSlots.length > 0">
+                  <div *ngFor="let date of getDatesDispos(); trackBy: trackByDate" style="margin-bottom:14px">
+                    <div class="slots-date-label">{{ date | date:'EEEE d MMMM':'':'fr' }}</div>
+                    <div class="slots-row">
+                      <button *ngFor="let s of getSlotsParDate(date); trackBy: trackBySlot"
+                        class="slot-btn"
+                        [class.slot-selected]="rdvSlotSelected?.date===s.date && rdvSlotSelected?.heure===s.heure"
+                        [class.slot-pris]="s.pris"
+                        [disabled]="s.pris"
+                        (click)="selectionnerSlot(s)">
+                        {{ s.heure }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="slot-selected-info" *ngIf="rdvSlotSelected">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    Créneau sélectionné : <strong>{{ rdvSlotSelected.label }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Étape 3 : Motif -->
+            <div class="form-group" *ngIf="rdvSlotSelected">
+              <label class="form-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Motif de la consultation <span class="req">*</span>
+              </label>
+              <input type="text" class="form-input" [(ngModel)]="rdvMotif" name="rmo"
+                placeholder="Ex: Douleurs abdominales, contrôle tension, renouvellement ordonnance..."/>
+            </div>
+
+            <div class="alert alert-danger" *ngIf="rdvError">{{ rdvError }}</div>
+            <div class="alert alert-success" *ngIf="rdvSuccess">{{ rdvSuccess }}</div>
+
+            <button class="btn btn-primary" (click)="prendreRdv()"
+              [disabled]="loading['rdv-form'] || !rdvSlotSelected || !rdvMotif"
+              *ngIf="rdvSlotSelected">
+              <div class="spinner spinner-sm" *ngIf="loading['rdv-form']"></div>
+              {{ loading['rdv-form'] ? 'Réservation...' : 'Confirmer le rendez-vous' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Liste RDV -->
+        <div class="loading-inline" *ngIf="loading['rdv']"><div class="spinner spinner-sm"></div> Chargement...</div>
+        <div *ngIf="!loading['rdv']">
+          <div class="empty-state" *ngIf="rdvList.length===0">
+            <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <h3>Aucun rendez-vous</h3><p>Prenez votre premier rendez-vous ci-dessus.</p>
+          </div>
+          <div class="card" *ngIf="rdvList.length>0">
+            <div class="card-header"><div class="card-title">Historique des rendez-vous ({{ rdvList.length }})</div></div>
+            <div class="table-wrap" style="border:none;border-radius:0">
+              <table class="table">
+                <thead><tr><th>Date</th><th>Heure</th><th>Médecin</th><th>Motif</th><th>Statut</th><th>Action</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let r of rdvList">
+                    <td style="font-weight:700">{{ r.date_rdv | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ r.heure_rdv?.slice(0,5) }}</td>
+                    <td>Dr. {{ r.medecin_prenom }} {{ r.medecin_nom }}</td>
+                    <td style="font-size:12px;color:var(--text-2)">{{ r.motif }}</td>
+                    <td><span class="statut" [ngClass]="'statut-'+r.statut?.toLowerCase()">{{ formatStatut(r.statut) }}</span></td>
+                    <td>
+                      <button class="btn btn-danger btn-sm"
+                        *ngIf="r.statut!=='annule' && r.statut!=='termine'"
+                        (click)="annulerRdv(r.id_rdv)">Annuler</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ DOSSIER MÉDICAL ════ -->
+      <div *ngIf="activeTab==='dossier'">
+        <div class="page-header">
+          <div class="page-header-left"><h1>Mon dossier médical</h1><p>Historique médical complet</p></div>
+          <button class="btn btn-secondary btn-sm" (click)="chargerDossier()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Actualiser
+          </button>
+        </div>
+        <div class="loading-center" *ngIf="loading['dossier']"><div class="spinner"></div>Chargement du dossier...</div>
+
+        <div *ngIf="!loading['dossier'] && dossierComplet" class="medical-document">
+          <div class="med-doc-header">
+            <div>
+              <div class="med-doc-clinic-name">Cabinet MediNova</div>
+              <div class="med-doc-clinic-info">Alger, Algérie · Plateforme médicale numérique</div>
+            </div>
+            <div style="text-align:right">
+              <div class="med-doc-ref-title">DOSSIER MÉDICAL</div>
+              <div class="med-doc-ref-num">N° DM-{{ dossierComplet.dossier?.id_dossier | number:'4.0-0' }}</div>
+            </div>
+          </div>
+          <div class="med-doc-body">
+            <!-- Identité -->
+            <div class="med-doc-section">
+              <div class="med-doc-section-title">Identité du patient</div>
+              <div class="med-info-grid">
+                <div><div class="med-info-label">Nom complet</div><div class="med-info-value">{{ dossierComplet.patient?.prenom | uppercase }} {{ dossierComplet.patient?.nom | uppercase }}</div></div>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div><div class="med-info-label">Groupe sanguin</div></div>
+                  <div class="blood-badge">{{ dossierComplet.patient?.groupe_sanguin || 'ND' }}</div>
+                </div>
+                <div><div class="med-info-label">Date de naissance</div><div class="med-info-value">{{ dossierComplet.patient?.date_naissance || '—' }}</div></div>
+                <div><div class="med-info-label">Genre</div><div class="med-info-value">{{ dossierComplet.patient?.genre === 'M' ? 'Masculin' : 'Féminin' }}</div></div>
+                <div><div class="med-info-label">Téléphone</div><div class="med-info-value">{{ dossierComplet.patient?.telephone || '—' }}</div></div>
+                <div><div class="med-info-label">Wilaya</div><div class="med-info-value">{{ dossierComplet.patient?.wilaya || '—' }}</div></div>
+              </div>
+            </div>
+
+            <!-- Antécédents -->
+            <div class="med-doc-section" *ngIf="dossierComplet.patient?.allergies || dossierComplet.patient?.antecedents_medicaux">
+              <div class="med-doc-section-title">Antécédents médicaux</div>
+              <div class="med-info-grid">
+                <div *ngIf="dossierComplet.patient?.allergies"><div class="med-info-label">Allergies connues</div><div class="med-info-value" style="color:var(--danger)">{{ dossierComplet.patient.allergies }}</div></div>
+                <div *ngIf="dossierComplet.patient?.antecedents_medicaux"><div class="med-info-label">Antécédents</div><div class="med-info-value">{{ dossierComplet.patient.antecedents_medicaux }}</div></div>
+              </div>
+            </div>
+
+            <!-- Consultations -->
+            <div class="med-doc-section" *ngIf="dossierComplet.consultations?.length>0">
+              <div class="med-doc-section-title">Consultations ({{ dossierComplet.consultations.length }})</div>
+              <div *ngFor="let c of dossierComplet.consultations" class="consult-row">
+                <div class="consult-date">{{ c.date | date:'dd/MM/yyyy' }} · Dr. {{ c.medecin_prenom }} {{ c.medecin_nom }}</div>
+                <div class="consult-diagnostic">Diagnostic : {{ c.diagnostic }}</div>
+                <div class="consult-traitement">Traitement : {{ c.traitement }}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px" *ngIf="c.note">Note : {{ c.note }}</div>
+              </div>
+            </div>
+
+            <!-- Vide -->
+            <div class="empty-state" *ngIf="!dossierComplet.consultations?.length">
+              <p>Aucune consultation enregistrée à ce jour.</p>
+            </div>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="!loading['dossier'] && !dossierComplet">
+          <h3>Dossier non disponible</h3>
+          <p>Votre dossier médical sera créé lors de votre première consultation.</p>
+        </div>
+      </div>
+
+      <!-- ════ ORDONNANCES ════ -->
+      <div *ngIf="activeTab==='ordonnances'">
+        <div class="page-header">
+          <div class="page-header-left"><h1>Mes ordonnances</h1><p>Prescriptions médicales</p></div>
+        </div>
+        <div class="loading-center" *ngIf="loading['dossier']"><div class="spinner"></div>Chargement...</div>
+        <div *ngIf="!loading['dossier']">
+          <div class="empty-state" *ngIf="ordonnances.length===0">
+            <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg></div>
+            <h3>Aucune ordonnance</h3>
+            <p>Vos ordonnances médicales apparaîtront ici.</p>
+          </div>
+          <div *ngFor="let o of ordonnances" class="prescription">
+            <div class="presc-header">
+              <div>
+                <div class="presc-clinic-name">Cabinet MediNova</div>
+                <div class="presc-clinic-info">Dr. {{ o.medecin_prenom }} {{ o.medecin_nom }}</div>
+              </div>
+              <div>
+                <div class="presc-title">ORDONNANCE</div>
+                <div class="presc-num">N° ORD-{{ o.id_ordonnance }}</div>
+              </div>
+            </div>
+            <div class="presc-patient-bar">
+              <span>Patient : <strong>{{ auth.user?.prenom }} {{ auth.user?.nom }}</strong></span>
+              <span>Date : <strong>{{ o.date_emission | date:'dd/MM/yyyy' }}</strong></span>
+            </div>
+            <div class="presc-body">
+              <div class="presc-rx">℞</div>
+              <div *ngFor="let m of (o.medicaments||[]); let i=index" class="presc-med">
+                <div class="presc-med-num">{{ i+1 }}</div>
+                <div>
+                  <div class="presc-med-name">{{ m.nom }}</div>
+                  <div class="presc-med-details">{{ m.dosage }} — {{ m.duree }}</div>
+                </div>
+              </div>
+              <div class="presc-instructions" *ngIf="o.instructions">Instructions : {{ o.instructions }}</div>
+            </div>
+            <div class="presc-footer">
+              <div class="presc-date">{{ o.date_emission | date:'dd/MM/yyyy' }}</div>
+              <div style="display:flex;align-items:flex-end;gap:24px">
+                <div class="qr-wrap">
+                  <div [id]="'qr-'+o.id_ordonnance" style="width:64px;height:64px"></div>
+                  <div class="qr-label">Scan de vérification</div>
+                </div>
+                <div class="presc-signature">Signature Médecin</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ NOTIFICATIONS ════ -->
+      <div *ngIf="activeTab==='notifications'">
+        <div class="page-header">
+          <div class="page-header-left"><h1>Notifications</h1><p>{{ notifCount() }} non lue(s)</p></div>
+        </div>
+        <div class="loading-inline" *ngIf="loading['notifs']"><div class="spinner spinner-sm"></div> Chargement...</div>
+        <div class="card" *ngIf="!loading['notifs']">
+          <div class="card-body" style="padding:0 20px">
+            <div class="notif-item" *ngFor="let n of notifications" [style.opacity]="n.lu?'.65':'1'" (click)="marquerLue(n.id_notification)">
+              <div class="notif-icon" [ngClass]="n.lu ? 'read' : 'unread'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </div>
+              <div style="flex:1">
+                <div class="notif-msg">{{ n.message }}</div>
+                <div class="notif-date">{{ n.created_at | date:'dd/MM/yyyy HH:mm' }}</div>
+              </div>
+              <div class="notif-dot" *ngIf="!n.lu"></div>
+            </div>
+            <div class="empty-state" *ngIf="notifications.length===0" style="padding:32px">
+              <h3>Aucune notification</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PROFIL ════ -->
+      <div *ngIf="activeTab==='profil'">
+        <div class="page-header"><div class="page-header-left"><h1>Mon profil</h1><p>Informations personnelles et médicales</p></div></div>
+        <div class="profil-card">
+          <div class="profil-avatar">{{ auth.initiales() }}</div>
+          <div class="form-section-title">Informations personnelles</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Prénom</label><input type="text" class="form-input" [(ngModel)]="profilPrenom" name="pp"/></div>
+            <div class="form-group"><label class="form-label">Nom</label><input type="text" class="form-input" [(ngModel)]="profilNom" name="pn"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" [(ngModel)]="profilEmail" name="pe"/></div>
+            <div class="form-group"><label class="form-label">Téléphone</label><input type="tel" class="form-input" [(ngModel)]="profilTel" name="pt"/></div>
+          </div>
+          <div class="alert alert-danger" *ngIf="profilError">{{ profilError }}</div>
+          <div class="alert alert-success" *ngIf="profilSuccess">{{ profilSuccess }}</div>
+          <button class="btn btn-primary" (click)="sauvegarderProfil()" [disabled]="profilLoading">
+            <div class="spinner spinner-sm" *ngIf="profilLoading"></div>
+            {{ profilLoading ? 'Sauvegarde...' : 'Sauvegarder les modifications' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

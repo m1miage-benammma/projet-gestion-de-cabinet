@@ -1,0 +1,51 @@
+<div class="site">
+  <nav class="navbar">
+    <div class="nb-wrap">
+      <div class="nb-logo">
+        <div class="nb-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2v18M2 11h18" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+        <span>MediNova</span>
+      </div>
+      <div class="nb-actions">
+        <button class="nb-reg" (click)="goRegister()">S'inscrire</button>
+        <button class="nb-login" (click)="goLogin()">Se connecter</button>
+      </div>
+    </div>
+  </nav>
+  <section class="hero">
+    <div class="hero-wrap">
+      <div class="hero-text">
+        <div class="hero-badge"><span class="hb-dot"></span>Cabinet médical · Alger, Algérie</div>
+        <h1>Votre santé,<br><em>notre priorité</em></h1>
+        <p>Prenez rendez-vous en ligne avec nos médecins spécialistes, consultez vos dossiers médicaux et gérez vos ordonnances — simplement.</p>
+        <div class="hero-btns">
+          <button class="btn-hero-p" (click)="goRegister()">Créer un compte</button>
+          <button class="btn-hero-s" (click)="goLogin()">Se connecter</button>
+        </div>
+        <div class="hero-trust">
+          <div class="ht-item"><span class="ht-num">2400+</span><span class="ht-lab">Patients</span></div>
+          <div class="ht-sep"></div>
+          <div class="ht-item"><span class="ht-num">15+</span><span class="ht-lab">Médecins</span></div>
+          <div class="ht-sep"></div>
+          <div class="ht-item"><span class="ht-num">98%</span><span class="ht-lab">Satisfaction</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="section" id="medecins">
+    <div class="sw">
+      <div class="sec-head"><h2>Nos médecins spécialistes</h2></div>
+      <div class="loading-state" *ngIf="loading['medecins']"><div class="sp"></div><p>Chargement...</p></div>
+      <div class="doctors-grid" *ngIf="!loading['medecins'] && medecins.length > 0">
+        <div class="doc-card" *ngFor="let m of medecins">
+          <div class="doc-ava">👨‍⚕️</div>
+          <h4 class="doc-name">Dr. {{ m.prenom }} {{ m.nom }}</h4>
+          <span class="doc-spec">{{ m.specialite }}</span>
+          <div class="doc-footer">
+            <span class="doc-dispo"><span class="dot-green"></span>Disponible</span>
+            <button class="btn-reserver" (click)="goLogin()">Réserver</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

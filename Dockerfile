@@ -57,7 +57,7 @@ RUN addgroup -S appuser && adduser -S -G appuser appuser
 
 COPY --from=backend-builder /app .
 
-RUN mkdir -p storage/framework/{sessions,views,cache} bootstrap/cache \
+RUN mkdir -p storage/framework/{sessions,views,cache/data} bootstrap/cache \
     /var/lib/nginx/tmp/client_body \
     /var/lib/nginx/tmp/proxy \
     /var/lib/nginx/tmp/fastcgi \
@@ -93,7 +93,7 @@ RUN printf 'pid /tmp/nginx.pid;\n\
     }\n\
     }\n' > /etc/nginx/nginx.conf
 
-RUN printf '#!/bin/sh\nset -e\nphp artisan key:generate --force\nphp artisan migrate --force || echo "[WARNING] Migration skipped (DB not ready)"\nphp-fpm -D\nnginx -g "daemon off;"\n' > /entrypoint.sh \
+RUN printf '#!/bin/sh\nset -e\nphp artisan key:generate --force\nmkdir -p storage/framework/views storage/framework/cache/data storage/framework/sessions\nchmod -R 777 storage bootstrap/cache\nphp artisan migrate --force || echo "[WARNING] Migration skipped (DB not ready)"\nphp-fpm -D\nnginx -g "daemon off;"\n' > /entrypoint.sh \
     && chmod +x /entrypoint.sh
 
 USER appuser

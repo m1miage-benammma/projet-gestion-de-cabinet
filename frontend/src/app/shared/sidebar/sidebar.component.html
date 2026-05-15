@@ -1,0 +1,22 @@
+<aside class="sidebar" [class.open]="open">
+  <div class="sb-logo">
+    <div class="nb-icon"><svg width="20" height="20" viewBox="0 0 22 22" fill="none"><path d="M11 2v18M2 11h18" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+    <span>MediNova</span>
+  </div>
+  <div class="sb-user">
+    <div class="sb-ava">{{ auth.initiales() }}</div>
+    <div>
+      <div class="sb-name">{{ auth.user?.prenom }} {{ auth.user?.nom }}</div>
+      <span class="role-badge" [ngClass]="'rb-'+color">{{ roleLabel }}</span>
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <button *ngFor="let t of tabs" class="sb-item"
+            [class.active]="activeTab===t.id"
+            (click)="tabChange.emit(t.id)">
+      <span class="sb-ico">{{ t.ico }}</span>{{ t.label }}
+      <span class="sb-badge" *ngIf="t.ico==='🔔' && notifCount>0">{{ notifCount }}</span>
+    </button>
+  </nav>
+  <button class="sb-out" (click)="auth.logout()">🚪 Déconnexion</button>
+</aside>
