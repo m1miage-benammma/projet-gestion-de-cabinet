@@ -131,10 +131,10 @@
                   Ce médecin n'a pas encore défini son planning. Choisissez un autre médecin.
                 </div>
                 <div *ngIf="rdvSlots.length > 0">
-                  <div *ngFor="let date of getDatesDispos()" style="margin-bottom:14px">
+                  <div *ngFor="let date of getDatesDispos(); trackBy: trackByDate" style="margin-bottom:14px">
                     <div class="slots-date-label">{{ date | date:'EEEE d MMMM':'':'fr' }}</div>
                     <div class="slots-row">
-                      <button *ngFor="let s of getSlotsParDate(date)"
+                      <button *ngFor="let s of getSlotsParDate(date); trackBy: trackBySlot"
                         class="slot-btn"
                         [class.slot-selected]="rdvSlotSelected?.date===s.date && rdvSlotSelected?.heure===s.heure"
                         [class.slot-pris]="s.pris"

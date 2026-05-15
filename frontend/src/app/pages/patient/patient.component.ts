@@ -45,6 +45,7 @@ export class PatientComponent implements OnInit, AfterViewChecked {
   rdvDispos: any[] = [];
   rdvSlots: any[] = [];
   rdvDatesDispos: string[] = [];
+  rdvSlotsMap: { [date: string]: any[] } = {};
   rdvSlotSelected: any = null;
   rdvSuccess = "";
   rdvError = "";
@@ -149,6 +150,8 @@ export class PatientComponent implements OnInit, AfterViewChecked {
   chargerDispos() {
     this.rdvDispos = [];
     this.rdvSlots = [];
+    this.rdvSlotsMap = {};
+    this.rdvDatesDispos = [];
     this.rdvSlotSelected = null;
     this.rdvDate = '';
     if (!this.rdvMedecinId) return;
@@ -200,17 +203,26 @@ export class PatientComponent implements OnInit, AfterViewChecked {
     }
     // Cache les dates une seule fois après génération
     this.rdvDatesDispos = [...new Set(this.rdvSlots.map((s: any) => s.date))] as string[];
+    // Cache les slots par date pour éviter les re-renders
+    this.rdvSlotsMap = {};
+    for (const s of this.rdvSlots) {
+      if (!this.rdvSlotsMap[s.date]) this.rdvSlotsMap[s.date] = [];
+      this.rdvSlotsMap[s.date].push(s);
+    }
   }
 
-  // Récupère les slots pour une date donnée
+  // Récupère les slots pour une date donnée (depuis le cache Map)
   getSlotsParDate(date: string): any[] {
-    return this.rdvSlots.filter((s: any) => s.date === date);
+    return this.rdvSlotsMap[date] || [];
   }
 
   // Dates uniques disponibles (utilise le cache)
   getDatesDispos(): string[] {
     return this.rdvDatesDispos;
   }
+
+  trackByDate(index: number, date: string): string { return date; }
+  trackBySlot(index: number, s: any): string { return s.date + s.heure; }
 
   selectionnerSlot(slot: any) {
     if (slot.pris) return;
@@ -272,6 +284,7 @@ export class PatientComponent implements OnInit, AfterViewChecked {
         this.rdvMedecinId = 0;
         this.rdvSlots = [];
         this.rdvDatesDispos = [];
+        this.rdvSlotsMap = {};
         this.rdvSlotSelected = null;
         this.rdvDispos = [];
         this.toast.success("Rendez-vous confirmé !");

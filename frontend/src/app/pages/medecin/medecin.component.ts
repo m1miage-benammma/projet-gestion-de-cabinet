@@ -145,10 +145,27 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
 
   ouvrirOrdoForm(rdv: any) {
     this.rdvSelectionne = rdv;
-    this.consultEnregistree = true;
     this.ordonnanceGeneree = null;
     this.ordoForm = { instructions: "", medicaments: [{ nom: "", dosage: "", duree: "" }] };
-    this.setTab("consultation");
+    this.lastConsultId = 0;
+    // Chercher la consultation existante pour ce dossier patient
+    this.api.dossierUtilisateur(rdv.id_patient).subscribe({
+      next: dos => {
+        if (dos?.consultations?.length) {
+          // Prendre la consultation la plus récente
+          const sorted = [...dos.consultations].sort((a: any, b: any) =>
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          this.lastConsultId = sorted[0].id_consultation;
+        }
+        this.consultEnregistree = true;
+        this.setTab("consultation");
+      },
+      error: () => {
+        this.consultEnregistree = true;
+        this.setTab("consultation");
+      }
+    });
   }
 
   confirmerRdv(id: number) {
