@@ -31,6 +31,7 @@ services:
       DB_DATABASE: gestion_cabinet
       DB_USERNAME: laravel
       DB_PASSWORD: secret
+      ANTHROPIC_API_KEY: "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"
     depends_on:
       db:
         condition: service_healthy

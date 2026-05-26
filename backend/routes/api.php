@@ -29,6 +29,28 @@ Route::get('/medecins/{id}',    [MedecinController::class, 'show']);
 Route::get('/disponibilites/medecin/{id}', [DisponibiliteController::class, 'byMedecin']);
 
 // ═══════════════════════════════════════════════════════════════════
+// ORDONNANCE PUBLIQUE (sans auth — pour QR code)
+// ═══════════════════════════════════════════════════════════════════
+Route::get('/ordonnance-publique/{id}', function (int $id) {
+    $o = DB::table('ordonnances as o')
+        ->join('consultations as c', 'c.id_consultation', '=', 'o.id_consultation')
+        ->join('dossiers_medicaux as d', 'd.id_dossier', '=', 'c.id_dossier')
+        ->join('utilisateurs as p', 'p.id_utilisateur', '=', 'd.id_patient')
+        ->join('utilisateurs as m', 'm.id_utilisateur', '=', 'c.id_medecin')
+        ->where('o.id_ordonnance', $id)
+        ->select(
+            'o.id_ordonnance', 'o.date_emission', 'o.instructions',
+            'p.nom as patient_nom', 'p.prenom as patient_prenom',
+            'm.nom as medecin_nom', 'm.prenom as medecin_prenom',
+            'c.diagnostic', 'c.traitement'
+        )
+        ->first();
+    if (!$o) return response()->json(['message' => 'Ordonnance introuvable.'], 404);
+    $meds = DB::table('medicaments')->where('id_ordonnance', $id)->get()->toArray();
+    return response()->json(array_merge((array)$o, ['medicaments' => $meds]));
+});
+
+// ═══════════════════════════════════════════════════════════════════
 // PRISE DE RDV (authentifié)
 // ═══════════════════════════════════════════════════════════════════
 Route::middleware('auth.middleware')->post('/prise-rdv', function (Request $r) {
@@ -88,6 +110,19 @@ Route::middleware('auth.middleware')->post('/prise-rdv', function (Request $r) {
         'updated_at'     => now(),
     ]);
 
+    // Notifier toutes les infirmières
+    $infirmieres = DB::table('infirmieres')->pluck('id_utilisateur');
+    foreach ($infirmieres as $idInf) {
+        DB::table('notifications')->insert([
+            'id_utilisateur' => $idInf,
+            'message'        => "Nouveau rendez-vous — {$patientUser?->prenom} {$patientUser?->nom} — le {$dateRdv} à {$heureRdv}",
+            'type'           => 'rdv_nouveau',
+            'lu'             => false,
+            'created_at'     => now(),
+            'updated_at'     => now(),
+        ]);
+    }
+
     // Retourner le RDV enrichi
     $rdv = DB::table('rendez_vous as rv')
         ->join('utilisateurs as u', 'rv.id_patient', '=', 'u.id_utilisateur')
@@ -115,7 +150,35 @@ Route::middleware('auth.middleware')->group(function () {
     Route::put('/utilisateurs/{id}/mot-de-passe', [UtilisateurController::class, 'changerMotDePasse']);
 
     // ── Patients ──────────────────────────────────────────────────
-    Route::get('/patients',         [PatientController::class, 'index']);
+    // Patients du médecin connecté (seulement ceux qui ont eu un RDV avec lui)
+    Route::get('/mes-patients', function (Request $r) {
+        $idMedecin = (int) $r->attributes->get('id_utilisateur');
+        $patients = DB::table('utilisateurs as u')
+            ->join('patients as p', 'p.id_utilisateur', '=', 'u.id_utilisateur')
+            ->join('rendez_vous as rv', 'rv.id_patient', '=', 'u.id_utilisateur')
+            ->join('disponibilites as d', 'd.id_disponibilite', '=', 'rv.id_disponibilite')
+            ->where('d.id_medecin', $idMedecin)
+            ->select('u.id_utilisateur','u.nom','u.prenom','u.email','u.telephone','u.genre','p.date_naissance','p.groupe_sanguin','p.adresse','p.allergies','p.antecedents_medicaux')
+            ->distinct()
+            ->get();
+        // Log d'accès (traçabilité loi 17-08)
+        DB::table('logs_acces_dossier')->insert([
+            'id_medecin'   => $idMedecin,
+            'action'       => 'consultation_liste_patients',
+            'created_at'   => now(),
+            'updated_at'   => now(),
+        ]);
+        return response()->json($patients);
+    });
+
+    Route::get('/patients', function () {
+        return response()->json(
+            DB::table('utilisateurs as u')
+                ->join('patients as p', 'p.id_utilisateur', '=', 'u.id_utilisateur')
+                ->select('u.id_utilisateur','u.nom','u.prenom','u.email','u.telephone','u.genre','p.date_naissance','p.groupe_sanguin','p.adresse')
+                ->get()
+        );
+    });
     Route::post('/patients',        [PatientController::class, 'store']);
     Route::get('/patients/{id}',    [PatientController::class, 'show']);
     Route::put('/patients/{id}',    [PatientController::class, 'update']);
@@ -136,14 +199,16 @@ Route::middleware('auth.middleware')->group(function () {
         return response()->json($rdvs);
     });
 
-    // ── RDV du jour (infirmière) ──────────────────────────────────
+    // ── RDV à venir (infirmière) ──────────────────────────────────
     Route::get('/rendez-vous-jour', function () {
         $today = now()->toDateString();
         $rdvs = DB::table('rendez_vous as rv')
             ->join('utilisateurs as u', 'rv.id_patient', '=', 'u.id_utilisateur')
             ->join('disponibilites as d', 'rv.id_disponibilite', '=', 'd.id_disponibilite')
             ->join('utilisateurs as um', 'd.id_medecin', '=', 'um.id_utilisateur')
-            ->where('rv.date_rdv', $today)
+            ->where('rv.date_rdv', '>=', $today)
+            ->whereNotIn('rv.statut', ['annule', 'termine'])
+            ->orderBy('rv.date_rdv', 'asc')
             ->orderBy('rv.heure_rdv', 'asc')
             ->select('rv.*', 'u.nom', 'u.prenom', 'u.email', 'u.telephone',
                      'um.nom as medecin_nom', 'um.prenom as medecin_prenom')
@@ -202,7 +267,7 @@ Route::middleware('auth.middleware')->group(function () {
 
     // Dossier complet du patient connecté
     Route::get('/dossier-complet', function (Request $r) {
-        $authUser = $r->attributes->get('auth_user'); $idUtilisateur = (int)($authUser->id_utilisateur ?? $r->attributes->get('id_utilisateur') ?? 0);
+        $idUtilisateur = (int)($r->attributes->get('id_utilisateur') ?? 0);
 
         $patient = DB::table('patients as p')
             ->join('utilisateurs as u', 'p.id_utilisateur', '=', 'u.id_utilisateur')
@@ -261,7 +326,15 @@ Route::middleware('auth.middleware')->group(function () {
 
     // ── Consultations ─────────────────────────────────────────────
     Route::post('/consultations',             [ConsultationController::class, 'store']);
-    Route::get('/consultations/dossier/{id}', [ConsultationController::class, 'byDossier']);
+    Route::get('/consultations/dossier/{id}', function (int $id) {
+        $consultations = DB::table('consultations as c')
+            ->join('utilisateurs as u', 'c.id_medecin', '=', 'u.id_utilisateur')
+            ->where('c.id_dossier', $id)
+            ->orderBy('c.date', 'desc')
+            ->select('c.*', 'u.nom as medecin_nom', 'u.prenom as medecin_prenom')
+            ->get();
+        return response()->json($consultations);
+    });
     Route::get('/consultations/{id}',         [ConsultationController::class, 'show']);
 
     // ── Ordonnances ───────────────────────────────────────────────
@@ -303,6 +376,18 @@ Route::middleware('auth.middleware')->group(function () {
     Route::get('/soins/patient/{id}',    [SoinsController::class, 'byPatient']);
     Route::get('/soins/infirmiere/{id}', [SoinsController::class, 'byInfirmiere']);
 
+    // Soins du patient connecté
+    Route::get('/mes-soins-patient', function (Request $r) {
+        $idPatient = (int) $r->attributes->get('id_utilisateur');
+        $soins = DB::table('soins as s')
+            ->join('utilisateurs as inf', 's.id_infirmiere', '=', 'inf.id_utilisateur')
+            ->where('s.id_patient', $idPatient)
+            ->orderBy('s.date', 'desc')
+            ->select('s.*', 'inf.nom as infirmiere_nom', 'inf.prenom as infirmiere_prenom')
+            ->get();
+        return response()->json($soins);
+    });
+
     // Soins de l'infirmière connectée
     Route::get('/mes-soins', function (Request $r) {
         $idInfirmiere = (int) $r->attributes->get('id_utilisateur');
@@ -339,53 +424,34 @@ Route::middleware('auth.middleware')->group(function () {
             return response()->json(['message' => 'Veuillez décrire vos symptômes.'], 422);
         }
 
-        $lower = strtolower($symptomes);
-        $urgence    = 'FAIBLE';
-        $specialite = 'Médecine générale';
-        $medicaments = [];
-        $recommandations = [];
-
-        $motsClesHaute  = ['douleur thoracique','chest pain','essoufflement','perte de connaissance','paralysie','avc','hémorragie','convulsion'];
-        $motsClesMoyenne = ['fièvre','vomissement','diarrhée','douleur abdominale','migraine','allergie','infection','toux persistante','saignement'];
-
-        foreach ($motsClesHaute as $k) {
-            if (str_contains($lower, $k)) { $urgence = 'HAUTE'; break; }
-        }
-        if ($urgence !== 'HAUTE') {
-            foreach ($motsClesMoyenne as $k) {
-                if (str_contains($lower, $k)) { $urgence = 'MOYENNE'; break; }
-            }
+        $apiKey = env('ANTHROPIC_API_KEY');
+        if (!$apiKey) {
+            return response()->json(['message' => 'Service IA non configuré.'], 500);
         }
 
-        if (str_contains($lower, 'coeur') || str_contains($lower, 'thoracique') || str_contains($lower, 'cardiaque')) {
-            $specialite = 'Cardiologie';
-        } elseif (str_contains($lower, 'peau') || str_contains($lower, 'éruption') || str_contains($lower, 'allergie')) {
-            $specialite = 'Dermatologie';
-        } elseif (str_contains($lower, 'toux') || str_contains($lower, 'respir') || str_contains($lower, 'poumon')) {
-            $specialite = 'Pneumologie';
-        } elseif (str_contains($lower, 'ventre') || str_contains($lower, 'estomac') || str_contains($lower, 'digestion')) {
-            $specialite = 'Gastroentérologie';
-        } elseif (str_contains($lower, 'tête') || str_contains($lower, 'migraine') || str_contains($lower, 'neural')) {
-            $specialite = 'Neurologie';
-        } elseif (str_contains($lower, 'os') || str_contains($lower, 'articulation') || str_contains($lower, 'dos')) {
-            $specialite = 'Orthopédie';
-        }
-
-        if ($urgence === 'HAUTE') {
-            $recommandations[] = 'Consultez les urgences immédiatement.';
-        } else {
-            $recommandations[] = 'Prenez rendez-vous avec un médecin dans les meilleurs délais.';
-        }
-        if (str_contains($lower, 'fièvre')) { $medicaments[] = 'Paracétamol 1g toutes les 6h (si T° > 38.5°C)'; }
-        if (str_contains($lower, 'douleur')) { $medicaments[] = 'Ibuprofène 400mg (après repas, si pas de contre-indication)'; }
-
-        return response()->json([
-            'urgence'         => $urgence,
-            'specialite'      => $specialite,
-            'recommandations' => $recommandations,
-            'medicaments'     => $medicaments,
-            'avertissement'   => 'Analyse indicative uniquement. Consultez un médecin pour un diagnostic officiel.',
+        $client = new \GuzzleHttp\Client();
+        $response = $client->post('https://api.groq.com/openai/v1/chat/completions', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type'  => 'application/json',
+            ],
+            'json' => [
+                'model'      => 'llama-3.1-8b-instant',
+                'max_tokens' => 1000,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'Tu es un assistant medical algerien. Reponds UNIQUEMENT en JSON valide sans markdown. Format: {"urgence":"FAIBLE|MOYENNE|HAUTE","specialite":"nom","diagnostic_possible":"desc","recommandations":["conseil"],"medicaments":["med"],"avertissement":"Analyse indicative."} Si charabia retourne {"erreur":true,"message":"Decrivez vos symptomes en francais"}'],
+                    ['role' => 'user', 'content' => "Symptomes: {$symptomes}"]
+                ],
+            ],
+            'http_errors' => false,
         ]);
+
+        $body = json_decode($response->getBody()->getContents(), true);
+        $text = $body['choices'][0]['message']['content'] ?? '{"erreur":true,"message":"Erreur analyse."}';
+        $clean = preg_replace('/```json|```/', '', $text);
+        $result = json_decode(trim($clean), true);
+        if (!$result) { $result = ['erreur' => true, 'message' => 'Erreur IA.']; }
+        return response()->json($result);
     });
 
     // ── Envoi ordonnance par email ────────────────────────────────

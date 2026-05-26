@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('disponibilites', function (Blueprint $table) {
             $table->id('id_disponibilite');
             $table->unsignedBigInteger('id_medecin');
-            $table->enum('jour', ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi']);
+            $table->enum('jour', ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche']);
             $table->time('heure_debut');
             $table->time('heure_fin');
             $table->foreign('id_medecin')
