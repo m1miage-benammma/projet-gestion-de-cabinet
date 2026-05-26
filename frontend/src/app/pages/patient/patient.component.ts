@@ -46,18 +46,41 @@ export class PatientComponent implements OnInit, AfterViewChecked {
   rdvSlots: any[] = [];
   rdvDatesDispos: string[] = [];
   rdvSlotsMap: { [date: string]: any[] } = {};
+  rdvJourSelectionne: string = '';
   rdvSlotSelected: any = null;
   rdvSuccess = "";
   rdvError = "";
 
-  // IA triage
+  // IA triage - vraie IA avec Claude via backend
   symptomes = "";
   triageResult: any = null;
   triageLoading = false;
+  triageError = "";
+
+  analyserSymptomes() {
+    if (!this.symptomes.trim()) return;
+    this.triageLoading = true;
+    this.triageResult = null;
+    this.triageError = "";
+    this.api.triage(this.symptomes).subscribe({
+      next: (r: any) => {
+        this.triageResult = r;
+        this.triageLoading = false;
+      },
+      error: () => {
+        this.triageError = "Service d'analyse temporairement indisponible.";
+        this.triageLoading = false;
+      }
+    });
+  }
 
   // Profil
   profilNom = ""; profilPrenom = ""; profilTel = ""; profilEmail = "";
   profilSuccess = ""; profilError = ""; profilLoading = false;
+  pwAncien = ""; pwNouveau = ""; pwConfirm = "";
+  pwSuccess = ""; pwError = ""; pwLoading = false;
+  dossierTab = -1;
+  soinsPatient: any[] = [];
 
   // QR code tracker (CORRECTIF duplication : tracker séparé)
   private qrRenderedIds = new Set<number>();
@@ -81,7 +104,8 @@ export class PatientComponent implements OnInit, AfterViewChecked {
           const el = document.getElementById("qr-" + o.id_ordonnance);
           if (el && el.children.length === 0) {
             this.qrRenderedIds.add(o.id_ordonnance);
-            this.renderQR(el, `MEDINOVA|ORD-${o.id_ordonnance}|${o.date_emission}|Cabinet MediNova Alger`);
+            const url = `http://192.168.100.147:4200?ordonnance=${o.id_ordonnance}`;
+            this.renderQR(el, url);
           }
         }
       });
@@ -117,7 +141,7 @@ export class PatientComponent implements OnInit, AfterViewChecked {
     this.successMsg = "";
     this.errorMsg = "";
     if (tab === "rdv") this.chargerRdv();
-    if (tab === "dossier" || tab === "ordonnances") this.chargerDossier();
+    if (tab === "dossier" || tab === "ordonnances") { this.chargerDossier(); this.chargerRdv(); }
     if (tab === "notifications") this.chargerNotifications();
     if (tab === "profil") {
       const u = this.auth.user;
@@ -152,6 +176,7 @@ export class PatientComponent implements OnInit, AfterViewChecked {
     this.rdvSlots = [];
     this.rdvSlotsMap = {};
     this.rdvDatesDispos = [];
+    this.rdvJourSelectionne = '';
     this.rdvSlotSelected = null;
     this.rdvDate = '';
     if (!this.rdvMedecinId) return;
@@ -224,6 +249,18 @@ export class PatientComponent implements OnInit, AfterViewChecked {
   trackByDate(index: number, date: string): string { return date; }
   trackBySlot(index: number, s: any): string { return s.date + s.heure; }
 
+  formatJourNom(dateStr: string): string {
+    const jours = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+    return jours[new Date(dateStr).getDay()];
+  }
+  formatJourNum(dateStr: string): string {
+    return new Date(dateStr).getDate().toString();
+  }
+  formatJourMois(dateStr: string): string {
+    const mois = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+    return mois[new Date(dateStr).getMonth()];
+  }
+
   selectionnerSlot(slot: any) {
     if (slot.pris) return;
     this.rdvSlotSelected = slot;
@@ -233,14 +270,40 @@ export class PatientComponent implements OnInit, AfterViewChecked {
 
   chargerDossier() {
     this.loading["dossier"] = true;
-    this.api.getDossierComplet(this.auth.userId()).subscribe({
-      next: d => {
-        this.dossierComplet = d;
-        // CORRECTIF DUPLICATION : assigner une seule fois
-        this.ordonnances = d?.ordonnances || [];
-        this.loading["dossier"] = false;
+    // Appel 1 : dossier patient
+    this.api.dossierUtilisateur(this.auth.userId()).subscribe({
+      next: (dos: any) => {
+        console.log('DOS:', dos, 'id_dossier:', dos?.id_dossier);
+        if (!dos?.id_dossier) { this.loading["dossier"] = false; return; }
+        // Appel 2 : consultations du dossier
+        this.api.consultationsByDossier(dos.id_dossier).subscribe({
+          next: (consultations: any[]) => {
+            console.log('CONSULTATIONS:', consultations);
+            this.dossierComplet = {
+              dossier: dos,
+              patient: this.auth.user,
+              consultations: consultations || []
+            };
+            this.loading["dossier"] = false;
+          },
+          error: (e: any) => {
+            console.log('ERREUR CONSULTATIONS:', e);
+            this.dossierComplet = { dossier: dos, patient: this.auth.user, consultations: [] };
+            this.loading["dossier"] = false;
+          }
+        });
       },
       error: () => this.loading["dossier"] = false
+    });
+    // Charger les ordonnances séparément
+    this.api.getOrdonnances(this.auth.userId()).subscribe({
+      next: (o: any[]) => this.ordonnances = o || [],
+      error: () => {}
+    });
+    // Charger les soins
+    this.api.getSoinsPatient().subscribe({
+      next: (s: any[]) => this.soinsPatient = s || [],
+      error: () => {}
     });
   }
 
@@ -254,6 +317,22 @@ export class PatientComponent implements OnInit, AfterViewChecked {
 
   marquerLue(id: number) {
     this.api.marquerLue(id).subscribe({ next: () => this.chargerNotifications(), error: () => {} });
+  }
+
+  imprimerOrdonnance(o: any) {
+    const url = `http://192.168.100.147:4200?ordonnance=${o.id_ordonnance}`;
+    window.open(url, '_blank');
+  }
+
+  imprimerDossier() {
+    window.print();
+  }
+
+  formatJourConsult(dateStr: string): string {
+    const jours = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+    const mois = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const d = new Date(dateStr);
+    return jours[d.getDay()];
   }
 
   prendreRdv() {
@@ -285,6 +364,7 @@ export class PatientComponent implements OnInit, AfterViewChecked {
         this.rdvSlots = [];
         this.rdvDatesDispos = [];
         this.rdvSlotsMap = {};
+        this.rdvJourSelectionne = '';
         this.rdvSlotSelected = null;
         this.rdvDispos = [];
         this.toast.success("Rendez-vous confirmé !");
@@ -305,15 +385,6 @@ export class PatientComponent implements OnInit, AfterViewChecked {
     });
   }
 
-  analyserSymptomes() {
-    if (!this.symptomes.trim()) return;
-    this.triageLoading = true;
-    this.triageResult = null;
-    this.api.triage(this.symptomes).subscribe({
-      next: r => { this.triageResult = r; this.triageLoading = false; },
-      error: () => { this.triageLoading = false; this.toast.error("Service d'analyse temporairement indisponible."); }
-    });
-  }
 
   sauvegarderProfil() {
     this.profilLoading = true;
@@ -328,6 +399,18 @@ export class PatientComponent implements OnInit, AfterViewChecked {
         this.toast.success("Profil sauvegardé.");
       },
       error: e => { this.profilLoading = false; this.profilError = e.error?.message || "Erreur sauvegarde."; }
+    });
+  }
+
+  changerMotDePasse() {
+    this.pwError = ""; this.pwSuccess = "";
+    if (!this.pwAncien || !this.pwNouveau || !this.pwConfirm) { this.pwError = "Tous les champs sont obligatoires."; return; }
+    if (this.pwNouveau !== this.pwConfirm) { this.pwError = "Les mots de passe ne correspondent pas."; return; }
+    if (this.pwNouveau.length < 6) { this.pwError = "Minimum 6 caractères."; return; }
+    this.pwLoading = true;
+    this.api.changerMotDePasse(this.auth.userId(), { ancien_mot_de_passe: this.pwAncien, nouveau_mot_de_passe: this.pwNouveau }).subscribe({
+      next: () => { this.pwLoading = false; this.pwSuccess = "Mot de passe changé !"; this.pwAncien = ""; this.pwNouveau = ""; this.pwConfirm = ""; },
+      error: e => { this.pwLoading = false; this.pwError = e.error?.message || "Ancien mot de passe incorrect."; }
     });
   }
 

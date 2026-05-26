@@ -16,11 +16,13 @@ import { ToastService } from "../../core/services/toast.service";
 export class MedecinComponent implements OnInit, AfterViewChecked {
 
   TABS = [
-    { id: "accueil",        label: "Accueil",          icon: "home" },
-    { id: "planning",       label: "Mon planning",      icon: "calendar" },
-    { id: "consultation",   label: "Consultation",      icon: "activity" },
-    { id: "disponibilites", label: "Disponibilités",    icon: "clock" },
-    { id: "profil",         label: "Mon profil",        icon: "user" },
+    { id: "accueil",        label: "Accueil",           icon: "home" },
+    { id: "planning",       label: "Mon planning",       icon: "calendar" },
+    { id: "consultation",   label: "Consultation",       icon: "activity" },
+    { id: "dossiers",       label: "Dossiers patients",  icon: "folder" },
+    { id: "disponibilites", label: "Disponibilités",     icon: "clock" },
+    { id: "notifications",  label: "Notifications",      icon: "bell" },
+    { id: "profil",         label: "Mon profil",         icon: "user" },
   ];
 
   activeTab = "accueil";
@@ -28,13 +30,18 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
   loading: any = {};
   successMsg = "";
   errorMsg = "";
-  today = new Date().toLocaleDateString("fr-DZ", { day: "2-digit", month: "2-digit", year: "numeric" });
+  today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD pour le backend
+  todayDisplay = new Date().toLocaleDateString("fr-DZ", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   planning: any[] = [];
   disponibilites: any[] = [];
   calendarView = false;
   calendarMois = new Date().getMonth();
   calendarAnnee = new Date().getFullYear();
+
+  // Propriétés cachées pour éviter les re-renders
+  rdvAujourdhuiCache: any[] = [];
+  calCells: any[] = [];
 
   rdvSelectionne: any = null;
   consultEnregistree = false;
@@ -53,6 +60,21 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
 
   profilNom = ""; profilPrenom = ""; profilTel = ""; profilEmail = "";
   profilSuccess = ""; profilError = ""; profilLoading = false;
+  pwAncien = ""; pwNouveau = ""; pwConfirm = "";
+  pwSuccess = ""; pwError = ""; pwLoading = false;
+
+  notifications: any[] = [];
+  loadingNotifs = false;
+
+  // Dossiers patients
+  patients: any[] = [];
+  patientSelectionne: any = null;
+  dossierPatient: any = null;
+  consultationsPatient: any[] = [];
+  ordonnancesPatient: any[] = [];
+  soinsPatient: any[] = [];
+  loadingDossier = false;
+  dossierConsultTab = -1;
 
   private qrRendered = new Set<number>();
 
@@ -73,7 +95,8 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
       const el = document.getElementById('qr-' + this.ordonnanceGeneree.id_ordonnance);
       if (el) {
         this.qrRendered.add(this.ordonnanceGeneree.id_ordonnance);
-        this.renderQR(el, `MEDINOVA|ORD-${this.ordonnanceGeneree.id_ordonnance}|${this.today}|Cabinet MediNova`);
+        const url = `http://192.168.100.147:4200?ordonnance=${this.ordonnanceGeneree.id_ordonnance}`;
+        this.renderQR(el, url);
       }
     }
   }
@@ -108,6 +131,8 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
     this.errorMsg = "";
     if (tab === "planning") this.chargerPlanning();
     if (tab === "disponibilites") this.chargerDispos();
+    if (tab === "notifications") this.chargerNotifications();
+    if (tab === "dossiers") this.chargerPatients();
     if (tab === "consultation" && !this.rdvSelectionne) { this.setTab("planning"); return; }
     if (tab === "profil") {
       const u = this.auth.user;
@@ -121,7 +146,11 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
   chargerPlanning() {
     this.loading["planning"] = true;
     this.api.getPlanning(this.auth.userId()).subscribe({
-      next: r => { this.planning = r; this.loading["planning"] = false; },
+      next: r => {
+        this.planning = r;
+        this.loading["planning"] = false;
+        this._refreshCache();
+      },
       error: () => { this.loading["planning"] = false; this.toast.error("Erreur chargement planning."); }
     });
   }
@@ -131,6 +160,61 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
     this.api.getDispoMedecin(this.auth.userId()).subscribe({
       next: d => { this.disponibilites = d; this.loading["dispos"] = false; },
       error: () => this.loading["dispos"] = false
+    });
+  }
+
+  chargerNotifications() {
+    this.loadingNotifs = true;
+    this.api.getNotifications(this.auth.userId()).subscribe({
+      next: (n: any[]) => { this.notifications = n; this.loadingNotifs = false; },
+      error: () => this.loadingNotifs = false
+    });
+  }
+
+  notifCount(): number { return this.notifications.filter(n => !n.lu).length; }
+
+  marquerLue(id: number) {
+    this.api.marquerLue(id).subscribe({ next: () => this.chargerNotifications(), error: () => {} });
+  }
+
+  marquerToutesLues() {
+    this.notifications.filter(n => !n.lu).forEach(n => this.api.marquerLue(n.id_notification).subscribe());
+    setTimeout(() => this.chargerNotifications(), 500);
+  }
+
+  chargerPatients() {
+    this.api.getMesPatients().subscribe({
+      next: (p: any[]) => { this.patients = p; },
+      error: () => {}
+    });
+  }
+
+  chargerDossierPatient(patient: any) {
+    this.patientSelectionne = patient;
+    this.dossierPatient = null;
+    this.consultationsPatient = [];
+    this.ordonnancesPatient = [];
+    this.soinsPatient = [];
+    this.dossierConsultTab = -1;
+    this.loadingDossier = true;
+
+    // Récupérer dossier
+    this.api.dossierUtilisateur(patient.id_utilisateur).subscribe({
+      next: (dos: any) => {
+        this.dossierPatient = dos;
+        if (!dos?.id_dossier) { this.loadingDossier = false; return; }
+        // Consultations
+        this.api.consultationsByDossier(dos.id_dossier).subscribe({
+          next: (c: any[]) => { this.consultationsPatient = c || []; this.loadingDossier = false; },
+          error: () => { this.loadingDossier = false; }
+        });
+        // Ordonnances
+        this.api.getOrdonnances(patient.id_utilisateur).subscribe({
+          next: (o: any[]) => { this.ordonnancesPatient = o || []; },
+          error: () => {}
+        });
+      },
+      error: () => { this.loadingDossier = false; }
     });
   }
 
@@ -148,18 +232,31 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
     this.ordonnanceGeneree = null;
     this.ordoForm = { instructions: "", medicaments: [{ nom: "", dosage: "", duree: "" }] };
     this.lastConsultId = 0;
-    // Chercher la consultation existante pour ce dossier patient
+    // Etape 1 : recuperer le dossier du patient pour avoir id_dossier
     this.api.dossierUtilisateur(rdv.id_patient).subscribe({
-      next: dos => {
-        if (dos?.consultations?.length) {
-          // Prendre la consultation la plus récente
-          const sorted = [...dos.consultations].sort((a: any, b: any) =>
-            new Date(b.date).getTime() - new Date(a.date).getTime()
-          );
-          this.lastConsultId = sorted[0].id_consultation;
+      next: (dos: any) => {
+        const idDossier = dos?.id_dossier;
+        if (!idDossier) {
+          this.toast.error("Dossier patient introuvable.");
+          return;
         }
-        this.consultEnregistree = true;
-        this.setTab("consultation");
+        // Etape 2 : recuperer les consultations de ce dossier
+        this.api.consultationsByDossier(idDossier).subscribe({
+          next: (consultations: any[]) => {
+            if (consultations?.length) {
+              const sorted = [...consultations].sort((a: any, b: any) =>
+                new Date(b.date).getTime() - new Date(a.date).getTime()
+              );
+              this.lastConsultId = sorted[0].id_consultation;
+            }
+            this.consultEnregistree = true;
+            this.setTab("consultation");
+          },
+          error: () => {
+            this.consultEnregistree = true;
+            this.setTab("consultation");
+          }
+        });
       },
       error: () => {
         this.consultEnregistree = true;
@@ -308,14 +405,51 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
     });
   }
 
+  changerMotDePasse() {
+    this.pwError = ""; this.pwSuccess = "";
+    if (!this.pwAncien || !this.pwNouveau || !this.pwConfirm) { this.pwError = "Tous les champs sont obligatoires."; return; }
+    if (this.pwNouveau !== this.pwConfirm) { this.pwError = "Les mots de passe ne correspondent pas."; return; }
+    if (this.pwNouveau.length < 6) { this.pwError = "Le mot de passe doit contenir au moins 6 caractères."; return; }
+    this.pwLoading = true;
+    this.api.changerMotDePasse(this.auth.userId(), { ancien_mot_de_passe: this.pwAncien, nouveau_mot_de_passe: this.pwNouveau }).subscribe({
+      next: () => { this.pwLoading = false; this.pwSuccess = "Mot de passe changé avec succès !"; this.pwAncien = ""; this.pwNouveau = ""; this.pwConfirm = ""; },
+      error: e => { this.pwLoading = false; this.pwError = e.error?.message || "Ancien mot de passe incorrect."; }
+    });
+  }
+
   ajouterMedicament() { this.ordoForm.medicaments.push({ nom: "", dosage: "", duree: "" }); }
   supprimerMedicament(i: number) { this.ordoForm.medicaments.splice(i, 1); }
 
   countStatut(s: string): number { return this.planning.filter(r => r.statut?.toLowerCase() === s).length; }
-  rdvAujourdhui(): any[] {
+
+  // Cache refresh — appelé quand planning change ou mois change
+  _refreshCache() {
     const today = new Date().toISOString().split("T")[0];
-    return this.planning.filter(r => r.date_rdv === today).sort((a, b) => a.heure_rdv.localeCompare(b.heure_rdv));
+    this.rdvAujourdhuiCache = this.planning
+      .filter(r => r.date_rdv === today)
+      .sort((a, b) => a.heure_rdv.localeCompare(b.heure_rdv));
+    this._buildCalCells();
   }
+
+  _buildCalCells() {
+    const firstDay = new Date(this.calendarAnnee, this.calendarMois, 1).getDay();
+    const daysInMonth = new Date(this.calendarAnnee, this.calendarMois + 1, 0).getDate();
+    const today = new Date();
+    const cells: any[] = [];
+    const offset = firstDay === 0 ? 6 : firstDay - 1;
+    for (let i = 0; i < offset; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${this.calendarAnnee}-${String(this.calendarMois + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      cells.push({
+        date: d, dateStr,
+        isToday: d === today.getDate() && this.calendarMois === today.getMonth() && this.calendarAnnee === today.getFullYear(),
+        rdvs: this.planning.filter(r => r.date_rdv === dateStr)
+      });
+    }
+    this.calCells = cells;
+  }
+
+  rdvAujourdhui(): any[] { return this.rdvAujourdhuiCache; }
 
   formatStatut(s: string): string {
     const m: any = { en_attente: "En attente", confirme: "Confirmé", patient_arrive: "Patient arrivé", annule: "Annulé", termine: "Terminé" };
@@ -331,25 +465,16 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
     return `${m[this.calendarMois]} ${this.calendarAnnee}`;
   }
 
-  getCalendrierMois(): any[] {
-    const firstDay = new Date(this.calendarAnnee, this.calendarMois, 1).getDay();
-    const daysInMonth = new Date(this.calendarAnnee, this.calendarMois + 1, 0).getDate();
-    const today = new Date();
-    const cells: any[] = [];
-    // Lundi en premier (0=dim → décaler)
-    const offset = firstDay === 0 ? 6 : firstDay - 1;
-    for (let i = 0; i < offset; i++) cells.push(null);
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${this.calendarAnnee}-${String(this.calendarMois + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      cells.push({
-        date: d, dateStr,
-        isToday: d === today.getDate() && this.calendarMois === today.getMonth() && this.calendarAnnee === today.getFullYear(),
-        rdvs: this.planning.filter(r => r.date_rdv === dateStr)
-      });
-    }
-    return cells;
-  }
+  getCalendrierMois(): any[] { return this.calCells; }
 
-  prevMois() { this.calendarMois--; if (this.calendarMois < 0) { this.calendarMois = 11; this.calendarAnnee--; } }
-  nextMois() { this.calendarMois++; if (this.calendarMois > 11) { this.calendarMois = 0; this.calendarAnnee++; } }
+  prevMois() {
+    this.calendarMois--;
+    if (this.calendarMois < 0) { this.calendarMois = 11; this.calendarAnnee--; }
+    this._buildCalCells();
+  }
+  nextMois() {
+    this.calendarMois++;
+    if (this.calendarMois > 11) { this.calendarMois = 0; this.calendarAnnee++; }
+    this._buildCalCells();
+  }
 }

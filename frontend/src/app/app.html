@@ -1,1 +1,1636 @@
-<!-- Routing géré dans app.ts -->
+<!-- TOAST NOTIFICATIONS -->
+<div class="toast-container">
+  <div class="toast" *ngFor="let t of toasts" [class.success]="t.type==='success'" [class.error]="t.type==='error'" [class.warning]="t.type==='warning'">
+    <span class="toast-icon">{{ t.type==='success' ? '✅' : t.type==='error' ? '❌' : '⚠️' }}</span>
+    <span>{{ t.msg }}</span>
+  </div>
+</div>
+
+<!-- ══════ HOME ══════ -->
+<div *ngIf="page==='home'" class="site">
+  <nav class="navbar">
+    <div class="nb-wrap">
+      <div class="nb-logo" (click)="goHome()">
+        <div class="nb-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2v18M2 11h18" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+        <span>MediNova</span>
+      </div>
+      <div class="nb-links">
+        <a (click)="scrollTo('medecins')">Médecins</a>
+        <a (click)="scrollTo('services')">Services</a>
+        <a (click)="scrollTo('steps')">Rendez-vous</a>
+        <a (click)="scrollTo('apropos')">À propos</a>
+      </div>
+      <div class="nb-actions">
+        <button class="dark-toggle" (click)="toggleDarkMode()" style="margin-right:4px">{{ darkMode ? "☀️" : "🌙" }}</button>
+        <button class="nb-reg" (click)="goRegister()">S'inscrire</button>
+        <button class="nb-login" (click)="goLogin()">Se connecter</button>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-wrap">
+      <div class="hero-text">
+        <div class="hero-badge"><span class="hb-dot"></span>Cabinet médical · Alger, Algérie</div>
+        <h1>Votre santé,<br><em>notre priorité</em></h1>
+        <p>Prenez rendez-vous en ligne avec nos médecins spécialistes, consultez vos dossiers médicaux et gérez vos ordonnances — simplement.</p>
+        <div class="hero-btns">
+          <button class="btn-hero-p" (click)="goRegister()">Créer un compte <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+          <button class="btn-hero-s" (click)="goLogin()">Se connecter</button>
+        </div>
+        <div class="hero-trust">
+        <div class="ht-item"><span class="ht-num">2400+</span><span class="ht-lab">Patients</span></div>
+        <div class="ht-sep"></div>
+        <div class="ht-item"><span class="ht-num">15+</span><span class="ht-lab">Médecins</span></div>
+        <div class="ht-sep"></div>
+        <div class="ht-item"><span class="ht-num">98%</span><span class="ht-lab">Satisfaction</span></div>
+      </div>
+      <div class="hero-infos">
+          <span>🕐 7j/7 · 8h–20h</span>
+          <span>📍 Alger Centre</span>
+          <span>📞 023 XX XX XX</span>
+        </div>
+      </div>
+      <div class="hero-card-wrap">
+        <div class="hero-card">
+          <div class="hc-header"><span class="hc-dot green"></span><span class="hc-dot orange"></span><span class="hc-dot red"></span><span style="margin-left:6px;font-size:12px;color:#64748b;font-weight:600">MediNova · Tableau de bord</span></div>
+          <div class="hc-row">
+            <div class="hc-ava blue">👨‍⚕️</div>
+            <div><div class="hc-name">Dr. Karim Meziane</div><div class="hc-sub">Pédiatre · 3 RDV aujourd'hui</div></div>
+            <span class="badge-green">Disponible</span>
+          </div>
+          <div class="hc-row">
+            <div class="hc-ava purple">🤒</div>
+            <div><div class="hc-name">Fatima Zerrouk</div><div class="hc-sub">Patient · RDV 14h30</div></div>
+            <span class="badge-orange">En attente</span>
+          </div>
+          <div class="hc-notif"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27AE60" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>Votre RDV du 25 Avril a été <strong>confirmé</strong> ✓</span></div>
+        </div>
+        <div class="hero-mini-card"><div class="hmc-num">2400+</div><div class="hmc-lab">Patients satisfaits</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MÉDECINS dynamiques -->
+  <section class="section" id="medecins">
+    <div class="sw">
+      <div class="sec-head"><div class="sec-tag">Notre équipe</div><h2>Nos médecins spécialistes</h2><p>Des professionnels qualifiés à votre service</p></div>
+      <div class="loading-state" *ngIf="loading['medecins']"><div class="sp"></div><p>Chargement des médecins...</p></div>
+      <div class="doctors-grid" *ngIf="!loading['medecins'] && medecins.length > 0">
+        <div class="doc-card" *ngFor="let m of medecins">
+          <div class="doc-ava">👨‍⚕️</div>
+          <h4 class="doc-name">Dr. {{ m.prenom }} {{ m.nom }}</h4>
+          <span class="doc-spec">{{ m.specialite }}</span>
+          <div class="doc-footer">
+            <span class="doc-dispo"><span class="dot-green"></span>Disponible</span>
+            <button class="btn-reserver" (click)="goLogin()">Réserver</button>
+          </div>
+        </div>
+      </div>
+      <div class="empty-msg" *ngIf="!loading['medecins'] && medecins.length===0"><p>Aucun médecin enregistré pour le moment.</p></div>
+    </div>
+  </section>
+
+  <section class="section bg-light" id="services">
+    <div class="sw">
+      <div class="sec-head"><div class="sec-tag">Services</div><h2>Ce que nous proposons</h2></div>
+      <div class="srv-grid">
+        <div class="srv-card"><div class="srv-ico">🩺</div><h4>Consultations</h4><p>Médecins généralistes et spécialistes disponibles.</p></div>
+        <div class="srv-card"><div class="srv-ico">❤️</div><h4>Cardiologie</h4><p>Suivi cardiaque et maladies du cœur.</p></div>
+        <div class="srv-card"><div class="srv-ico">🧒</div><h4>Pédiatrie</h4><p>Suivi de l'enfant de la naissance à l'adolescence.</p></div>
+        <div class="srv-card"><div class="srv-ico">🩹</div><h4>Soins infirmiers</h4><p>Injections, pansements et soins paramédicaux.</p></div>
+        <div class="srv-card"><div class="srv-ico">💊</div><h4>Ordonnances</h4><p>Prescriptions numériques accessibles en ligne.</p></div>
+        <div class="srv-card"><div class="srv-ico">📋</div><h4>Dossier médical</h4><p>Historique centralisé et accessible partout.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="steps">
+    <div class="sw">
+      <div class="sec-head"><div class="sec-tag">Simple</div><h2>Rendez-vous en 3 étapes</h2></div>
+      <div class="steps-row">
+        <div class="step"><div class="step-n">01</div><div class="step-ico">👤</div><h4>Créez votre compte</h4><p>Inscrivez-vous gratuitement.</p></div>
+        <div class="step-arr">→</div>
+        <div class="step"><div class="step-n">02</div><div class="step-ico">🔍</div><h4>Choisissez un médecin</h4><p>Consultez les disponibilités.</p></div>
+        <div class="step-arr">→</div>
+        <div class="step"><div class="step-n">03</div><div class="step-ico">✅</div><h4>Confirmez votre RDV</h4><p>Recevez une confirmation.</p></div>
+      </div>
+      <div class="steps-cta"><button class="btn-hero-p big" (click)="goRegister()">Commencer maintenant →</button></div>
+    </div>
+  </section>
+
+  <section class="section bg-blue" id="apropos">
+    <div class="sw">
+      <div class="about-grid">
+        <div>
+          <div class="sec-tag light">À propos</div>
+          <h2 style="color:white;font-size:34px;font-weight:800;margin-bottom:14px;letter-spacing:-.5px">Cabinet MediNova</h2>
+          <p style="color:rgba(255,255,255,.72);line-height:1.7">Cabinet médical moderne à Alger, dédié à offrir des soins de qualité à tous les patients algériens grâce aux outils numériques.</p>
+          <div class="about-stats">
+            <div class="about-stat"><span class="as-n">{{ medecins.length || '10' }}+</span><span class="as-l">Médecins</span></div>
+            <div class="about-stat"><span class="as-n">2400+</span><span class="as-l">Patients</span></div>
+            <div class="about-stat"><span class="as-n">5 ans</span><span class="as-l">Expérience</span></div>
+          </div>
+        </div>
+        <div class="about-cards">
+          <div class="about-card"><span class="ac-ico">🏥</span><div><strong>Notre mission</strong><p>Rendre les soins accessibles à tous.</p></div></div>
+          <div class="about-card"><span class="ac-ico">🔒</span><div><strong>Données protégées</strong><p>Chiffrées et sécurisées.</p></div></div>
+          <div class="about-card"><span class="ac-ico">📱</span><div><strong>Accessible partout</strong><p>Mobile et ordinateur.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="sw">
+      <div class="footer-grid">
+        <div><div class="nb-logo" style="margin-bottom:12px"><div class="nb-icon small"><svg width="16" height="16" viewBox="0 0 22 22" fill="none"><path d="M11 2v18M2 11h18" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg></div><span style="color:white;font-weight:800;font-size:17px">MediNova</span></div><p style="color:#64748b;font-size:13px">Cabinet médical numérique · Algérie</p><p style="color:#475569;font-size:12px;margin-top:8px">📍 Alger Centre · 📞 023 XX XX XX</p></div>
+        <div class="ft-links"><h5>Navigation</h5><a (click)="scrollTo('medecins')">Médecins</a><a (click)="scrollTo('services')">Services</a><a (click)="scrollTo('steps')">RDV</a></div>
+        <div class="ft-links"><h5>Espace</h5><a (click)="goLogin()">Se connecter</a><a (click)="goRegister()">S'inscrire</a></div>
+        <div class="ft-links"><h5>Horaires</h5><p>Lun–Ven : 8h–20h</p><p>Sam : 8h–16h</p><p>Dim : Urgences</p></div>
+      </div>
+      <div class="footer-bot"><p>© 2026 MediNova · Projet fin d'études — RENNANE Hadjer · USTHB</p></div>
+    </div>
+  </footer>
+</div>
+
+
+<!-- ══════ LOGIN ══════ -->
+<div *ngIf="page==='login'" class="auth-page">
+  <div class="auth-bg"><div class="lb lb1"></div><div class="lb lb2"></div></div>
+  <button class="back-btn" (click)="goHome()">← Retour</button>
+  <div class="auth-card">
+    <div class="auth-left auth-left-blue">
+      <div class="al-inner">
+        <div class="nb-logo" style="margin-bottom:auto"><div class="nb-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2v18M2 11h18" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg></div><span style="color:white;font-weight:700;font-size:18px">MediNova</span></div>
+        <div style="padding:40px 0">
+          <h2 style="color:white;font-size:26px;font-weight:800;margin-bottom:12px;letter-spacing:-.3px">Bon retour<br>parmi nous</h2>
+          <p style="color:rgba(255,255,255,.65);font-size:14px;line-height:1.7;margin-bottom:28px">Accédez à votre espace santé personnel.</p>
+          <div class="role-pills">
+            <span class="rp rp-p">🤒 Patient</span>
+            <span class="rp rp-m">👨‍⚕️ Médecin</span>
+            <span class="rp rp-i">💉 Infirmière</span>
+            <span class="rp rp-a">🔐 Admin</span>
+          </div>
+        </div>
+        <div style="color:rgba(255,255,255,.3);font-size:12px">© 2026 MediNova</div>
+      </div>
+    </div>
+    <div class="auth-right">
+      <div class="af-box">
+        <div class="af-top"><div class="af-ico blue-ico"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 3v22M3 14h22" stroke="#0A3D62" stroke-width="2.5" stroke-linecap="round"/></svg></div><h3>Connexion</h3><p>Accédez à votre espace</p></div>
+        <div class="err-box" *ngIf="loginError">⚠️ {{ loginError }}</div>
+        <form (ngSubmit)="login()">
+          <div class="af-field"><label>Email</label><div class="af-inp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><input type="email" [(ngModel)]="loginEmail" name="e" placeholder="exemple@gmail.com" required/></div></div>
+          <div class="af-field">
+            <div class="af-lrow"><label>Mot de passe</label><a class="af-fgt" href="#">Oublié ?</a></div>
+            <div class="af-inp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><input [type]="showPassword?'text':'password'" [(ngModel)]="loginPassword" name="p" placeholder="••••••••" required/><button type="button" class="eye-btn" (click)="showPassword=!showPassword">👁</button></div>
+          </div>
+          <button type="submit" class="btn-sub blue-btn" [disabled]="loginLoading"><span *ngIf="!loginLoading">Se connecter</span><span *ngIf="loginLoading" class="dots"><i></i><i></i><i></i></span></button>
+        </form>
+        <div class="af-switch">Pas de compte ? <a (click)="goRegister()">S'inscrire</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════ REGISTER ══════ -->
+<div *ngIf="page==='register'" class="auth-page">
+  <div class="auth-bg"><div class="lb lb1"></div><div class="lb lb2"></div></div>
+  <button class="back-btn" (click)="goHome()">← Retour</button>
+  <div class="auth-card" style="max-width:580px;width:100%">
+
+    <div class="auth-logo"><div class="nb-icon"><svg width="20" height="20" viewBox="0 0 22 22" fill="none"><path d="M11 2v18M2 11h18" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg></div><span>MediNova</span></div>
+    <h2 class="auth-title">Créer votre dossier patient</h2>
+    <p class="auth-sub">Remplissez toutes les informations pour un suivi médical optimal</p>
+
+    <!-- ÉTAPE INDICATOR -->
+    <div class="steps-indicator" style="margin:16px 0">
+      <div class="step-item" [class.active]="regStep>=1" [class.done]="regStep>1"><div class="step-num">{{regStep>1?'✓':'1'}}</div><div class="step-label">Identité</div></div>
+      <div class="step-line" [class.done]="regStep>1"></div>
+      <div class="step-item" [class.active]="regStep>=2" [class.done]="regStep>2"><div class="step-num">{{regStep>2?'✓':'2'}}</div><div class="step-label">Santé</div></div>
+      <div class="step-line" [class.done]="regStep>2"></div>
+      <div class="step-item" [class.active]="regStep>=3"><div class="step-num">3</div><div class="step-label">Consentement</div></div>
+    </div>
+
+    <!-- ÉTAPE 1: IDENTITÉ -->
+    <div *ngIf="regStep===1">
+      <div class="section-label">📋 Informations civiles</div>
+      <div class="form-row-2">
+        <div class="af-inp"><label>Prénom *</label><input type="text" [(ngModel)]="regPrenom" name="rp" placeholder="Votre prénom"/></div>
+        <div class="af-inp"><label>Nom *</label><input type="text" [(ngModel)]="regNom" name="rn" placeholder="Votre nom"/></div>
+      </div>
+      <div class="form-row-2">
+        <div class="af-inp"><label>Genre *</label>
+          <select [(ngModel)]="regGenre" name="rg">
+            <option value="">-- Genre --</option>
+            <option value="M">Masculin</option>
+            <option value="F">Féminin</option>
+          </select>
+        </div>
+        <div class="af-inp"><label>Date de naissance *</label><input type="date" [(ngModel)]="regDateNaissance" name="rddn"/></div>
+      </div>
+      <div class="form-row-2">
+        <div class="af-inp"><label>N° Carte Nationale *</label><input type="text" [(ngModel)]="regCni" name="rcni" placeholder="Ex: 123456789"/></div>
+        <div class="af-inp"><label>Wilaya *</label>
+          <select [(ngModel)]="regWilaya" name="rw">
+            <option value="">-- Wilaya --</option>
+            <option *ngFor="let w of wilayas" [value]="w">{{w}}</option>
+          </select>
+        </div>
+      </div>
+      <div class="af-inp"><label>Adresse</label><input type="text" [(ngModel)]="regAdresse" name="rad" placeholder="Rue, quartier, commune..."/></div>
+
+      <div class="section-label" style="margin-top:14px">🔐 Compte</div>
+      <div class="af-inp"><label>Email *</label><input type="email" [(ngModel)]="regEmail" name="rem" placeholder="votre@email.com"/></div>
+      <div class="form-row-2">
+        <div class="af-inp"><label>Téléphone *</label><input type="tel" [(ngModel)]="regTel" name="rtel" placeholder="0X XX XX XX XX"/></div>
+        <div class="af-inp"><label>Mot de passe *</label><input type="password" [(ngModel)]="regPassword" name="rpwd" placeholder="Min. 8 caractères"/></div>
+      </div>
+
+      <div class="error-msg" *ngIf="regError">⚠️ {{regError}}</div>
+      <button class="btn-prim" style="width:100%;margin-top:12px" (click)="regNextStep()">Suivant → Informations médicales</button>
+      <div class="auth-footer">Déjà inscrit ? <a (click)="setPage('login')">Se connecter</a></div>
+    </div>
+
+    <!-- ÉTAPE 2: SANTÉ -->
+    <div *ngIf="regStep===2">
+      <div class="section-label">🏥 Informations médicales</div>
+
+      <div class="form-row-2">
+        <div class="af-inp"><label>Groupe sanguin</label>
+          <select [(ngModel)]="regGroupeSanguin" name="rgs">
+            <option value="ND">Inconnu / Non déterminé</option>
+            <option *ngFor="let g of ['A+','A-','B+','B-','O+','O-','AB+','AB-']" [value]="g">{{g}}</option>
+          </select>
+        </div>
+        <div class="af-inp"><label>Assurance maladie</label>
+          <select [(ngModel)]="regAssurance" name="ras">
+            <option value="">Aucune</option>
+            <option value="CNAS">CNAS (salarié)</option>
+            <option value="CASNOS">CASNOS (non salarié)</option>
+            <option value="Mutuelle">Mutuelle privée</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="af-inp" *ngIf="regAssurance">
+        <label>N° Assuré ({{regAssurance}})</label>
+        <input type="text" [(ngModel)]="regAssuranceNum" name="ran" placeholder="Votre numéro d'affiliation"/>
+      </div>
+
+      <div class="af-inp">
+        <label>🚨 Allergies connues</label>
+        <input type="text" [(ngModel)]="regAllergies" name="ral" placeholder="Ex: Pénicilline, Aspirine, arachides... (ou aucune)"/>
+        <small style="color:var(--muted);font-size:11px">Important pour votre sécurité médicale</small>
+      </div>
+
+      <div class="af-inp">
+        <label>📋 Antécédents médicaux</label>
+        <input type="text" [(ngModel)]="regAntecedents" name="rant" placeholder="Ex: Diabète type 2, HTA, opération appendicite 2018... (ou aucun)"/>
+      </div>
+
+      <div class="af-inp">
+        <label>💊 Traitements en cours</label>
+        <input type="text" [(ngModel)]="regTraitements" name="rtrt" placeholder="Ex: Metformine 1g/j, Amlodipine 5mg... (ou aucun)"/>
+      </div>
+
+      <div class="section-label" style="margin-top:14px">🚑 Contact d'urgence</div>
+      <div class="form-row-2">
+        <div class="af-inp"><label>Nom du contact</label><input type="text" [(ngModel)]="regUrgenceNom" name="run" placeholder="Nom et prénom"/></div>
+        <div class="af-inp"><label>Téléphone urgence</label><input type="tel" [(ngModel)]="regUrgenceTel" name="rut" placeholder="0X XX XX XX XX"/></div>
+      </div>
+
+      <div class="error-msg" *ngIf="regError">⚠️ {{regError}}</div>
+      <div class="form-row-2" style="margin-top:12px">
+        <button class="btn-sec" (click)="regStep=1">← Retour</button>
+        <button class="btn-prim" (click)="regNextStep()">Suivant → Consentement</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 3: CONSENTEMENT + SIGNATURE -->
+    <div *ngIf="regStep===3">
+      <!-- Résumé -->
+      <div class="patient-summary">
+        <div class="ps-ava">{{(regPrenom||'?')[0]}}{{(regNom||'?')[0]}}</div>
+        <div>
+          <div class="ps-name">{{regPrenom}} {{regNom}}</div>
+          <div class="ps-info">{{regGenre==='M'?'🧑 Masculin':'👩 Féminin'}} · {{regDateNaissance}} · {{regWilaya?.split(' - ')[1]||regWilaya}}</div>
+          <div class="ps-info">📞 {{regTel}} · ✉️ {{regEmail}}</div>
+          <div class="ps-info" *ngIf="regGroupeSanguin && regGroupeSanguin!=='ND'">🩸 Groupe {{regGroupeSanguin}}</div>
+          <div class="ps-info" *ngIf="regAllergies">⚠️ Allergies: {{regAllergies}}</div>
+        </div>
+      </div>
+
+      <!-- Consentement -->
+      <div class="consent-box">
+        <div class="consent-header">🛡️ Protection des données — Loi n° 18-07</div>
+        <div class="consent-text">
+          Le Cabinet MediNova collecte vos données pour gérer vos RDV, tenir votre dossier médical et vous envoyer des rappels.<br><br>
+          <strong>Responsable:</strong> Cabinet MediNova, Alger &nbsp;|&nbsp;
+          <strong>Conservation:</strong> 10 ans &nbsp;|&nbsp;
+          <strong>Droits:</strong> Accès, rectification, suppression sur demande (dpo@medinova.dz)
+        </div>
+        <div class="consent-note">⚠️ Vos données ne seront jamais vendues à des tiers.</div>
+        <label class="consent-check">
+          <input type="checkbox" [(ngModel)]="regConsent" name="rcons"/>
+          <span class="consent-check-label">J'accepte la politique de confidentialité conformément à la <strong>Loi 18-07</strong> *</span>
+        </label>
+      </div>
+
+      <!-- Signature numérique -->
+      <div class="sig-section">
+        <div class="sig-label">✍️ Signature numérique *
+          <span class="sig-status" [class.sig-ok]="regSigValide">{{regSigValide?'✅ Signée':'⏳ En attente'}}</span>
+        </div>
+        <div class="sig-instructions">Signez dans le cadre avec votre doigt ou souris:</div>
+        <div class="sig-canvas-wrap">
+          <canvas id="regSigCanvas" class="sig-canvas" style="height:140px"></canvas>
+          <div class="sig-placeholder" *ngIf="!regSigValide">Signez ici</div>
+        </div>
+        <div class="sig-actions">
+          <button class="btn-effacer" (click)="effacerSig()">🗑️ Effacer</button>
+          <span class="sig-date" *ngIf="regSigValide">📅 {{today}}</span>
+        </div>
+      </div>
+
+      <div class="error-msg" *ngIf="regError">⚠️ {{regError}}</div>
+      <div class="success-msg" *ngIf="regSuccess">{{regSuccess}}</div>
+
+      <div class="form-row-2" style="margin-top:12px">
+        <button class="btn-sec" (click)="regStep=2">← Retour</button>
+        <button class="btn-prim" (click)="register()" [disabled]="regLoading||!regConsent||!regSigValide" [style.opacity]="!regConsent||!regSigValide?'0.6':'1'">
+          <span *ngIf="!regLoading">✅ Créer mon dossier</span>
+          <span *ngIf="regLoading"><div class="sp-sm" style="display:inline-block"></div> Création...</span>
+        </button>
+      </div>
+      <div class="auth-footer">Déjà inscrit ? <a (click)="setPage('login')">Se connecter</a></div>
+    </div>
+
+  </div>
+</div>
+
+<div *ngIf="page==='dashboard-patient'" class="dashboard theme-patient">
+  <ng-container *ngTemplateOutlet="sidebarTpl; context:{color:'patient',tabs:[
+    {id:'accueil',ico:'🏠',label:'Accueil'},
+    {id:'rdv',ico:'📅',label:'Mes rendez-vous'},
+    {id:'dossier',ico:'📋',label:'Dossier médical'},
+    {id:'ordonnances',ico:'💊',label:'Ordonnances'},
+    {id:'notifications',ico:'🔔',label:'Notifications',badge:notifsNonLues()},
+    {id:'profil',ico:'👤',label:'Mon profil'}
+  ]}"></ng-container>
+  <main class="dash-main">
+    <ng-container *ngTemplateOutlet="headerTpl"></ng-container>
+    <div class="dash-content">
+      <ng-container *ngTemplateOutlet="alertsTpl"></ng-container>
+
+      <!-- ACCUEIL -->
+      <div *ngIf="activeTab==='accueil'">
+        <div class="welcome-banner"><div><h2>Bonjour, {{ user?.prenom }} 👋</h2><p>Bienvenue dans votre espace santé</p></div><button class="btn-w" (click)="setTab('rdv');ouvrirRdvForm()">+ Nouveau RDV</button></div>
+        <div class="stats-grid">
+          <div class="sc b"><div class="sc-ico">📅</div><div><div class="sc-n">{{ rendezVous.length }}</div><div class="sc-l">Rendez-vous</div></div></div>
+          <div class="sc g"><div class="sc-ico">📋</div><div><div class="sc-n">{{ consultations.length }}</div><div class="sc-l">Consultations</div></div></div>
+          <div class="sc p"><div class="sc-ico">💊</div><div><div class="sc-n">{{ ordonnances.length }}</div><div class="sc-l">Ordonnances</div></div></div>
+          <div class="sc o"><div class="sc-ico">🔔</div><div><div class="sc-n">{{ notifsNonLues() }}</div><div class="sc-l">Notifications</div></div></div>
+        </div>
+        <div class="sec-t">Prochain rendez-vous</div>
+        <div class="loading-inline" *ngIf="loading['rdv']"><div class="sp-sm"></div> Chargement...</div>
+        <div class="next-rdv" *ngIf="!loading['rdv'] && prochainRdv()">
+          <div class="nr-date"><div class="nr-day">{{ prochainRdv()?.date_rdv?.split('-')[2] }}</div><div class="nr-month">{{ prochainRdv()?.date_rdv | slice:0:7 }}</div></div>
+          <div class="nr-info"><h4>Rendez-vous médical</h4><p>{{ prochainRdv()?.heure_rdv }} · {{ prochainRdv()?.motif }}</p></div>
+          <div class="nr-right"><span class="sb" [ngClass]="getStatutClass(prochainRdv()?.statut)">{{ getStatutLabel(prochainRdv()?.statut) }}</span><button class="btn-ann" (click)="annulerRdv(prochainRdv()?.id_rdv)">Annuler</button></div>
+        </div>
+        <div class="empty-card" *ngIf="!loading['rdv'] && !prochainRdv()"><p>Aucun rendez-vous à venir.</p><button class="btn-prim" (click)="setTab('rdv');ouvrirRdvForm()">Prendre un RDV</button></div>
+      </div>
+
+      <!-- RDV -->
+      <div *ngIf="activeTab==='rdv'">
+        <div class="ph"><div><h2>Mes rendez-vous</h2></div>
+          <div style="display:flex;gap:10px">
+            <button class="btn-ia" (click)="showTriageIA=!showTriageIA">🤖 Analyse IA</button>
+            <button class="btn-prim" (click)="ouvrirRdvForm()">+ Nouveau RDV</button>
+          </div>
+        </div>
+
+        <!-- IA TRIAGE CARD -->
+        <div class="ia-card" *ngIf="showTriageIA">
+          <div class="ia-header">
+            <div class="ia-title-row">
+              <div class="ia-icon">🤖</div>
+              <div>
+                <div class="ia-title">Analyse intelligente de vos symptômes</div>
+                <div class="ia-sub">Notre IA analyse vos symptômes et vous oriente vers le bon médecin</div>
+              </div>
+            </div>
+            <button class="fc-x" (click)="showTriageIA=false">✕</button>
+          </div>
+
+          <div class="ia-form" *ngIf="!triageResult">
+            <div class="af-field">
+              <label style="font-weight:700;color:var(--text)">🩺 Décrivez vos symptômes</label>
+              <textarea [(ngModel)]="triageSymptomes" name="symp"
+                placeholder="Ex: J'ai une forte douleur thoracique depuis 2 jours, avec essoufflement et fatigue..."
+                rows="3" class="ia-textarea"></textarea>
+            </div>
+            <div class="af-field">
+              <label style="font-weight:700;color:var(--text)">📋 Maladies chroniques (optionnel)</label>
+              <input type="text" [(ngModel)]="triageMaladies" name="mal"
+                placeholder="Ex: Diabète, Hypertension, Asthme..."
+                class="ia-input"/>
+            </div>
+            <div class="err-box" *ngIf="triageError">⚠️ {{ triageError }}</div>
+            <button class="btn-ia-submit" (click)="analyserSymptomes()" [disabled]="triageLoading || !triageSymptomes.trim()">
+              <span *ngIf="!triageLoading">🔍 Analyser avec l'IA</span>
+              <span *ngIf="triageLoading" class="dots"><i></i><i></i><i></i></span>
+            </button>
+          </div>
+
+          <!-- RÉSULTAT IA -->
+          <div class="ia-result" *ngIf="triageResult">
+            <!-- Urgence -->
+            <div class="ia-urgence" [ngClass]="getUrgenceClass(triageResult.urgence)">
+              <span class="ia-urg-icon">
+                <span *ngIf="triageResult.urgence==='faible'">🟢</span>
+                <span *ngIf="triageResult.urgence==='moyen'">🟡</span>
+                <span *ngIf="triageResult.urgence==='urgent'">🟠</span>
+                <span *ngIf="triageResult.urgence==='critique'">🔴</span>
+              </span>
+              <div>
+                <div class="ia-urg-label">{{ triageResult.urgence_label }}</div>
+                <div class="ia-urg-resume">{{ triageResult.resume }}</div>
+              </div>
+              <div class="ia-consult-now" *ngIf="triageResult.consulter_rapidement">
+                ⚡ Consultez rapidement
+              </div>
+            </div>
+
+            <!-- Spécialité recommandée -->
+            <div class="ia-specialite-box">
+              <div class="ia-spec-label">👨‍⚕️ Spécialité recommandée</div>
+              <div class="ia-spec-name">{{ triageResult.specialite }}</div>
+              <div class="ia-spec-secondary" *ngIf="triageResult.specialites_secondaires?.length">
+                Aussi: {{ triageResult.specialites_secondaires.join(' · ') }}
+              </div>
+            </div>
+
+            <!-- Conseils -->
+            <div class="ia-section">
+              <div class="ia-section-title">✅ Conseils</div>
+              <div class="ia-tip" *ngFor="let c of triageResult.conseils">{{ c }}</div>
+            </div>
+
+            <!-- À éviter -->
+            <div class="ia-section" *ngIf="triageResult.a_eviter?.length">
+              <div class="ia-section-title">⚠️ À éviter</div>
+              <div class="ia-warn" *ngFor="let a of triageResult.a_eviter">{{ a }}</div>
+            </div>
+
+            <!-- Médicaments OTC -->
+            <div class="ia-section" *ngIf="triageResult.medicaments_otc?.length">
+              <div class="ia-section-title">💊 En attendant la consultation</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+                <span class="ia-med-badge" *ngFor="let m of triageResult.medicaments_otc">{{ m }}</span>
+              </div>
+            </div>
+
+            <div class="ia-actions">
+              <button class="btn-prim" (click)="showTriageIA=false;ouvrirRdvForm()">📅 Prendre un RDV maintenant</button>
+              <button class="btn-cancel" (click)="triageResult=null">🔄 Nouvelle analyse</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulaire RDV avec slots automatiques -->
+        <div class="rdv-form-card" *ngIf="showRdvForm">
+          <div class="fc-head"><h4>📅 Prendre un rendez-vous</h4><button class="fc-x" (click)="showRdvForm=false">✕</button></div>
+          <div class="success-box" *ngIf="rdvSuccess">✅ {{ rdvSuccess }}</div>
+          <div class="err-box" *ngIf="rdvError">⚠️ {{ rdvError }}</div>
+
+          <!-- Étape 1: Choisir médecin -->
+          <div class="rdv-step">
+            <div class="rdv-step-num">1</div>
+            <div class="rdv-step-body">
+              <label>Choisir un médecin</label>
+              <div class="af-inp ni">
+                <select [(ngModel)]="rdvMedecinId" name="med" (change)="chargerDisposMedecin()" [disabled]="loading['medecins']">
+                  <option value="">{{ loading['medecins'] ? 'Chargement...' : '-- Sélectionner un médecin --' }}</option>
+                  <option *ngFor="let m of medecins" [value]="m.id_utilisateur">Dr. {{ m.prenom }} {{ m.nom }} — {{ m.specialite }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Étape 2: Slots automatiques (style avion) -->
+          <div class="rdv-step" *ngIf="rdvMedecinId">
+            <div class="rdv-step-num">2</div>
+            <div class="rdv-step-body">
+              <label>Choisir un créneau disponible</label>
+
+              <div class="loading-inline" *ngIf="rdvSlots.length === 0 && rdvDisponibilites.length === 0">
+                <div class="sp-sm"></div> Chargement des créneaux...
+              </div>
+
+              <div class="info-box" *ngIf="rdvSlots.length === 0 && rdvDisponibilites.length === 0 && !loading['medecins']" style="margin-top:8px">
+                ℹ️ Ce médecin n'a pas encore défini son planning.
+              </div>
+
+              <!-- Légende -->
+              <div class="slots-legend" *ngIf="rdvSlots.length > 0">
+                <span class="leg-item"><span class="slot-ex libre"></span>Disponible</span>
+                <span class="leg-item"><span class="slot-ex pris"></span>Réservé</span>
+                <span class="leg-item"><span class="slot-ex selected"></span>Sélectionné</span>
+              </div>
+
+              <!-- Grid créneaux par date (style avion) -->
+              <div class="slots-container" *ngIf="rdvSlots.length > 0">
+                <div class="slots-day" *ngFor="let date of getJoursAvecSlots()">
+                  <div class="slots-day-label">{{ getSlotsParDate(date)[0]?.dateAffichage }}</div>
+                  <div class="slots-grid">
+                    <button *ngFor="let s of getSlotsParDate(date)"
+                      class="slot-btn"
+                      [class.slot-pris]="s.pris"
+                      [class.slot-selected]="rdvSlotSelected?.date===s.date && rdvSlotSelected?.heure===s.heure"
+                      [disabled]="s.pris"
+                      (click)="selectionnerSlot(s)">
+                      {{ s.heure }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Créneau sélectionné -->
+              <div class="slot-selected-info" *ngIf="rdvSlotSelected">
+                ✓ Créneau sélectionné : <strong>{{ rdvSlotSelected.dateAffichage }} à {{ rdvSlotSelected.heure }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Étape 3: Motif -->
+          <div class="rdv-step" *ngIf="rdvSlotSelected">
+            <div class="rdv-step-num">3</div>
+            <div class="rdv-step-body">
+              <label>Motif de la consultation</label>
+              <div class="af-inp ni"><input type="text" [(ngModel)]="rdvMotif" name="motif" placeholder="Ex: Douleurs abdominales, contrôle annuel..." required/></div>
+            </div>
+          </div>
+
+          <!-- Étape 3: Motif (toujours visible après sélection slot) -->
+          <div class="rdv-step" *ngIf="rdvSlotSelected">
+            <div class="rdv-step-num">3</div>
+            <div class="rdv-step-body">
+              <label>Motif de la consultation</label>
+              <div class="af-inp ni">
+                <input type="text" [(ngModel)]="rdvMotif" name="motifrdv" placeholder="Ex: Douleurs abdominales, contrôle annuel..."/>
+              </div>
+            </div>
+          </div>
+
+          <div class="fc-actions" style="margin-top:8px">
+            <button class="btn-cancel" (click)="showRdvForm=false">Annuler</button>
+            <button class="btn-prim"
+              (click)="prendreRdv()"
+              [disabled]="rdvLoading || !rdvSlotSelected || !rdvMotif">
+              <span *ngIf="!rdvLoading">✅ Confirmer le rendez-vous</span>
+              <span *ngIf="rdvLoading" class="dots"><i></i><i></i><i></i></span>
+            </button>
+          </div>
+          <div class="rdv-hint" *ngIf="!rdvSlotSelected">👆 Sélectionnez un créneau pour continuer</div>
+          <div class="rdv-hint" *ngIf="rdvSlotSelected && !rdvMotif">✍️ Indiquez le motif de la consultation</div>
+        </div>
+
+        <div class="loading-inline" *ngIf="loading['rdv']"><div class="sp-sm"></div> Chargement...</div>
+        <div class="rdv-list" *ngIf="!loading['rdv'] && rendezVous.length > 0">
+          <div class="rdv-row" *ngFor="let r of rendezVous">
+            <div class="rdv-dc"><div class="rdv-d">{{ r.date_rdv?.split('-')[2] }}</div><div class="rdv-m">{{ r.date_rdv?.split('-')[1] }}/{{ r.date_rdv?.split('-')[0]?.slice(2) }}</div></div>
+            <div class="rdv-info"><h4>Rendez-vous médical</h4><p>{{ r.motif }}</p></div>
+            <div class="rdv-h">{{ r.heure_rdv }}</div>
+            <span class="sb" [ngClass]="getStatutClass(r.statut)">{{ getStatutLabel(r.statut) }}</span>
+            <div class="rdv-acts"><button class="btn-ann-sm" *ngIf="r.statut?.toUpperCase()!=='TERMINE'&&r.statut?.toUpperCase()!=='ANNULE'" (click)="annulerRdv(r.id_rdv)">Annuler</button></div>
+          </div>
+        </div>
+        <div class="empty-card" *ngIf="!loading['rdv'] && rendezVous.length===0"><p>Aucun rendez-vous.</p><button class="btn-prim" (click)="ouvrirRdvForm()">Prendre un RDV</button></div>
+      </div>
+
+      <!-- DOSSIER -->
+      <div *ngIf="activeTab==='dossier'">
+        <div class="ph">
+          <div><h2>📋 Dossier Médical</h2><p style="font-size:13px;color:var(--muted);margin-top:2px">Document officiel et confidentiel</p></div>
+          <button class="btn-prim" (click)="chargerDossierComplet()">🔄 Actualiser</button>
+        </div>
+        <div class="loading-inline" *ngIf="loading['dossier']"><div class="sp-sm"></div> Chargement...</div>
+
+        <div *ngIf="!loading['dossier'] && dossierComplet" class="dossier-print-zone">
+
+          <!-- PAGE 1: IDENTITÉ PATIENT -->
+          <div class="dm-page">
+            <!-- En-tête officiel -->
+            <div class="dm-header">
+              <div class="dm-header-left">
+                <div class="dm-logo">✚</div>
+                <div>
+                  <div class="dm-cabinet">CABINET MÉDICAL MEDINOVA</div>
+                  <div class="dm-cabinet-sub">Alger, Algérie · Tel: 023 XX XX XX · contact@medinova.dz</div>
+                </div>
+              </div>
+              <div class="dm-header-right">
+                <div class="dm-title">DOSSIER MÉDICAL PATIENT</div>
+                <div class="dm-ref">Réf: DM-{{ dossierComplet.dossier?.id_dossier | number:'4.0-0' }}/2026</div>
+                <div class="dm-date">Créé le : {{ dossierComplet.dossier?.created_at | slice:0:10 }}</div>
+              </div>
+            </div>
+
+            <!-- Identité complète -->
+            <div class="dm-section">
+              <div class="dm-section-title">
+                <div class="dm-sec-bar"></div>
+                <span>IDENTIFICATION DU PATIENT</span>
+              </div>
+              <div class="dm-identity">
+                <div class="dm-photo-placeholder">
+                  <div class="dm-photo-inner">{{ initiales() }}</div>
+                  <div class="dm-photo-label">Patient</div>
+                </div>
+                <div class="dm-identity-grid">
+                  <div class="dm-field">
+                    <div class="dm-field-label">Nom et prénom</div>
+                    <div class="dm-field-val dm-underline">{{ dossierComplet.patient?.prenom | uppercase }} {{ dossierComplet.patient?.nom | uppercase }}</div>
+                  </div>
+                  <div class="dm-field">
+                    <div class="dm-field-label">Date de naissance</div>
+                    <div class="dm-field-val">{{ dossierComplet.patient?.date_naissance || 'Non renseignée' }}</div>
+                  </div>
+                  <div class="dm-field">
+                    <div class="dm-field-label">Groupe sanguin</div>
+                    <div class="dm-field-val">
+                      <span class="dm-blood-badge">{{ dossierComplet.patient?.groupe_sanguin || '—' }}</span>
+                    </div>
+                  </div>
+                  <div class="dm-field">
+                    <div class="dm-field-label">Téléphone</div>
+                    <div class="dm-field-val">{{ dossierComplet.patient?.telephone || '—' }}</div>
+                  </div>
+                  <div class="dm-field">
+                    <div class="dm-field-label">Email</div>
+                    <div class="dm-field-val">{{ dossierComplet.patient?.email || '—' }}</div>
+                  </div>
+                  <div class="dm-field">
+                    <div class="dm-field-label">Adresse</div>
+                    <div class="dm-field-val">{{ dossierComplet.patient?.adresse || 'Non renseignée' }}</div>
+                  </div>
+                  <div class="dm-field">
+                    <div class="dm-field-label">Médecin traitant</div>
+                    <div class="dm-field-val">
+                      <span *ngIf="dossierComplet.patient?.medecin_prenom">Dr. {{ dossierComplet.patient.medecin_prenom }} {{ dossierComplet.patient.medecin_nom }}</span>
+                      <span *ngIf="!dossierComplet.patient?.medecin_prenom">Non assigné</span>
+                    </div>
+                  </div>
+                  <div class="dm-field">
+                    <div class="dm-field-label">N° Dossier</div>
+                    <div class="dm-field-val dm-bold">DM-{{ dossierComplet.dossier?.id_dossier | number:'4.0-0' }}/2026</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Statistiques dossier -->
+            <div class="dm-stats-row">
+              <div class="dm-stat">
+                <div class="dm-stat-icon">📅</div>
+                <div class="dm-stat-num">{{ dossierComplet.nb_rdv || 0 }}</div>
+                <div class="dm-stat-lab">Rendez-vous</div>
+              </div>
+              <div class="dm-stat">
+                <div class="dm-stat-icon">🩺</div>
+                <div class="dm-stat-num">{{ dossierComplet.consultations?.length || 0 }}</div>
+                <div class="dm-stat-lab">Consultations</div>
+              </div>
+              <div class="dm-stat">
+                <div class="dm-stat-icon">💊</div>
+                <div class="dm-stat-num">{{ dossierComplet.ordonnances?.length || 0 }}</div>
+                <div class="dm-stat-lab">Ordonnances</div>
+              </div>
+              <div class="dm-stat">
+                <div class="dm-stat-icon">📆</div>
+                <div class="dm-stat-num">{{ dossierComplet.dossier?.created_at | slice:0:7 }}</div>
+                <div class="dm-stat-lab">Ouvert</div>
+              </div>
+            </div>
+
+            <!-- Historique consultations -->
+            <div class="dm-section" *ngIf="dossierComplet.consultations?.length > 0">
+              <div class="dm-section-title">
+                <div class="dm-sec-bar"></div>
+                <span>HISTORIQUE DES CONSULTATIONS</span>
+              </div>
+              <div class="dm-table">
+                <div class="dm-table-header">
+                  <span class="dm-th">Date</span>
+                  <span class="dm-th">Médecin</span>
+                  <span class="dm-th">Diagnostic</span>
+                  <span class="dm-th">Traitement</span>
+                  <span class="dm-th">Statut</span>
+                </div>
+                <div class="dm-table-row" *ngFor="let c of dossierComplet.consultations">
+                  <span class="dm-td dm-date">{{ c.date }}</span>
+                  <span class="dm-td">Dr. {{ c.medecin_prenom }} {{ c.medecin_nom }}</span>
+                  <span class="dm-td">{{ c.diagnostic }}</span>
+                  <span class="dm-td">{{ c.traitement }}</span>
+                  <span class="dm-td"><span class="dm-badge-done">✔ Terminée</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="dm-empty-consults" *ngIf="!dossierComplet.consultations?.length">
+              <p>Aucune consultation enregistrée.</p>
+            </div>
+
+            <!-- Footer dossier -->
+            <div class="dm-footer">
+              <div class="dm-footer-legal">
+                🔒 Dossier médical confidentiel — Loi n° 85-05 du 16 février 1985 relative à la protection et à la promotion de la santé · MediNova © 2026
+              </div>
+              <div class="dm-footer-actions">
+                <button class="btn-prim" onclick="window.print()">🖨️ Imprimer / PDF</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="empty-card" *ngIf="!loading['dossier'] && !dossierComplet">
+          <p>Dossier introuvable.</p>
+        </div>
+      </div>
+
+      <!-- ORDONNANCES -->      <!-- ORDONNANCES -->
+      <div *ngIf="activeTab==='ordonnances'">
+        <div class="ph">
+          <div><h2>💊 Mes ordonnances</h2><p style="font-size:13px;color:var(--muted);margin-top:2px">Documents médicaux officiels</p></div>
+          <button class="btn-prim" (click)="chargerDossierComplet()">🔄 Actualiser</button>
+        </div>
+        <div class="loading-inline" *ngIf="loading['dossier']"><div class="sp-sm"></div> Chargement...</div>
+
+        <div *ngIf="!loading['dossier'] && ordonnances.length > 0">
+          <div class="ordo-print-wrap" *ngFor="let o of ordonnances">
+
+            <!-- ORDONNANCE UNIQUE STYLE MEDINOVA -->
+            <div class="ordo-unique">
+
+              <!-- Bande latérale gauche verte -->
+              <div class="ordo-stripe"></div>
+
+              <!-- Contenu -->
+              <div class="ordo-content">
+
+                <!-- En-tête -->
+                <div class="ordo-head">
+                  <div class="ordo-head-left">
+                    <div class="ordo-cabinet-logo">
+                      <div class="ordo-logo-circle">✚</div>
+                      <div>
+                        <div class="ordo-cabinet-name">Cabinet MediNova</div>
+                        <div class="ordo-cabinet-info">Alger, Algérie &nbsp;|&nbsp; 023 XX XX XX</div>
+                      </div>
+                    </div>
+                    <div class="ordo-doc-info">
+                      <div class="ordo-doc-nom">Dr. {{ o.medecin_prenom || 'Médecin' }} {{ o.medecin_nom }}</div>
+                      <div class="ordo-doc-spec">Médecin Généraliste</div>
+                      <div class="ordo-doc-num">N° Ordre des médecins : ALG-2024-{{ o.id_ordonnance }}12</div>
+                      <div class="ordo-doc-horaire">Horaires : Lun-Ven 8h-17h | Sam 8h-12h</div>
+                    </div>
+                  </div>
+                  <div class="ordo-head-right">
+                    <div class="ordo-title-box">
+                      <div class="ordo-title-text">ORDONNANCE MÉDICALE</div>
+                      <div class="ordo-title-sub">N° ORD-{{ o.date_emission?.split('-')[0] }}-{{ o.id_ordonnance | number:'3.0-0' }}</div>
+                    </div>
+                    <div class="ordo-date-box">
+                      <div class="ordo-date-label">Date d'émission</div>
+                      <div class="ordo-date-val">{{ o.date_emission }}</div>
+                      <div class="ordo-date-valid">Valable 30 jours</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Séparateur -->
+                <div class="ordo-divider"></div>
+
+                <!-- Patient -->
+                <div class="ordo-patient-row">
+                  <div class="ordo-patient-icon">👤</div>
+                  <div>
+                    <span class="ordo-patient-label">Patient(e) : </span>
+                    <span class="ordo-patient-name">{{ user?.prenom | uppercase }} {{ user?.nom | uppercase }}</span>
+                  </div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="ordo-inst-row" *ngIf="o.instructions">
+                  <span class="ordo-inst-icon">📝</span>
+                  <em class="ordo-inst-text">{{ o.instructions }}</em>
+                </div>
+
+                <!-- Prescription -->
+                <div class="ordo-prescription">
+                  <div class="ordo-rp-header">
+                    <span class="ordo-rp-symbol">Rp/</span>
+                    <span class="ordo-rp-label">Médicaments prescrits</span>
+                  </div>
+
+                  <div class="ordo-meds-table">
+                    <div class="ordo-med-row-header">
+                      <span class="omt-num">#</span>
+                      <span class="omt-nom">Médicament</span>
+                      <span class="omt-dos">Posologie</span>
+                      <span class="omt-dur">Durée</span>
+                    </div>
+                    <div class="ordo-med-row-item" *ngFor="let m of o.medicaments; let i=index">
+                      <span class="omt-num">{{ i+1 }}</span>
+                      <span class="omt-nom-val">{{ m.nom }}</span>
+                      <span class="omt-dos-val">{{ m.dosage }}</span>
+                      <span class="omt-dur-val">{{ m.duree }}</span>
+                    </div>
+                    <div *ngIf="!o.medicaments?.length" class="ordo-med-empty">Chargement...</div>
+                  </div>
+                </div>
+
+                <!-- Bas: cachet + qr + signature -->
+                <div class="ordo-bottom">
+                  <div class="ordo-cachet">
+                    <div class="ordo-cachet-ring">
+                      <div class="ordo-cachet-inner">
+                        <div class="ordo-cachet-cross">✚</div>
+                        <div class="ordo-cachet-name">Dr. {{ o.medecin_prenom }} {{ o.medecin_nom }}</div>
+                        <div class="ordo-cachet-spec">Médecin Généraliste</div>
+                        <div class="ordo-cachet-num">ALG-2024-{{ o.id_ordonnance }}12</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="ordo-sig-zone">
+                    <div class="ordo-sig-line-long"></div>
+                    <div class="ordo-sig-label">Signature du médecin prescripteur</div>
+                    <div class="ordo-sig-legal">Ce document engage la responsabilité du médecin signataire</div>
+                  </div>
+
+                  <div class="ordo-qr-zone">
+                    <canvas [id]="'qr-'+o.id_ordonnance" width="90" height="90" class="qr-canvas"></canvas>
+                    <div class="ordo-qr-ref">ORD-{{ o.date_emission?.split('-')[0] }}-{{ o.id_ordonnance }}</div>
+                    <div class="ordo-qr-label">Scanner pour vérifier</div>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="ordo-footer-legal">
+                  <span>🔒 Ordonnance numérique sécurisée · Cabinet MediNova · Document confidentiel</span>
+                  <div class="ordo-footer-actions">
+                    <button class="btn-ordo-email" (click)="envoyerOrdonnanceEmail(o)">📧 Email</button>
+                    <button class="btn-ordo-print" onclick="window.print()">🖨️ Imprimer</button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-card" *ngIf="!loading['dossier'] && ordonnances.length===0">
+          <p>Aucune ordonnance disponible.</p>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->      <div *ngIf="activeTab==='notifications'">
+      <!-- NOTIFICATIONS -->
+        <div class="ph"><div><h2>Notifications</h2><p>{{ notifsNonLues() }} non lue(s)</p></div>
+          <button class="btn-prim" *ngIf="notifsNonLues()>0" (click)="marquerToutesLues()">✓ Tout marquer comme lu</button>
+        </div>
+        <div class="loading-inline" *ngIf="loading['notifs']"><div class="sp-sm"></div> Chargement...</div>
+        <div class="notif-list" *ngIf="!loading['notifs'] && notifications.length > 0">
+          <div class="notif-item" *ngFor="let n of notifications" [class.unread]="!n.lu">
+            <div class="notif-icon">
+              <span *ngIf="n.type==='rdv_nouveau'">📅</span>
+              <span *ngIf="n.type==='rdv_confirme'">✅</span>
+              <span *ngIf="n.type==='rdv_annule'">❌</span>
+              <span *ngIf="!n.type || (n.type!=='rdv_nouveau' && n.type!=='rdv_confirme' && n.type!=='rdv_annule')">🔔</span>
+            </div>
+            <div class="nc">
+              <p>{{ n.message }}</p>
+              <span class="notif-type-badge">{{ n.type }}</span>
+              <span class="notif-time">{{ n.created_at | slice:0:10 }}</span>
+            </div>
+            <div class="notif-actions">
+              <span class="n-new" *ngIf="!n.lu">Nouveau</span>
+              <button class="btn-lu" *ngIf="!n.lu" (click)="marquerNotifLue(n.id_notification)">✓ Lu</button>
+            </div>
+          </div>
+        </div>
+        <div class="empty-card" *ngIf="!loading['notifs'] && notifications.length===0"><p>Aucune notification.</p></div>
+      </div>
+
+      <div *ngIf="activeTab==='profil'"><ng-container *ngTemplateOutlet="profilTpl"></ng-container></div>
+    </div>
+  </main>
+</div>
+
+
+<!-- ══════ DASHBOARD MÉDECIN (VERT) ══════ -->
+<div *ngIf="page==='dashboard-medecin'" class="dashboard theme-medecin">
+  <ng-container *ngTemplateOutlet="sidebarTpl; context:{color:'medecin',tabs:[
+    {id:'accueil',ico:'🏠',label:'Accueil'},
+    {id:'planning',ico:'📅',label:'Mon planning'},
+    {id:'disponibilites',ico:'🕐',label:'Disponibilités'},
+    {id:'profil',ico:'👤',label:'Mon profil'}
+  ]}"></ng-container>
+  <main class="dash-main">
+    <ng-container *ngTemplateOutlet="headerTpl"></ng-container>
+    <div class="dash-content">
+      <ng-container *ngTemplateOutlet="alertsTpl"></ng-container>
+
+      <div *ngIf="activeTab==='accueil'">
+        <div class="welcome-banner"><div><h2>Bonjour Dr. {{ user?.prenom }} 👋</h2><p>Votre tableau de bord médecin</p></div></div>
+
+        <!-- Guide flow médecin -->
+        <div class="flow-guide">
+          <div class="fg-title">📋 Guide — Déroulement d'une consultation</div>
+          <div class="fg-steps">
+            <div class="fg-step"><div class="fg-num">1</div><div class="fg-txt"><strong>Mon planning</strong><br>Voir RDV <span class="sb statut-arrive">🏥 Arrivé</span></div></div>
+            <div class="fg-arr">→</div>
+            <div class="fg-step"><div class="fg-num">2</div><div class="fg-txt"><strong>Consulter</strong><br>Cliquer <span class="fg-btn-ex">📋 Consulter</span> → diagnostic + traitement</div></div>
+            <div class="fg-arr">→</div>
+            <div class="fg-step"><div class="fg-num">3</div><div class="fg-txt"><strong>Ordonnance</strong><br>Cliquer <span class="fg-btn-ex">💊 Ordonnance</span> → ajouter médicaments</div></div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="sc b"><div class="sc-ico">📅</div><div><div class="sc-n" style="color:var(--blue)">{{ planning.length }}</div><div class="sc-l">Total RDV</div></div></div>
+          <div class="sc g"><div class="sc-ico">✅</div><div><div class="sc-n" style="color:var(--green)">{{ countPlanning('confirme') + countPlanning('CONFIRME') }}</div><div class="sc-l">Confirmés</div></div></div>
+          <div class="sc o"><div class="sc-ico">⏳</div><div><div class="sc-n" style="color:var(--orange)">{{ countPlanning('en_attente') + countPlanning('EN_ATTENTE') }}</div><div class="sc-l">En attente</div></div></div>
+          <div class="sc p"><div class="sc-ico">✔</div><div><div class="sc-n" style="color:var(--purple)">{{ countPlanning('termine') + countPlanning('TERMINE') }}</div><div class="sc-l">Terminés</div></div></div>
+        </div>
+        <div class="sec-t">Rendez-vous récents</div>
+        <ng-container *ngTemplateOutlet="planningListTpl"></ng-container>
+      </div>
+
+      <div *ngIf="activeTab==='planning'">
+        <div class="ph">
+          <div><h2>📅 Mon planning</h2></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-view-toggle" (click)="calendarView=false" [class.active]="!calendarView">📋 Liste</button>
+            <button class="btn-view-toggle" (click)="calendarView=true" [class.active]="calendarView">🗓️ Calendrier</button>
+            <button class="btn-prim" (click)="chargerPlanning()">🔄</button>
+          </div>
+        </div>
+
+        <!-- Vue Calendrier -->
+        <div class="cal-container" *ngIf="calendarView">
+          <div class="cal-header">
+            <div class="cal-mois">{{ getMoisLabel() }}</div>
+          </div>
+          <div class="cal-grid">
+            <div class="cal-day-header" *ngFor="let j of ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']">{{ j }}</div>
+            <ng-container *ngFor="let day of getCalendrierMois()">
+              <div class="cal-day" *ngIf="day" [class.cal-today]="day?.isToday" [class.cal-has-rdv]="day?.rdvs?.length>0">
+                <div class="cal-day-num">{{ day?.date }}</div>
+                <div class="cal-rdv-dot" *ngFor="let r of $any(day)?.rdvs | slice:0:3"
+                     [class.dot-arrive]="r.statut?.toUpperCase()==='PATIENT_ARRIVE'"
+                     [class.dot-confirme]="$any(r).statut?.toUpperCase()==='CONFIRME'"
+                     [class.dot-attente]="$any(r).statut?.toUpperCase()==='EN_ATTENTE'"
+                     [title]="$any(r).heure_rdv+' — '+$any(r).motif">
+                </div>
+                <div class="cal-more" *ngIf="day?.rdvs?.length>3">+{{ (day?.rdvs?.length||0)-3 }}</div>
+              </div>
+              <div class="cal-day cal-empty" *ngIf="!day"></div>
+            </ng-container>
+          </div>
+        </div>
+
+
+        <div class="ph"><div><h2>Mon planning</h2></div><button class="btn-prim" (click)="chargerPlanning()">🔄 Actualiser</button></div>
+        <ng-container *ngTemplateOutlet="planningListTpl"></ng-container>
+      </div>
+
+      <div *ngIf="activeTab==='disponibilites'">
+        <div class="ph"><div><h2>Mon planning</h2><p>Définissez vos jours et heures de consultation</p></div><button class="btn-prim" (click)="showScheduleForm=!showScheduleForm">✏️ Modifier le planning</button></div>
+
+        <div class="success-msg" *ngIf="scheduleSuccess">{{ scheduleSuccess }}</div>
+
+        <!-- Formulaire planning style airline -->
+        <div class="schedule-card" *ngIf="showScheduleForm">
+          <div class="fc-head"><h4>🗓️ Configurer mon planning</h4><button class="fc-x" (click)="showScheduleForm=false">✕</button></div>
+          <div class="err-box" *ngIf="scheduleError">⚠️ {{ scheduleError }}</div>
+
+          <div class="schedule-section">
+            <label class="sch-label">Jours de consultation</label>
+            <div class="jours-grid">
+              <button *ngFor="let j of joursDisponibles"
+                class="jour-btn"
+                [class.active]="isJourSelected(j)"
+                (click)="toggleJour(j)">
+                {{ j.slice(0,3) }}
+              </button>
+            </div>
+          </div>
+
+          <div class="schedule-section">
+            <label class="sch-label">Heures de consultation</label>
+            <div class="hours-row">
+              <div class="af-field" style="flex:1"><label>Heure début</label><div class="af-inp ni"><input type="time" [(ngModel)]="scheduleHeureDebut"/></div></div>
+              <div class="hours-sep">→</div>
+              <div class="af-field" style="flex:1"><label>Heure fin</label><div class="af-inp ni"><input type="time" [(ngModel)]="scheduleHeureFin"/></div></div>
+            </div>
+          </div>
+
+          <div class="schedule-preview" *ngIf="scheduleJours.length > 0">
+            <div class="sp-title">Aperçu des créneaux (30 min/consultation)</div>
+            <div class="sp-slots">
+              <span *ngFor="let h of getPreviewSlots()" class="sp-slot">{{ h }}</span>
+            </div>
+          </div>
+
+          <div class="fc-actions">
+            <button class="btn-cancel" (click)="showScheduleForm=false">Annuler</button>
+            <button class="btn-prim" (click)="sauvegarderPlanning()" [disabled]="scheduleLoading || scheduleJours.length===0">
+              <span *ngIf="!scheduleLoading">💾 Sauvegarder le planning</span>
+              <span *ngIf="scheduleLoading" class="dots"><i></i><i></i><i></i></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Aperçu du planning actuel -->
+        <div class="loading-inline" *ngIf="loading['dispos']"><div class="sp-sm"></div> Chargement...</div>
+
+        <div *ngIf="!loading['dispos'] && disponibilites.length > 0">
+          <div class="planning-grid">
+            <div class="planning-jour" *ngFor="let d of disponibilites">
+              <div class="pj-header">{{ d.jour }}</div>
+              <div class="pj-hours">🕐 {{ d.heure_debut }} – {{ d.heure_fin }}</div>
+              <div class="pj-slots-preview">
+                <span *ngFor="let h of getDispoSlots(d)" class="pj-slot">{{ h }}</span>
+              </div>
+              <button class="btn-ann-sm" style="margin-top:10px" (click)="supprimerDisponibilite(d.id_disponibilite)">🗑</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-card" *ngIf="!loading['dispos'] && disponibilites.length===0">
+          <p>Vous n'avez pas encore défini votre planning.</p>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Les patients ne peuvent pas prendre de RDV sans planning.</p>
+          <button class="btn-prim" (click)="showScheduleForm=true">🗓️ Configurer mon planning</button>
+        </div>
+      </div>
+
+      <!-- CONSULTATION MÉDECIN -->
+      <div *ngIf="activeTab==='consultation'">
+        <div class="ph">
+          <div><h2>🩺 Nouvelle consultation</h2><p style="color:var(--muted);font-size:13px">Saisir le résultat de la consultation</p></div>
+        </div>
+
+        <div *ngIf="!rdvSelectionne" class="empty-card">
+          <p>Sélectionnez un patient depuis le planning pour démarrer une consultation.</p>
+          <button class="btn-prim" (click)="setTab('planning')">📅 Voir le planning</button>
+        </div>
+
+        <div *ngIf="rdvSelectionne" class="consult-card">
+          <!-- Patient info -->
+          <div class="consult-patient-header">
+            <div class="cph-avatar">{{ (rdvSelectionne.prenom||'P')[0] }}{{ (rdvSelectionne.nom||'')[0] }}</div>
+            <div>
+              <div class="cph-nom">{{ rdvSelectionne.prenom }} {{ rdvSelectionne.nom }}</div>
+              <div class="cph-info">📅 {{ rdvSelectionne.date_rdv }} &nbsp;|&nbsp; 🕐 {{ rdvSelectionne.heure_rdv }} &nbsp;|&nbsp; 📋 {{ rdvSelectionne.motif }}</div>
+            </div>
+            <span class="sb statut-arrive">🏥 Patient arrivé</span>
+          </div>
+
+          <!-- Consultation form -->
+          <div class="consult-form">
+            <div class="af-inp">
+              <label>Diagnostic *</label>
+              <input [(ngModel)]="consultForm.diagnostic" placeholder="Ex: Hypertension artérielle stade 1..." />
+            </div>
+            <div class="af-inp">
+              <label>Traitement prescrit *</label>
+              <input [(ngModel)]="consultForm.traitement" placeholder="Ex: Repos + médication..." />
+            </div>
+            <div class="af-inp">
+              <label>Notes / Observations</label>
+              <input [(ngModel)]="consultForm.note" placeholder="Observations complémentaires..." />
+            </div>
+          </div>
+
+          <div class="error-msg" *ngIf="errorMsg">{{ errorMsg }}</div>
+          <div class="success-msg" *ngIf="successMsg">{{ successMsg }}</div>
+
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn-prim" (click)="effectuerConsultation()" [disabled]="loading['consult']">
+              <span *ngIf="!loading['consult']">✅ Enregistrer la consultation</span>
+              <span *ngIf="loading['consult']"><div class="sp-sm" style="display:inline-block"></div> Enregistrement...</span>
+            </button>
+            <button class="btn-sec" (click)="rdvSelectionne=null;setTab('planning')">Annuler</button>
+          </div>
+
+          <!-- Ordonnance section (after consultation saved) -->
+          <div *ngIf="consultEnregistree" class="ordo-section-med">
+            <div class="ordo-sep"><span>💊 Ordonnance médicale</span></div>
+            <div class="af-inp">
+              <label>Instructions générales</label>
+              <input [(ngModel)]="ordoForm.instructions" placeholder="Ex: À prendre après les repas, éviter l'alcool..." />
+            </div>
+
+            <div class="meds-list">
+              <div class="med-item" *ngFor="let med of ordoForm.medicaments; let i=index">
+                <div class="med-num">{{ i+1 }}</div>
+                <input [(ngModel)]="med.nom"    placeholder="Nom du médicament" class="med-inp" />
+                <input [(ngModel)]="med.dosage" placeholder="Dosage (ex: 500mg 3x/j)" class="med-inp" />
+                <input [(ngModel)]="med.duree"  placeholder="Durée (ex: 7 jours)" class="med-inp" />
+                <button class="btn-del" (click)="supprimerMedicament(i)">🗑</button>
+              </div>
+            </div>
+
+            <button class="btn-sec" (click)="ajouterMedicament()">
+              ➕ Ajouter médicament
+            </button>
+
+            <div style="display:flex;gap:10px;margin-top:14px">
+              <button class="btn-prim" (click)="redigerOrdonnance()" [disabled]="loading['ordo']">
+                <span *ngIf="!loading['ordo']">📄 Générer l'ordonnance + QR code</span>
+                <span *ngIf="loading['ordo']"><div class="sp-sm" style="display:inline-block"></div> Génération...</span>
+              </button>
+            </div>
+
+            <!-- Ordonnance preview -->
+            <div *ngIf="ordonnanceGeneree" class="ordo-preview-med">
+              <div class="ordo-preview-title">✅ Ordonnance générée</div>
+              <!-- ORDONNANCE PRINT ZONE -->
+              <div class="ordo-print-zone" id="ordoPrint">
+                <div class="ordo-header-print">
+                  <div class="ohp-left">
+                    <div class="ohp-cabinet">Cabinet MediNova</div>
+                    <div class="ohp-med">Dr. {{user?.prenom}} {{user?.nom}}</div>
+                    <div class="ohp-spec">{{user?.specialite}}</div>
+                    <div class="ohp-addr">Alger, Algérie</div>
+                  </div>
+                  <div class="ohp-right">
+                    <canvas id="qrCanvas" width="80" height="80"></canvas>
+                    <div class="ohp-ref">N° {{ordonnanceGeneree?.id_ordonnance}}</div>
+                  </div>
+                </div>
+                <div class="ordo-patient-print">
+                  <strong>Patient:</strong> {{rdvSelectionne?.prenom}} {{rdvSelectionne?.nom}} &nbsp;|&nbsp;
+                  <strong>Date:</strong> {{today}}
+                </div>
+                <div class="ordo-sep-print">ORDONNANCE MÉDICALE</div>
+                <div class="ordo-meds-print">
+                  <div *ngFor="let m of ordoForm.medicaments; let i=index" class="omp-item">
+                    <span class="omp-num">{{i+1}}.</span>
+                    <span class="omp-nom">{{m.nom}}</span>
+                    <span class="omp-dos">{{m.dosage}}</span>
+                    <span class="omp-dur">— {{m.duree}}</span>
+                  </div>
+                  <div class="omp-instr" *ngIf="ordoForm.instructions">📋 {{ordoForm.instructions}}</div>
+                </div>
+                <div class="ordo-footer-print">
+                  <div>Signature & Cachet du médecin</div>
+                  <div class="ordo-cachet">
+                    <div class="cachet-ring">
+                      <div class="cachet-inner">
+                        <div class="cachet-name">Dr. {{user?.prenom}} {{user?.nom}}</div>
+                        <div class="cachet-spec">{{user?.specialite}}</div>
+                        <div class="cachet-num">N° Ordre: {{user?.numero_ordre||'XXXX'}}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- ACTIONS -->
+              <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+                <button class="btn-ordo-email" (click)="envoyerOrdonnanceEmail(ordonnanceGeneree)">📧 Email patient</button>
+                <button class="btn-ordo-print" (click)="imprimerOrdonnance()">🖨️ Imprimer</button>
+                <button class="btn-certificat" (click)="genererCertificat()">📄 Certificat médical</button>
+                <button class="btn-recu" (click)="genererRecu()">🧾 Reçu consultation</button>
+              </div>
+              <!-- CERTIFICAT -->
+              <div *ngIf="certificatVisible" class="certificat-zone" id="certPrint">
+                <div class="cert-header">
+                  <div class="cert-title">CERTIFICAT MÉDICAL</div>
+                  <div class="cert-sub">Cabinet MediNova — Alger, Algérie</div>
+                </div>
+                <div class="cert-body">
+                  <p>Je soussigné(e), <strong>Dr. {{user?.prenom}} {{user?.nom}}</strong>, médecin, certifie avoir examiné ce jour :</p>
+                  <p class="cert-patient"><strong>{{rdvSelectionne?.prenom}} {{rdvSelectionne?.nom}}</strong></p>
+                  <p>Le patient nécessite un repos médical de <strong>______ jour(s)</strong>, du <strong>{{today}}</strong> au <strong>________________</strong>.</p>
+                  <p>Diagnostic : <strong>{{consultForm.diagnostic}}</strong></p>
+                  <p>Traitement prescrit : <strong>{{consultForm.traitement}}</strong></p>
+                  <p>Ce certificat est établi à la demande de l'intéressé(e) et pour servir et valoir ce que de droit.</p>
+                </div>
+                <div class="cert-footer">
+                  <div>Fait à Alger, le {{today}}</div>
+                  <div class="cert-cachet">
+                    <div class="cachet-ring">
+                      <div class="cachet-inner">
+                        <div class="cachet-name">Dr. {{user?.prenom}} {{user?.nom}}</div>
+                        <div class="cachet-spec">{{user?.specialite}}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="activeTab==='profil'"><ng-container *ngTemplateOutlet="profilTpl"></ng-container></div>
+    </div>
+  </main>
+</div>
+
+
+<!-- ══════ DASHBOARD INFIRMIÈRE (VIOLET) ══════ -->
+<div *ngIf="page==='dashboard-infirmiere'" class="dashboard theme-infirmiere">
+  <ng-container *ngTemplateOutlet="sidebarTpl; context:{color:'infirmiere',tabs:[
+    {id:'accueil',ico:'🏠',label:'Accueil'},
+    {id:'rdv-jour',ico:'📅',label:'RDV du jour'},
+    {id:'patients',ico:'👥',label:'Patients'},
+    {id:'soins',ico:'💉',label:'Soins effectués'},
+    {id:'profil',ico:'👤',label:'Mon profil'}
+  ]}"></ng-container>
+  <main class="dash-main">
+    <ng-container *ngTemplateOutlet="headerTpl"></ng-container>
+    <div class="dash-content">
+      <ng-container *ngTemplateOutlet="alertsTpl"></ng-container>
+
+      <div *ngIf="activeTab==='accueil'">
+        <div class="welcome-banner"><div><h2>Bonjour, {{ user?.prenom }} 👋</h2><p>Tableau de bord infirmière</p></div><button class="btn-w" (click)="setTab('soins');ouvrirSoinForm()">+ Enregistrer un soin</button></div>
+
+        <!-- Guide flow -->
+        <div class="flow-guide">
+          <div class="fg-title">📋 Guide — Comment ça marche</div>
+          <div class="fg-steps">
+            <div class="fg-step"><div class="fg-num">1</div><div class="fg-txt"><strong>RDV du jour</strong><br>Le patient prend RDV → statut <span class="sb statut-attente">⏳ En attente</span></div></div>
+            <div class="fg-arr">→</div>
+            <div class="fg-step"><div class="fg-num">2</div><div class="fg-txt"><strong>Confirmer</strong><br>Cliquer <span class="fg-btn-ex">✓ Confirmer</span> → statut <span class="sb statut-confirme">✓ Confirmé</span></div></div>
+            <div class="fg-arr">→</div>
+            <div class="fg-step"><div class="fg-num">3</div><div class="fg-txt"><strong>Patient arrivé</strong><br>Cliquer <span class="fg-btn-ex">🏥 Arrivé</span> → le médecin peut consulter</div></div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="sc b"><div class="sc-ico">📅</div><div><div class="sc-n">{{ rdvDuJour.length }}</div><div class="sc-l">RDV aujourd'hui</div></div></div>
+          <div class="sc g"><div class="sc-ico">👥</div><div><div class="sc-n">{{ patients.length }}</div><div class="sc-l">Patients</div></div></div>
+          <div class="sc p"><div class="sc-ico">💉</div><div><div class="sc-n">{{ soins.length }}</div><div class="sc-l">Soins</div></div></div>
+        </div>
+        <div class="sec-t">RDV du jour</div>
+        <ng-container *ngTemplateOutlet="rdvJourTpl"></ng-container>
+      </div>
+
+      <div *ngIf="activeTab==='rdv-jour'">
+        <div class="ph"><div><h2>RDV à traiter</h2><p style="font-size:13px;color:var(--muted);margin-top:3px">Tous les RDV en attente de confirmation</p></div><button class="btn-prim" (click)="chargerRdvJour()">🔄 Actualiser</button></div>
+        <ng-container *ngTemplateOutlet="rdvJourTpl"></ng-container>
+      </div>
+
+      <div *ngIf="activeTab==='patients'">
+        <div class="ph"><div><h2>Patients</h2></div></div>
+        <div class="loading-inline" *ngIf="loading['patients']"><div class="sp-sm"></div> Chargement...</div>
+        <div class="users-table" *ngIf="!loading['patients'] && patients.length > 0">
+          <div class="ut-hdr"><span>Nom</span><span>Email</span><span>Téléphone</span></div>
+          <div class="ut-row" *ngFor="let p of patients">
+            <span class="ut-name"><div class="ut-ava">{{ p.prenom?.[0] }}{{ p.nom?.[0] }}</div>{{ p.prenom }} {{ p.nom }}</span>
+            <span>{{ p.email }}</span><span>{{ p.telephone }}</span>
+          </div>
+        </div>
+        <div class="empty-card" *ngIf="!loading['patients'] && patients.length===0"><p>Aucun patient enregistré.</p></div>
+      </div>
+
+      <div *ngIf="activeTab==='soins'">
+        <div class="ph"><div><h2>Soins effectués</h2></div><button class="btn-prim" (click)="ouvrirSoinForm()">+ Enregistrer un soin</button></div>
+        <!-- Formulaire soin -->
+        <div class="form-card" *ngIf="showSoinForm">
+          <div class="fc-head"><h4>Enregistrer un soin paramédical</h4><button class="fc-x" (click)="showSoinForm=false">✕</button></div>
+          <div class="err-box" *ngIf="soinError">⚠️ {{ soinError }}</div>
+          <form (ngSubmit)="enregistrerSoin()">
+            <div class="fc-grid">
+              <div class="af-field">
+                <label>Patient (RDV du jour)</label>
+                <div class="af-inp ni">
+                  <select [(ngModel)]="soinPatientId" name="pat" required>
+                    <option value="">-- Sélectionner un patient --</option>
+                    <option *ngFor="let r of rdvDuJour" [value]="r.id_patient">
+                      {{ r.heure_rdv }} — {{ r.motif }}
+                    </option>
+                  </select>
+                </div>
+                <small style="color:var(--muted);font-size:11px;margin-top:4px;display:block">
+                  {{ rdvDuJour.length }} RDV aujourd'hui
+                </small>
+              </div>
+              <div class="af-field">
+                <label>Type de soin</label>
+                <div class="af-inp ni"><select [(ngModel)]="soinType" name="typ" required><option *ngFor="let t of typesSoin" [value]="t">{{ t }}</option></select></div>
+              </div>
+              <div class="af-field" style="grid-column:1/-1"><label>Fiche soin</label><div class="af-inp ni"><input type="text" [(ngModel)]="soinFiche" name="fiche" placeholder="Description du soin effectué" required/></div></div>
+              <div class="af-field" style="grid-column:1/-1"><label>Observations</label><div class="af-inp ni"><input type="text" [(ngModel)]="soinObservation" name="obs" placeholder="Observations cliniques..."/></div></div>
+            </div>
+            <div class="fc-actions">
+              <button type="button" class="btn-cancel" (click)="showSoinForm=false">Annuler</button>
+              <button type="submit" class="btn-prim" [disabled]="soinLoading"><span *ngIf="!soinLoading">💉 Enregistrer</span><span *ngIf="soinLoading" class="dots"><i></i><i></i><i></i></span></button>
+            </div>
+          </form>
+        </div>
+        <div class="loading-inline" *ngIf="loading['soins']"><div class="sp-sm"></div> Chargement...</div>
+        <div class="rdv-list" *ngIf="!loading['soins'] && soins.length > 0">
+          <div class="rdv-row" *ngFor="let s of soins">
+            <div class="rdv-dc"><div class="rdv-d">{{ s.date?.split('-')[2] }}</div><div class="rdv-m">{{ s.date?.split('-')[1] }}/{{ s.date?.split('-')[0]?.slice(2) }}</div></div>
+            <div class="rdv-info"><h4>{{ s.type_soin }}</h4><p>{{ s.observation }}</p></div>
+            <span class="sb statut-termine">✔ Effectué</span>
+          </div>
+        </div>
+        <div class="empty-card" *ngIf="!loading['soins'] && soins.length===0"><p>Aucun soin enregistré.</p></div>
+      </div>
+
+      <div *ngIf="activeTab==='profil'"><ng-container *ngTemplateOutlet="profilTpl"></ng-container></div>
+    </div>
+  </main>
+</div>
+
+
+<!-- ══════ DASHBOARD ADMIN (ROUGE FONCÉ) ══════ -->
+<div *ngIf="page==='dashboard-admin'" class="dashboard theme-admin">
+  <ng-container *ngTemplateOutlet="sidebarTpl; context:{color:'admin',tabs:[
+    {id:'accueil',ico:'🏠',label:'Accueil'},
+    {id:'utilisateurs',ico:'👥',label:'Utilisateurs'},
+    {id:'rapport',ico:'📊',label:'Rapport'}
+  ]}"></ng-container>
+  <main class="dash-main">
+    <ng-container *ngTemplateOutlet="headerTpl"></ng-container>
+    <div class="dash-content">
+      <ng-container *ngTemplateOutlet="alertsTpl"></ng-container>
+
+      <div *ngIf="activeTab==='accueil'">
+        <div class="welcome-banner"><div><h2>Bonjour, Administrateur 👋</h2><p>Gérez les comptes et l'activité</p></div></div>
+        <div class="stats-grid" *ngIf="adminRapport">
+          <div class="sc b"><div class="sc-ico">👥</div><div><div class="sc-n">{{ adminRapport.total_utilisateurs || adminUtilisateurs.length }}</div><div class="sc-l">Utilisateurs</div></div></div>
+          <div class="sc g"><div class="sc-ico">👨‍⚕️</div><div><div class="sc-n">{{ adminRapport.total_medecins || 0 }}</div><div class="sc-l">Médecins</div></div></div>
+          <div class="sc p"><div class="sc-ico">📅</div><div><div class="sc-n">{{ adminRapport.total_rdv || 0 }}</div><div class="sc-l">RDV total</div></div></div>
+          <div class="sc o"><div class="sc-ico">🤒</div><div><div class="sc-n">{{ adminRapport.total_patients || 0 }}</div><div class="sc-l">Patients</div></div></div>
+        </div>
+        <div class="sec-t">Gestion des comptes</div>
+        <ng-container *ngTemplateOutlet="usersTableTpl"></ng-container>
+      </div>
+
+      <div *ngIf="activeTab==='utilisateurs'">
+        <div class="ph"><div><h2>Gestion des utilisateurs</h2></div><button class="btn-prim" (click)="chargerUtilisateurs()">🔄 Actualiser</button></div>
+        <ng-container *ngTemplateOutlet="usersTableTpl"></ng-container>
+      </div>
+
+      <div *ngIf="activeTab==='rapport'">
+        <div class="ph">
+          <div><h2>📊 Rapport d'activité</h2></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <div *ngIf="loading['rappels']" class="sp-sm"></div>
+            <button class="btn-prim" (click)="envoyerRappels()" [disabled]="loading['rappels']" style="background:linear-gradient(135deg,#27AE60,#219a52)!important">
+              📧 Envoyer rappels 24h
+            </button>
+          </div>
+        </div>
+        <div class="loading-inline" *ngIf="loading['rapport']"><div class="sp-sm"></div> Chargement...</div>
+        <div *ngIf="adminRapport && !loading['rapport']">
+          <!-- Chart -->
+          <div class="chart-card">
+            <div class="chart-title">📊 Vue d'ensemble</div>
+            <canvas id="chart-rdv" width="500" height="200" style="width:100%;max-width:500px;display:block;margin:0 auto"></canvas>
+          </div>
+          <div class="rapport-grid" style="margin-top:16px">
+            <div class="rapport-card" *ngFor="let k of getKeys(adminRapport)"><div class="rc-l">{{ k }}</div><div class="rc-v">{{ adminRapport[k] }}</div></div>
+          </div>
+        </div>
+        <div class="empty-card" *ngIf="!loading['rapport'] && !adminRapport"><p>Aucune donnée.</p></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+
+<!-- ══════ SHARED TEMPLATES ══════ -->
+
+<!-- Sidebar -->
+<ng-template #sidebarTpl let-color="color" let-tabs="tabs">
+  <aside class="sidebar" [class.open]="sidebarOpen">
+    <div class="sb-logo"><div class="nb-icon"><svg width="20" height="20" viewBox="0 0 22 22" fill="none"><path d="M11 2v18M2 11h18" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg></div><span>MediNova</span></div>
+    <div class="sb-user">
+      <div class="sb-ava">{{ initiales() }}</div>
+      <div><div class="sb-name">{{ user?.prenom }} {{ user?.nom }}</div><span class="role-badge" [ngClass]="'rb-'+color">{{ getRoleLabel(user?.role) }}</span></div>
+    </div>
+    <nav class="sb-nav">
+      <button *ngFor="let t of tabs" class="sb-item" [class.active]="activeTab===t.id" (click)="setTab(t.id)">
+        <span class="sb-ico">{{ t.ico }}</span>{{ t.label }}
+        <span class="sb-badge" *ngIf="t.ico==='🔔' && notifsNonLues()>0">{{ notifsNonLues() }}</span>
+      </button>
+    </nav>
+    <button class="sb-out" (click)="logout()">🚪 Déconnexion</button>
+  </aside>
+</ng-template>
+
+<!-- Header -->
+<ng-template #headerTpl>
+  <header class="dash-header">
+    <button class="menu-btn" (click)="sidebarOpen=!sidebarOpen">☰</button>
+    <div class="dash-title">
+      <span *ngIf="activeTab==='accueil'">Tableau de bord</span>
+      <span *ngIf="activeTab==='rdv'">Mes rendez-vous</span>
+      <span *ngIf="activeTab==='planning'">Mon planning</span>
+      <span *ngIf="activeTab==='rdv-jour'">RDV du jour</span>
+      <span *ngIf="activeTab==='dossier'">Dossier médical</span>
+      <span *ngIf="activeTab==='ordonnances'">Ordonnances</span>
+      <span *ngIf="activeTab==='notifications'">Notifications</span>
+      <span *ngIf="activeTab==='disponibilites'">Disponibilités</span>
+      <span *ngIf="activeTab==='patients'">Patients</span>
+      <span *ngIf="activeTab==='soins'">Soins effectués</span>
+      <span *ngIf="activeTab==='utilisateurs'">Utilisateurs</span>
+      <span *ngIf="activeTab==='rapport'">Rapport</span>
+      <span *ngIf="activeTab==='profil'">Mon profil</span>
+    </div>
+    <div class="dhr" style="display:flex;align-items:center;gap:10px"><button class="dark-toggle" (click)="toggleDarkMode()" [title]="darkMode ? 'Mode clair' : 'Mode sombre'">{{ darkMode ? "☀️" : "🌙" }}</button><div class="dh-ava">{{ initiales() }}</div></div>
+  </header>
+</ng-template>
+
+<!-- Alerts -->
+<ng-template #alertsTpl>
+  <div class="success-msg" *ngIf="successMsg">✅ {{ successMsg }}</div>
+  <div class="error-msg" *ngIf="errorMsg">⚠️ {{ errorMsg }}</div>
+</ng-template>
+
+<!-- Profil -->
+<ng-template #profilTpl>
+  <div class="ph"><div><h2>Mon profil</h2></div></div>
+  <div class="profil-card">
+    <div class="p-ava large">{{ initiales() }}</div>
+    <div class="success-box" *ngIf="profilSuccess">✅ {{ profilSuccess }}</div>
+    <div class="err-box" *ngIf="profilError">⚠️ {{ profilError }}</div>
+    <div class="pf">
+      <div class="pf-row">
+        <div class="pf-g"><label>Prénom</label><input type="text" [(ngModel)]="profilPrenom" name="pp"/></div>
+        <div class="pf-g"><label>Nom</label><input type="text" [(ngModel)]="profilNom" name="pn"/></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-g"><label>Email</label><input type="email" [(ngModel)]="profilEmail" name="pe"/></div>
+        <div class="pf-g"><label>Téléphone</label><input type="text" [(ngModel)]="profilTelephone" name="pt"/></div>
+      </div>
+      <button class="btn-prim" style="margin-top:16px" (click)="sauvegarderProfil()" [disabled]="profilLoading">
+        <span *ngIf="!profilLoading">💾 Enregistrer les modifications</span>
+        <span *ngIf="profilLoading" class="dots"><i></i><i></i><i></i></span>
+      </button>
+    </div>
+  </div>
+  </ng-template>
+
+<!-- Planning médecin -->
+<ng-template #planningListTpl>
+  <div class="loading-inline" *ngIf="loading['planning']"><div class="sp-sm"></div> Chargement...</div>
+
+  <!-- Form consultation -->
+  <div class="form-card" *ngIf="showConsultForm">
+    <div class="fc-head"><h4>Effectuer une consultation</h4><button class="fc-x" (click)="showConsultForm=false">✕</button></div>
+    <div class="err-box" *ngIf="consultError">⚠️ {{ consultError }}</div>
+    <form (ngSubmit)="effectuerConsultation()">
+      <div class="fc-grid">
+        <div class="af-field" style="grid-column:1/-1"><label>Diagnostic</label><div class="af-inp ni"><input type="text" [(ngModel)]="consultDiagnostic" name="diag" placeholder="Ex: Rhinopharyngite aiguë" required/></div></div>
+        <div class="af-field" style="grid-column:1/-1"><label>Traitement prescrit</label><div class="af-inp ni"><input type="text" [(ngModel)]="consultTraitement" name="trait" placeholder="Ex: Paracétamol 1g · 3x/jour" required/></div></div>
+        <div class="af-field" style="grid-column:1/-1"><label>Notes</label><div class="af-inp ni"><input type="text" [(ngModel)]="consultNote" name="note" placeholder="Observations..."/></div></div>
+      </div>
+      <div class="fc-actions">
+        <button type="button" class="btn-cancel" (click)="showConsultForm=false">Annuler</button>
+        <button type="submit" class="btn-prim" [disabled]="consultLoading"><span *ngIf="!consultLoading">✓ Enregistrer</span><span *ngIf="consultLoading" class="dots"><i></i><i></i><i></i></span></button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Form ordonnance -->
+  <div class="form-card" *ngIf="showOrdoForm">
+    <div class="fc-head"><h4>Rédiger une ordonnance</h4><button class="fc-x" (click)="showOrdoForm=false">✕</button></div>
+    <div class="err-box" *ngIf="ordoError">⚠️ {{ ordoError }}</div>
+    <form (ngSubmit)="redigerOrdonnance()">
+      <div class="af-field"><label>Instructions générales</label><div class="af-inp ni"><input type="text" [(ngModel)]="ordoInstructions" name="inst" placeholder="Ex: Prendre avec les repas"/></div></div>
+      <div class="sec-t" style="margin:12px 0 10px">Médicaments</div>
+      <div class="med-row" *ngFor="let m of ordoMedicaments; let i=index">
+        <div class="af-inp ni" style="flex:2"><input type="text" [(ngModel)]="m.nom" [name]="'mn'+i" placeholder="Médicament" required/></div>
+        <div class="af-inp ni" style="flex:1"><input type="text" [(ngModel)]="m.dosage" [name]="'md'+i" placeholder="Dosage" required/></div>
+        <div class="af-inp ni" style="flex:1"><input type="text" [(ngModel)]="m.duree" [name]="'mu'+i" placeholder="Durée" required/></div>
+        <button type="button" class="btn-del" *ngIf="ordoMedicaments.length>1" (click)="supprimerMedicament(i)">✕</button>
+      </div>
+      <button type="button" class="btn-add-med" (click)="ajouterMedicament()">+ Ajouter</button>
+      <div class="fc-actions">
+        <button type="button" class="btn-cancel" (click)="showOrdoForm=false">Annuler</button>
+        <button type="submit" class="btn-prim" [disabled]="ordoLoading"><span *ngIf="!ordoLoading">💊 Créer</span><span *ngIf="ordoLoading" class="dots"><i></i><i></i><i></i></span></button>
+      </div>
+    </form>
+  </div>
+
+  <div class="rdv-list" *ngIf="!loading['planning'] && planning.length > 0">
+    <div class="rdv-row" *ngFor="let r of planning">
+      <div class="rdv-dc"><div class="rdv-d">{{ r.date_rdv?.split('-')[2] }}</div><div class="rdv-m">{{ r.date_rdv?.split('-')[1] }}/{{ r.date_rdv?.split('-')[0]?.slice(2) }}</div></div>
+      <div class="rdv-info"><h4>{{ getNomPatient(r) }}</h4><p>{{ r.heure_rdv }} · {{ r.motif }}</p></div>
+      <span class="sb" [ngClass]="getStatutClass(r.statut)">{{ getStatutLabel(r.statut) }}</span>
+      <div class="rdv-acts">
+        <button class="btn-conf" *ngIf="r.statut?.toUpperCase()==='EN_ATTENTE'" (click)="confirmerRdv(r.id_rdv)">✓ Confirmer</button>
+        <button class="btn-cons" *ngIf="r.statut?.toUpperCase()==='CONFIRME'||r.statut?.toUpperCase()==='PATIENT_ARRIVE'" (click)="ouvrirConsultForm(r)">📋 Consulter</button>
+        <button class="btn-ordo" *ngIf="r.statut?.toUpperCase()==='TERMINE'" (click)="ouvrirOrdoForm(r.id_rdv)">💊 Ordonnance</button>
+        <button class="btn-ann-sm" *ngIf="r.statut?.toUpperCase()!=='TERMINE'&&r.statut?.toUpperCase()!=='ANNULE'" (click)="annulerRdvMedecin(r.id_rdv)">Annuler</button>
+      </div>
+    </div>
+  </div>
+  <div class="empty-card" *ngIf="!loading['planning'] && planning.length===0"><p>Aucun rendez-vous.</p></div>
+</ng-template>
+
+<!-- RDV jour infirmière -->
+<ng-template #rdvJourTpl>
+  <div class="loading-inline" *ngIf="loading['rdvJour']"><div class="sp-sm"></div> Chargement...</div>
+  <div class="rdv-list" *ngIf="!loading['rdvJour'] && rdvDuJour.length > 0">
+    <div class="rdv-row" *ngFor="let r of rdvDuJour">
+      <div class="rdv-dc"><div class="rdv-d">{{ r.date_rdv?.split('-')[2] }}</div><div class="rdv-m">{{ r.date_rdv?.split('-')[1] }}/{{ r.date_rdv?.split('-')[0]?.slice(2) }}</div></div>
+      <div class="rdv-info"><h4>{{ getNomPatient(r) }}</h4><p>{{ r.motif }}</p></div>
+      <div class="rdv-h">{{ r.heure_rdv }}</div>
+      <span class="sb" [ngClass]="getStatutClass(r.statut)">{{ getStatutLabel(r.statut) }}</span>
+      <div class="rdv-acts">
+        <ng-container [ngSwitch]="r.statut?.toUpperCase()">
+          <span *ngSwitchCase="'EN_ATTENTE'">
+            <button class="btn-conf" (click)="confirmerRdvInf(r.id_rdv)">✓ Confirmer</button>
+          </span>
+          <span *ngSwitchCase="'CONFIRME'">
+            <button class="btn-arr" (click)="patientArrive(r.id_rdv)">🏥 Patient arrivé</button>
+          </span>
+          <span *ngSwitchCase="'PATIENT_ARRIVE'">
+            <span class="sb statut-arrive">🏥 Arrivé — en consultation</span>
+          </span>
+          <span *ngSwitchCase="'TERMINE'">
+            <span class="sb statut-termine">✔ Terminé</span>
+          </span>
+          <span *ngSwitchCase="'ANNULE'">
+            <span class="sb statut-annule">✗ Annulé</span>
+          </span>
+          <span *ngSwitchDefault>
+            <button class="btn-conf" (click)="confirmerRdvInf(r.id_rdv)">✓ Confirmer</button>
+          </span>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+  <div class="empty-card" *ngIf="!loading['rdvJour'] && rdvDuJour.length===0"><p>Aucun RDV aujourd'hui.</p></div>
+
+</ng-template>
+<!-- Users table admin -->
+<ng-template #usersTableTpl>
+  <div class="ut-toolbar">
+    <div class="ut-filters">
+      <div class="ut-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" [(ngModel)]="filterSearch" placeholder="Rechercher..."/></div>
+      <select [(ngModel)]="filterRole" class="ut-sel"><option value="">Tous les rôles</option><option value="patient">Patient</option><option value="medecin">Médecin</option><option value="infirmiere">Infirmière</option></select>
+    </div>
+    <button class="btn-prim" (click)="showCreateForm=!showCreateForm">+ Créer un compte</button>
+  </div>
+
+  <!-- Form création -->
+  <div class="form-card" *ngIf="showCreateForm">
+    <div class="fc-head"><h4>Créer un compte médecin / infirmière</h4><button class="fc-x" (click)="showCreateForm=false">✕</button></div>
+    <div class="success-box" *ngIf="createSuccess">✅ {{ createSuccess }}</div>
+    <div class="err-box" *ngIf="createError">⚠️ {{ createError }}</div>
+    <div class="role-sel">
+      <button class="role-btn" [class.active]="createRole==='medecin'" (click)="createRole='medecin'">👨‍⚕️ Médecin</button>
+      <button class="role-btn" [class.active]="createRole==='infirmiere'" (click)="createRole='infirmiere'">💉 Infirmière</button>
+    </div>
+    <form (ngSubmit)="creerCompte()">
+      <div class="fc-grid">
+        <div class="af-field"><label>Prénom</label><div class="af-inp ni"><input type="text" [(ngModel)]="createPrenom" name="cp" placeholder="Prénom" required/></div></div>
+        <div class="af-field"><label>Nom</label><div class="af-inp ni"><input type="text" [(ngModel)]="createNom" name="cn" placeholder="Nom" required/></div></div>
+        <div class="af-field"><label>Email</label><div class="af-inp ni"><input type="email" [(ngModel)]="createEmail" name="ce" placeholder="Email" required/></div></div>
+        <div class="af-field"><label>Téléphone</label><div class="af-inp ni"><input type="text" [(ngModel)]="createTelephone" name="ct" placeholder="05XXXXXXXX" required/></div></div>
+        <div class="af-field"><label>Genre</label><div class="af-inp ni"><select [(ngModel)]="createGenre" name="cg"><option value="M">Masculin</option><option value="F">Féminin</option></select></div></div>
+        <div class="af-field"><label>Mot de passe</label><div class="af-inp ni"><input type="password" [(ngModel)]="createPassword" name="cpw" placeholder="••••••••" required/></div></div>
+        <div class="af-field" *ngIf="createRole==='medecin'"><label>Spécialité</label><div class="af-inp ni"><input type="text" [(ngModel)]="createSpecialite" name="cs" placeholder="Ex: Cardiologie" required/></div></div>
+        <div class="af-field" *ngIf="createRole==='medecin'"><label>N° Ordre</label><div class="af-inp ni"><input type="text" [(ngModel)]="createNumeroOrdre" name="co" placeholder="ALG-2024-XXXX" required/></div></div>
+        <div class="af-field" *ngIf="createRole==='infirmiere'" style="grid-column:1/-1"><label>N° Employé</label><div class="af-inp ni"><input type="text" [(ngModel)]="createNumeroEmploye" name="cemp" placeholder="INF-2024-XXXX" required/></div></div>
+      </div>
+      <div class="fc-actions">
+        <button type="button" class="btn-cancel" (click)="showCreateForm=false">Annuler</button>
+        <button type="submit" class="btn-prim" [disabled]="createLoading"><span *ngIf="!createLoading">✓ Créer le compte</span><span *ngIf="createLoading" class="dots"><i></i><i></i><i></i></span></button>
+      </div>
+    </form>
+  </div>
+
+  <div class="loading-inline" *ngIf="loading['users']"><div class="sp-sm"></div> Chargement...</div>
+  <div class="users-table" *ngIf="!loading['users'] && utilisateursFiltres().length > 0">
+    <div class="ut-hdr"><span>Utilisateur</span><span>Email</span><span>Rôle</span><span>Statut</span><span>Actions</span></div>
+    <div class="ut-row" *ngFor="let u of utilisateursFiltres()">
+      <span class="ut-name"><div class="ut-ava">{{ u.prenom?.[0] }}{{ u.nom?.[0] }}</div>{{ u.prenom }} {{ u.nom }}</span>
+      <span>{{ u.email }}</span>
+      <span><span class="role-badge" [ngClass]="'rb-'+u.role">{{ getRoleLabel(u.role) }}</span></span>
+      <span><span class="sb" [ngClass]="isActif(u) ? 'statut-confirme' : 'statut-annule'">{{ isActif(u) ? '✓ Actif' : '✗ Inactif' }}</span></span>
+      <span class="ut-acts">
+        <button class="btn-act" *ngIf="!isActif(u)" (click)="activerCompte(u.id_utilisateur)">✓ Activer</button>
+        <button class="btn-deact" *ngIf="isActif(u)" (click)="desactiverCompte(u.id_utilisateur)">⏸</button>
+        <button class="btn-del" (click)="supprimerCompte(u.id_utilisateur)">🗑</button>
+      </span>
+    </div>
+  </div>
+  <div class="empty-card" *ngIf="!loading['users'] && utilisateursFiltres().length===0"><p>Aucun utilisateur.</p></div>
+</ng-template>

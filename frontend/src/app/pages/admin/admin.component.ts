@@ -156,4 +156,33 @@ export class AdminComponent implements OnInit {
     };
     return m[r] || { bg: "var(--bg)", text: "var(--muted)" };
   }
+
+  getBarWidth(val: number, total: number): string {
+    if (!total) return '0%';
+    return Math.round((val / total) * 100) + '%';
+  }
+
+  getDonutDash(val: number, total: number): number {
+    if (!total) return 0;
+    return Math.round((val / total) * 314);
+  }
+
+  getDonutOffset(med: number, total: number): number {
+    if (!total) return 0;
+    return -Math.round((med / total) * 314);
+  }
+
+  getDonutOffset2(med: number, inf: number, total: number): number {
+    if (!total) return 0;
+    return -Math.round(((med + inf) / total) * 314);
+  }
+
+  getStatutColor(statut: string): string {
+    const s = (statut || '').toLowerCase();
+    if (s.includes('attente')) return '#f39c12';
+    if (s.includes('confirm') || s.includes('arrive')) return '#27ae60';
+    if (s.includes('termin')) return '#0A3D62';
+    if (s.includes('annul')) return '#e74c3c';
+    return '#6c757d';
+  }
 }

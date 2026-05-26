@@ -35,6 +35,7 @@ const COLORS = [
       <div class="nav-links">
         <a href="#medecins">Médecins</a>
         <a href="#services">Services</a>
+        <a href="#securite">Sécurité</a>
         <a href="#contact">Contact</a>
       </div>
       <div class="nav-btns">
@@ -49,6 +50,14 @@ const COLORS = [
     <div class="hero-bg-grid"></div>
     <div class="hero-glow g1"></div>
     <div class="hero-glow g2"></div>
+
+    <!-- Floating medical icons -->
+    <div class="float-icon fi1">❤️</div>
+    <div class="float-icon fi2">💊</div>
+    <div class="float-icon fi3">🩺</div>
+    <div class="float-icon fi4">🏥</div>
+    <div class="float-icon fi5">💉</div>
+    <div class="float-icon fi6">🧬</div>
     <div class="hero-in">
 
       <!-- LEFT -->
@@ -161,12 +170,19 @@ const COLORS = [
     </div>
   </section>
 
+  <!-- VAGUE -->
+  <div class="wave-wrap">
+    <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <path d="M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 L1440,80 L0,80 Z" fill="#F8FAFC"/>
+    </svg>
+  </div>
+
   <!-- MÉDECINS DYNAMIQUES -->
   <section class="sec" id="medecins">
     <div class="sec-in">
-      <div class="sec-tag">Nos spécialistes</div>
-      <h2 class="sec-h2">Des médecins qualifiés<br>à votre service</h2>
-      <p class="sec-sub">Prenez rendez-vous en ligne avec nos spécialistes — confirmation instantanée, rappel automatique 24h avant.</p>
+      <div class="sec-tag fade-up">Nos spécialistes</div>
+      <h2 class="sec-h2 fade-up fade-up-delay-1">Des médecins qualifiés<br>à votre service</h2>
+      <p class="sec-sub fade-up fade-up-delay-2">Prenez rendez-vous en ligne avec nos spécialistes — confirmation instantanée, rappel automatique 24h avant.</p>
 
       <!-- Loading -->
       <div class="docs-loading" *ngIf="loading">
@@ -211,15 +227,183 @@ const COLORS = [
   <!-- SERVICES -->
   <section class="sec sec-alt" id="services">
     <div class="sec-in">
-      <div class="sec-tag">Fonctionnalités</div>
-      <h2 class="sec-h2">Tout ce dont vous avez<br>besoin, au même endroit</h2>
+      <div class="sec-tag fade-up">Fonctionnalités</div>
+      <h2 class="sec-h2 fade-up fade-up-delay-1">Tout ce dont vous avez<br>besoin, au même endroit</h2>
       <div class="srv-grid">
-        <div class="srv-card" *ngFor="let s of services">
-          <div class="srv-ico" [style.background]="s.bg">
-            <svg [attr.width]="22" [attr.height]="22" viewBox="0 0 24 24" fill="none" [attr.stroke]="s.color" stroke-width="2" [innerHTML]="s.icon"></svg>
+        <!-- Prise de RDV -->
+        <div class="srv-card fade-up">
+          <div class="srv-ico" style="background:#EBF5FB">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0A3D62" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/>
+              <line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>
+            </svg>
           </div>
-          <div class="srv-title">{{ s.title }}</div>
-          <div class="srv-desc">{{ s.desc }}</div>
+          <div class="srv-title">Prise de rendez-vous</div>
+          <div class="srv-desc">Réservez en quelques clics auprès de votre médecin. Confirmation instantanée, rappel automatique 24h avant.</div>
+        </div>
+        <!-- Dossier médical -->
+        <div class="srv-card fade-up fade-up-delay-1">
+          <div class="srv-ico" style="background:#DCFCE7">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <div class="srv-title">Dossier médical numérique</div>
+          <div class="srv-desc">Accédez à l'intégralité de votre historique médical, consultations et ordonnances en toute sécurité.</div>
+        </div>
+        <!-- Ordonnances -->
+        <div class="srv-card fade-up fade-up-delay-2">
+          <div class="srv-ico" style="background:#F5F3FF">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6D28D9" stroke-width="2">
+              <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+          </div>
+          <div class="srv-title">Ordonnances numériques</div>
+          <div class="srv-desc">Vos prescriptions médicales disponibles en ligne avec QR code de vérification d'authenticité.</div>
+        </div>
+        <!-- IA -->
+        <div class="srv-card fade-up">
+          <div class="srv-ico" style="background:#FEF3C7">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#92400E" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </div>
+          <div class="srv-title">Analyse IA des symptômes</div>
+          <div class="srv-desc">Décrivez vos symptômes et obtenez une orientation vers la bonne spécialité médicale instantanément.</div>
+        </div>
+        <!-- Soins -->
+        <div class="srv-card fade-up fade-up-delay-1">
+          <div class="srv-ico" style="background:#FEE2E2">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#991B1B" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          <div class="srv-title">Soins infirmiers</div>
+          <div class="srv-desc">Suivi des soins paramédicaux, gestion des actes infirmiers et communication inter-professionnelle.</div>
+        </div>
+        <!-- Notifications -->
+        <div class="srv-card fade-up fade-up-delay-2">
+          <div class="srv-ico" style="background:#EFF6FF">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1E40AF" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+          </div>
+          <div class="srv-title">Notifications & Rappels</div>
+          <div class="srv-desc">Recevez des rappels automatiques 24h avant chaque rendez-vous et suivez vos notifications en temps réel.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMENT ÇA MARCHE -->
+  <section class="sec" id="comment-ca-marche">
+    <div class="sec-in">
+      <div class="sec-tag">Simple & rapide</div>
+      <h2 class="sec-h2">Comment ça marche ?</h2>
+      <p class="sec-sub">En 3 étapes simples, accédez à des soins de qualité depuis chez vous.</p>
+
+      <div class="steps-wrap">
+        <!-- Ligne de connexion -->
+        <div class="steps-line"></div>
+
+        <div class="steps-grid">
+          <!-- Étape 1 -->
+          <div class="step-card">
+            <div class="step-num">01</div>
+            <div class="step-icon-wrap" style="background:#EBF5FB">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0A3D62" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+            <div class="step-title">Créez votre compte</div>
+            <div class="step-desc">Inscrivez-vous en moins de 2 minutes avec vos informations personnelles. Votre dossier médical est créé automatiquement.</div>
+            <div class="step-badge">Gratuit</div>
+          </div>
+
+          <!-- Étape 2 -->
+          <div class="step-card step-card--mid">
+            <div class="step-num" style="color:#00C9A7;border-color:rgba(0,201,167,.2);background:rgba(0,201,167,.06)">02</div>
+            <div class="step-icon-wrap" style="background:#DCFCE7">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+              </svg>
+            </div>
+            <div class="step-title">Prenez rendez-vous</div>
+            <div class="step-desc">Choisissez votre médecin, sélectionnez un créneau disponible et confirmez votre rendez-vous en quelques clics.</div>
+            <div class="step-badge" style="background:rgba(0,201,167,.1);color:#0d9276">Instantané</div>
+          </div>
+
+          <!-- Étape 3 -->
+          <div class="step-card">
+            <div class="step-num" style="color:#6D28D9;border-color:rgba(109,40,217,.2);background:rgba(109,40,217,.06)">03</div>
+            <div class="step-icon-wrap" style="background:#F5F3FF">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6D28D9" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </div>
+            <div class="step-title">Accédez à vos soins</div>
+            <div class="step-desc">Consultez votre médecin, recevez vos ordonnances numériques avec QR code et suivez votre dossier médical en ligne.</div>
+            <div class="step-badge" style="background:rgba(109,40,217,.08);color:#6D28D9">Sécurisé</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SÉCURITÉ & CONFORMITÉ -->
+  <section class="sec sec-alt" id="securite">
+    <div class="sec-in">
+      <div class="sec-tag">Conforme & sécurisé</div>
+      <h2 class="sec-h2">Votre sécurité,<br>notre priorité</h2>
+      <p class="sec-sub">MediNova respecte la loi algérienne 17-08 sur la protection des données de santé.</p>
+
+      <div class="sec-features-grid">
+        <div class="sec-feature">
+          <div class="sec-feature-icon" style="background:#EBF5FB">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0A3D62" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h3 class="sec-feature-title">Données chiffrées</h3>
+          <p class="sec-feature-desc">Toutes vos données médicales sont chiffrées et stockées de manière sécurisée conformément aux standards internationaux.</p>
+        </div>
+        <div class="sec-feature">
+          <div class="sec-feature-icon" style="background:#DCFCE7">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h3 class="sec-feature-title">Loi 17-08 conforme</h3>
+          <p class="sec-feature-desc">Notre plateforme respecte intégralement la loi algérienne relative à la protection des personnes physiques dans le traitement des données à caractère personnel.</p>
+        </div>
+        <div class="sec-feature">
+          <div class="sec-feature-icon" style="background:#F5F3FF">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6D28D9" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <h3 class="sec-feature-title">Accès contrôlé</h3>
+          <p class="sec-feature-desc">Chaque médecin n'accède qu'aux dossiers de ses propres patients. Chaque accès est tracé et enregistré pour garantir la confidentialité.</p>
+        </div>
+        <div class="sec-feature">
+          <div class="sec-feature-icon" style="background:#FEF3C7">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#92400E" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h3 class="sec-feature-title">Consentement explicite</h3>
+          <p class="sec-feature-desc">Chaque patient donne son consentement explicite lors de l'inscription pour le traitement de ses données médicales personnelles.</p>
         </div>
       </div>
     </div>
@@ -598,20 +782,27 @@ const COLORS = [
     }
 
     /* Services */
-    .srv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .srv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
     .srv-card {
-      background: #F8FAFC; border-radius: 18px; padding: 28px;
+      background: white; border-radius: 20px; padding: 30px;
       border: 1.5px solid #E2E8F0;
-      transition: all .28s cubic-bezier(.16,1,.3,1);
+      transition: all .3s cubic-bezier(.16,1,.3,1);
+      position: relative; overflow: hidden;
     }
-    .srv-card:hover { background: white; transform: translateY(-5px); box-shadow: 0 16px 40px rgba(10,61,98,.1); }
+    .srv-card::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #0A3D62, #00C9A7);
+      opacity: 0; transition: opacity .3s;
+    }
+    .srv-card:hover { transform: translateY(-8px); box-shadow: 0 20px 48px rgba(10,61,98,.12); border-color: rgba(10,61,98,.15); }
+    .srv-card:hover::after { opacity: 1; }
     .srv-ico {
-      width: 50px; height: 50px; border-radius: 13px;
+      width: 60px; height: 60px; border-radius: 16px;
       display: flex; align-items: center; justify-content: center;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
     }
-    .srv-title { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 800; color: #0F172A; margin-bottom: 10px; }
-    .srv-desc { font-size: 13.5px; color: #64748B; line-height: 1.7; }
+    .srv-title { font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 800; color: #0F172A; margin-bottom: 10px; }
+    .srv-desc { font-size: 14px; color: #64748B; line-height: 1.7; }
 
     /* CTA */
     .cta-wrap { padding: 0 32px 80px; }
@@ -647,6 +838,94 @@ const COLORS = [
     }
     .btn-cta:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 16px 40px rgba(0,0,0,.22); }
 
+    /* Comment ça marche */
+    .steps-wrap { position: relative; }
+    .steps-line {
+      position: absolute; top: 80px; left: calc(16% + 40px); right: calc(16% + 40px);
+      height: 2px;
+      background: linear-gradient(90deg, #0A3D62, #00C9A7, #6D28D9);
+      opacity: .2; z-index: 0;
+    }
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 28px; position: relative; z-index: 1;
+    }
+    .step-card {
+      background: white; border-radius: 22px; padding: 32px 28px;
+      border: 1.5px solid #E2E8F0; text-align: center;
+      transition: all .3s cubic-bezier(.16,1,.3,1);
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .step-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 24px 56px rgba(10,61,98,.1);
+      border-color: rgba(10,61,98,.15);
+    }
+    .step-card--mid {
+      border-color: rgba(0,201,167,.25);
+      background: linear-gradient(160deg, #f0fdf9 0%, white 60%);
+    }
+    .step-num {
+      font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 900;
+      color: #0A3D62; letter-spacing: 1px;
+      border: 1.5px solid rgba(10,61,98,.2); border-radius: 100px;
+      padding: 4px 14px; background: rgba(10,61,98,.04);
+    }
+    .step-icon-wrap {
+      width: 72px; height: 72px; border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-title {
+      font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 800;
+      color: #0F172A;
+    }
+    .step-desc { font-size: 13.5px; color: #64748B; line-height: 1.7; }
+    .step-badge {
+      background: rgba(10,61,98,.07); color: #0A3D62;
+      padding: 5px 16px; border-radius: 100px;
+      font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px;
+    }
+
+    /* Floating medical icons */
+    .float-icon {
+      position: absolute; font-size: 32px; opacity: .12;
+      animation: floatAnim 6s ease-in-out infinite;
+      pointer-events: none; z-index: 0; user-select: none;
+    }
+    .fi1 { top: 15%; left: 5%; animation-delay: 0s; }
+    .fi2 { top: 60%; left: 8%; animation-delay: 1.2s; font-size: 24px; }
+    .fi3 { top: 25%; right: 8%; animation-delay: .8s; }
+    .fi4 { bottom: 20%; right: 5%; animation-delay: 2s; font-size: 28px; }
+    .fi5 { top: 70%; right: 12%; animation-delay: .4s; font-size: 22px; }
+    .fi6 { top: 40%; left: 3%; animation-delay: 1.6s; font-size: 26px; }
+    @keyframes floatAnim {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      33% { transform: translateY(-15px) rotate(5deg); }
+      66% { transform: translateY(8px) rotate(-3deg); }
+    }
+
+    /* Wave */
+    .wave-wrap { margin-top: -2px; line-height: 0; }
+    .wave-wrap svg { width: 100%; height: 80px; display: block; }
+
+    /* Scroll animations */
+    .fade-up {
+      opacity: 0; transform: translateY(30px);
+      transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+    .fade-up-delay-1 { transition-delay: .1s; }
+    .fade-up-delay-2 { transition-delay: .2s; }
+    .fade-up-delay-3 { transition-delay: .3s; }
+
+    /* Sécurité features */
+    .sec-features-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; margin-top: 48px; }
+    .sec-feature { background: white; border-radius: 20px; padding: 28px 24px; border: 1.5px solid #E2E8F0; transition: all .3s cubic-bezier(.16,1,.3,1); }
+    .sec-feature:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(10,61,98,.1); border-color: rgba(10,61,98,.15); }
+    .sec-feature-icon { width: 60px; height: 60px; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+    .sec-feature-title { font-family: 'Sora',sans-serif; font-size: 16px; font-weight: 800; color: #0F172A; margin-bottom: 10px; }
+    .sec-feature-desc { font-size: 13px; color: #64748B; line-height: 1.7; }
+
     /* Footer */
     .footer { background: #0A3D62; padding: 32px; }
     .footer-in {
@@ -665,6 +944,9 @@ const COLORS = [
       .hero-in { grid-template-columns: 1fr; }
       .hero-r { display: none; }
       .srv-grid { grid-template-columns: 1fr 1fr; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .steps-line { display: none; }
+      .sec-features-grid { grid-template-columns: 1fr 1fr; }
       .nav-links { display: none; }
       .cta { padding: 48px 32px; }
     }
@@ -732,6 +1014,15 @@ export class HomeComponent implements OnInit {
   ngOnInit() {
     this.chargerMedecins();
     this.chargerStats();
+    // Animations au scroll
+    setTimeout(() => this.initScrollAnimations(), 500);
+  }
+
+  initScrollAnimations() {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
   }
 
   chargerMedecins() {

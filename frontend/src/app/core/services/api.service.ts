@@ -37,9 +37,11 @@ export class ApiService {
   getDossierComplet(id: number): Observable<any> { return this.http.get<any>(`${API}/dossier-complet`, this.h); }
   /** Dossier d'un patient (par médecin, via id_utilisateur) */
   dossierUtilisateur(idUtilisateur: number): Observable<any> { return this.http.get<any>(`${API}/dossier-patient/${idUtilisateur}`, this.h); }
+  ordonnancePublique(id: number): Observable<any> { return this.http.get<any>(`${API}/ordonnance-publique/${id}`); }
 
   // ── Consultations ─────────────────────────────────────────────────────────
   consultation(data: any): Observable<any>       { return this.http.post<any>(`${API}/consultations`, data, this.h); }
+  consultationsByDossier(idDossier: number): Observable<any> { return this.http.get<any>(`${API}/consultations/dossier/${idDossier}`, this.h); }
 
   // ── Ordonnances ───────────────────────────────────────────────────────────
   ordonnance(data: any): Observable<any>         { return this.http.post<any>(`${API}/ordonnances`, data, this.h); }
@@ -51,9 +53,11 @@ export class ApiService {
   // ── Soins ─────────────────────────────────────────────────────────────────
   soin(data: any): Observable<any>               { return this.http.post<any>(`${API}/soins`, data, this.h); }
   getSoins(): Observable<any[]>                  { return this.http.get<any[]>(`${API}/mes-soins`, this.h); }
+  getSoinsPatient(): Observable<any[]>           { return this.http.get<any[]>(`${API}/mes-soins-patient`, this.h); }
 
   // ── Patients ─────────────────────────────────────────────────────────────
   getPatients(): Observable<any[]>               { return this.http.get<any[]>(`${API}/patients`, this.h); }
+  getMesPatients(): Observable<any[]>            { return this.http.get<any[]>(`${API}/mes-patients`, this.h); }
   getPatient(id: number): Observable<any>        { return this.http.get<any>(`${API}/patients/${id}`, this.h); }
 
   // ── Notifications ─────────────────────────────────────────────────────────
@@ -62,6 +66,7 @@ export class ApiService {
 
   // ── Profil utilisateur ────────────────────────────────────────────────────
   updateProfil(id: number, data: any): Observable<any> { return this.http.put<any>(`${API}/utilisateurs/${id}`, data, this.h); }
+  changerMotDePasse(id: number, data: any): Observable<any> { return this.http.put<any>(`${API}/utilisateurs/${id}/mot-de-passe`, data, this.h); }
 
   // ── IA Triage ─────────────────────────────────────────────────────────────
   triage(symptomes: string): Observable<any>     { return this.http.post<any>(`${API}/ia-triage`, { symptomes }, this.h); }

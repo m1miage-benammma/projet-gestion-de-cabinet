@@ -16,10 +16,11 @@ import { ToastService } from "../../core/services/toast.service";
 export class InfirmiereComponent implements OnInit {
 
   TABS = [
-    { id: "accueil",   label: "Accueil",          icon: "home" },
-    { id: "patients",  label: "Patients du jour",  icon: "users" },
-    { id: "soins",     label: "Soins infirmiers",  icon: "activity" },
-    { id: "profil",    label: "Mon profil",         icon: "user" },
+    { id: "accueil",        label: "Accueil",           icon: "home" },
+    { id: "patients",       label: "Rendez-vous",        icon: "calendar" },
+    { id: "soins",          label: "Soins infirmiers",   icon: "activity" },
+    { id: "notifications",  label: "Notifications",      icon: "bell" },
+    { id: "profil",         label: "Mon profil",          icon: "user" },
   ];
 
   activeTab = "accueil";
@@ -31,6 +32,8 @@ export class InfirmiereComponent implements OnInit {
   rdvJour: any[] = [];
   patients: any[] = [];
   soins: any[] = [];
+  notifications: any[] = [];
+  loadingNotifs = false;
 
   typesSoin = ["INJECTION","PANSEMENT","PERFUSION","PRISE_DE_SANG","SOINS_PLAIE","AUTRE"];
 
@@ -44,6 +47,8 @@ export class InfirmiereComponent implements OnInit {
 
   profilNom = ""; profilPrenom = ""; profilTel = ""; profilEmail = "";
   profilLoading = false; profilError = ""; profilSuccess = "";
+  pwAncien = ""; pwNouveau = ""; pwConfirm = "";
+  pwSuccess = ""; pwError = ""; pwLoading = false;
 
   constructor(
     public auth: AuthService,
@@ -53,7 +58,6 @@ export class InfirmiereComponent implements OnInit {
 
   ngOnInit() {
     this.chargerRdvJour();
-    this.chargerPatients();
     this.chargerSoins();
   }
 
@@ -62,7 +66,8 @@ export class InfirmiereComponent implements OnInit {
     this.successMsg = "";
     this.errorMsg = "";
     if (tab === "accueil" || tab === "patients") this.chargerRdvJour();
-    if (tab === "soins")    this.chargerSoins();
+    if (tab === "soins")          this.chargerSoins();
+    if (tab === "notifications")  this.chargerNotifications();
     if (tab === "profil") {
       const u = this.auth.user;
       this.profilNom = u?.nom || "";
@@ -85,6 +90,25 @@ export class InfirmiereComponent implements OnInit {
       next: p => this.patients = p,
       error: () => {}
     });
+  }
+
+  chargerNotifications() {
+    this.loadingNotifs = true;
+    this.api.getNotifications(this.auth.userId()).subscribe({
+      next: (n: any[]) => { this.notifications = n; this.loadingNotifs = false; },
+      error: () => this.loadingNotifs = false
+    });
+  }
+
+  notifCount(): number { return this.notifications.filter(n => !n.lu).length; }
+
+  marquerLueNotif(id: number) {
+    this.api.marquerLue(id).subscribe({ next: () => this.chargerNotifications(), error: () => {} });
+  }
+
+  marquerToutesLues() {
+    this.notifications.filter(n => !n.lu).forEach(n => this.api.marquerLue(n.id_notification).subscribe());
+    setTimeout(() => this.chargerNotifications(), 500);
   }
 
   chargerSoins() {
@@ -150,6 +174,18 @@ export class InfirmiereComponent implements OnInit {
     }).subscribe({
       next: () => { this.profilLoading = false; this.profilSuccess = "Profil mis à jour."; this.toast.success("Profil sauvegardé."); },
       error: () => { this.profilLoading = false; this.profilError = "Erreur sauvegarde."; }
+    });
+  }
+
+  changerMotDePasse() {
+    this.pwError = ""; this.pwSuccess = "";
+    if (!this.pwAncien || !this.pwNouveau || !this.pwConfirm) { this.pwError = "Tous les champs sont obligatoires."; return; }
+    if (this.pwNouveau !== this.pwConfirm) { this.pwError = "Les mots de passe ne correspondent pas."; return; }
+    if (this.pwNouveau.length < 6) { this.pwError = "Minimum 6 caractères."; return; }
+    this.pwLoading = true;
+    this.api.changerMotDePasse(this.auth.userId(), { ancien_mot_de_passe: this.pwAncien, nouveau_mot_de_passe: this.pwNouveau }).subscribe({
+      next: () => { this.pwLoading = false; this.pwSuccess = "Mot de passe changé !"; this.pwAncien = ""; this.pwNouveau = ""; this.pwConfirm = ""; },
+      error: e => { this.pwLoading = false; this.pwError = e.error?.message || "Ancien mot de passe incorrect."; }
     });
   }
 
