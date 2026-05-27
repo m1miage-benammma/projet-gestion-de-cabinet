@@ -36,6 +36,8 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
   planning: any[] = [];
   disponibilites: any[] = [];
   calendarView = false;
+  agendaView = 'liste'; // 'liste' | 'semaine' | 'mois'
+  semaineCourante = new Date();
   calendarMois = new Date().getMonth();
   calendarAnnee = new Date().getFullYear();
 
@@ -95,7 +97,7 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
       const el = document.getElementById('qr-' + this.ordonnanceGeneree.id_ordonnance);
       if (el) {
         this.qrRendered.add(this.ordonnanceGeneree.id_ordonnance);
-        const url = `http://192.168.100.147:4200?ordonnance=${this.ordonnanceGeneree.id_ordonnance}`;
+        const url = `${window.location.protocol}//${window.location.hostname}:${window.location.port}?ordonnance=${this.ordonnanceGeneree.id_ordonnance}`;
         this.renderQR(el, url);
       }
     }
@@ -175,6 +177,41 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
 
   marquerLue(id: number) {
     this.api.marquerLue(id).subscribe({ next: () => this.chargerNotifications(), error: () => {} });
+  }
+
+  isRecording = false;
+  recordingField = '';
+  recognition: any = null;
+
+  startDictation(field: string) {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      this.toast.error('Dictée vocale non supportée sur ce navigateur.');
+      return;
+    }
+    if (this.isRecording && this.recordingField === field) {
+      this.recognition?.stop();
+      this.isRecording = false; this.recordingField = '';
+      return;
+    }
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    this.recognition = new SR();
+    this.recognition.lang = 'fr-FR';
+    this.recognition.continuous = false;
+    this.recognition.interimResults = false;
+    this.isRecording = true;
+    this.recordingField = field;
+    this.recognition.onresult = (event: any) => {
+      const t = event.results[0][0].transcript;
+      if (field === 'diagnostic') this.consultForm.diagnostic += (this.consultForm.diagnostic ? ' ' : '') + t;
+      if (field === 'traitement') this.consultForm.traitement += (this.consultForm.traitement ? ' ' : '') + t;
+      if (field === 'note') this.consultForm.note += (this.consultForm.note ? ' ' : '') + t;
+      this.isRecording = false; this.recordingField = '';
+      this.toast.success('✅ Dictée enregistrée !');
+    };
+    this.recognition.onerror = () => { this.isRecording = false; this.recordingField = ''; };
+    this.recognition.onend = () => { this.isRecording = false; this.recordingField = ''; };
+    this.recognition.start();
+    this.toast.success('🎤 Parlez maintenant...');
   }
 
   marquerToutesLues() {
@@ -421,6 +458,40 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
   supprimerMedicament(i: number) { this.ordoForm.medicaments.splice(i, 1); }
 
   countStatut(s: string): number { return this.planning.filter(r => r.statut?.toLowerCase() === s).length; }
+
+  getJoursSemaine(): Date[] {
+    const jours = [];
+    const debut = new Date(this.semaineCourante);
+    const jour = debut.getDay();
+    const diff = jour === 0 ? -6 : 1 - jour;
+    debut.setDate(debut.getDate() + diff);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(debut);
+      d.setDate(debut.getDate() + i);
+      jours.push(d);
+    }
+    return jours;
+  }
+
+  getRdvDuJour(date: Date): any[] {
+    const dateStr = date.toISOString().split('T')[0];
+    return this.planning.filter(r => r.date_rdv === dateStr).sort((a: any, b: any) => a.heure_rdv?.localeCompare(b.heure_rdv));
+  }
+
+  semaineSuivante() { this.semaineCourante = new Date(this.semaineCourante.setDate(this.semaineCourante.getDate() + 7)); }
+  semainePrecedente() { this.semaineCourante = new Date(this.semaineCourante.setDate(this.semaineCourante.getDate() - 7)); }
+
+  getSemaineLabel(): string {
+    const jours = this.getJoursSemaine();
+    const debut = jours[0].toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+    const fin = jours[6].toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return `${debut} — ${fin}`;
+  }
+
+  isToday(date: Date): boolean {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  }
 
   // Cache refresh — appelé quand planning change ou mois change
   _refreshCache() {

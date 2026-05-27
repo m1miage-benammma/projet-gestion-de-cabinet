@@ -151,6 +151,7 @@ button{cursor:pointer}
 .sidebar-item-ico { width: 30px; height: 30px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .sidebar-item.active .sidebar-item-ico { background: rgba(255,255,255,.15); }
 .sidebar-notif-badge { min-width: 18px; height: 18px; background: #EF4444; color: white; border-radius: 9px; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-left: auto; padding: 0 5px; }
+.sidebar-notif-badge.has-notif { animation: badgePulse 1.5s ease-in-out infinite; }
 .sidebar-footer { padding: 14px 18px; border-top: 1px solid rgba(255,255,255,.1); }
 .sidebar-user { display: flex; align-items: center; gap: 10px; }
 .sidebar-avatar { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
@@ -161,11 +162,47 @@ button{cursor:pointer}
 .sidebar-logout:hover { background: rgba(255,255,255,.2); color: white; }
 .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 199; display: none; }
 
+/* ── MOBILE RESPONSIVE COMPLET ──────────────────────────────────── */
 @media (max-width: 768px) {
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
   .sidebar-overlay.visible { display: block; }
   .dash-main { margin-left: 0 !important; }
+
+  /* Grilles en colonne sur mobile */
+  .kpi-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .dm-detail-grid { grid-template-columns: 1fr !important; }
+  .dm-hero { flex-direction: column !important; gap: 16px !important; }
+  .dm-hero-stats { flex-wrap: wrap !important; gap: 8px !important; }
+  .dm-stat { min-width: 70px !important; padding: 10px 14px !important; }
+  .info-grid { grid-template-columns: 1fr 1fr !important; }
+  .srv-grid { grid-template-columns: 1fr !important; }
+  .sec-features-grid { grid-template-columns: 1fr !important; }
+
+  /* Page header mobile */
+  .page-header, .ph { flex-direction: column !important; gap: 12px !important; }
+  .page-header > div:last-child { width: 100%; }
+
+  /* Cards padding mobile */
+  .card-body { padding: 14px !important; }
+  .dash-content { padding: 14px !important; }
+
+  /* Ordonnance mobile */
+  .ordo-doc-info-bar { grid-template-columns: 1fr !important; }
+  .ordo-doc-header { flex-direction: column !important; gap: 12px !important; }
+  .ordo-doc-footer { flex-direction: column !important; gap: 12px !important; align-items: flex-start !important; }
+
+  /* Timeline mobile */
+  .dm-timeline { padding-left: 16px !important; }
+  .dm-timeline-header { flex-wrap: wrap !important; gap: 8px !important; }
+  .dm-timeline-date { min-width: auto !important; }
+
+  /* Boutons mobile */
+  .btn-full-mobile { width: 100% !important; }
+
+  /* Planning liste mobile */
+  .planning-item { flex-wrap: wrap !important; }
+  .pi-actions { width: 100% !important; margin-top: 8px !important; }
 }
 
 .dash-main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
@@ -181,6 +218,8 @@ button{cursor:pointer}
 .dash-header-btn:hover{background:var(--bg-hover);color:var(--primary)}
 .dh-ava{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-mid));color:white;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:12px;font-weight:700}
 .notif-badge{position:absolute;top:-3px;right:-3px;width:14px;height:14px;background:#EF4444;border-radius:7px;border:2px solid white;font-size:8px;color:white;font-weight:700;display:flex;align-items:center;justify-content:center}
+.notif-badge.has-notif { animation: badgePulse 1.5s ease-in-out infinite; }
+@keyframes badgePulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,.5); } 50% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(239,68,68,0); } }
 .dash-content{padding:24px;flex:1}
 .ph,.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap;animation:fadeUp .5s ease both}
 .page-header-left h1,.ph h2{font-family:var(--font-head);font-size:22px;font-weight:800;letter-spacing:-.3px}
@@ -624,6 +663,10 @@ button{cursor:pointer}
   display: flex; align-items: center; gap: 5px;
 }
 .dm-detail-value { font-size: 14px; color: var(--text); font-weight: 500; line-height: 1.6; }
+
+@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+@keyframes slideUp { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
+@keyframes urgencePulse { 0%, 100% { transform:scale(1) } 50% { transform:scale(1.15) } }
 
 /* ── ORDONNANCE PROFESSIONNELLE ──────────────────────────────────── */
 .ordo-doc {

@@ -51,6 +51,73 @@
         <ng-container *ngTemplateOutlet="rdvJourTemplate"></ng-container>
       </div>
 
+      <!-- ═══ FILE D'ATTENTE ═══ -->
+      <div *ngIf="activeTab==='file-attente'">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1>File d'attente</h1>
+            <p>Mise à jour automatique toutes les 15 secondes</p>
+          </div>
+          <button class="btn btn-primary btn-sm" (click)="chargerFileAttente()">🔄 Actualiser</button>
+        </div>
+
+        <!-- Stats rapides -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+          <div class="card" style="text-align:center;padding:20px">
+            <div style="font-size:32px;font-weight:900;color:#f39c12">{{ fileAttente.length }}</div>
+            <div style="font-size:13px;color:var(--muted)">En attente</div>
+          </div>
+          <div class="card" style="text-align:center;padding:20px">
+            <div style="font-size:32px;font-weight:900;color:#27ae60">{{ countStatut('patient_arrive') }}</div>
+            <div style="font-size:13px;color:var(--muted)">Patients arrivés</div>
+          </div>
+          <div class="card" style="text-align:center;padding:20px">
+            <div style="font-size:32px;font-weight:900;color:#3498db">{{ countStatut('confirme') }}</div>
+            <div style="font-size:13px;color:var(--muted)">Confirmés</div>
+          </div>
+        </div>
+
+        <!-- File d'attente -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">👥 Patients aujourd'hui</div>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div *ngIf="fileAttente.length===0" class="empty-state" style="padding:40px">
+              <p>Aucun patient en attente</p>
+            </div>
+            <div *ngFor="let rdv of fileAttente; let i=index"
+                 style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid var(--border);transition:background .2s"
+                 [style.background]="rdv.statut==='patient_arrive' ? '#f0fdf4' : 'white'">
+              <!-- Numéro -->
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;flex-shrink:0">
+                {{ i + 1 }}
+              </div>
+              <!-- Infos patient -->
+              <div style="flex:1">
+                <div style="font-size:15px;font-weight:700;color:var(--text)">{{ rdv.prenom }} {{ rdv.nom }}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:2px">
+                  🕐 {{ rdv.heure_rdv }} · Dr. {{ rdv.medecin_prenom }} {{ rdv.medecin_nom }}
+                </div>
+              </div>
+              <!-- Statut badge -->
+              <div [style.background]="getStatutColor(rdv.statut) + '22'"
+                   [style.color]="getStatutColor(rdv.statut)"
+                   style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap">
+                {{ getStatutLabel(rdv.statut) }}
+              </div>
+              <!-- Action -->
+              <button *ngIf="rdv.statut==='confirme'"
+                      class="btn btn-primary btn-sm"
+                      (click)="marquerArrivee(rdv.id_rdv)"
+                      style="font-size:12px;white-space:nowrap">
+                ✅ Marquer arrivée
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ═══ SOINS ═══ -->
       <div *ngIf="activeTab==='soins'">
         <div class="page-header">

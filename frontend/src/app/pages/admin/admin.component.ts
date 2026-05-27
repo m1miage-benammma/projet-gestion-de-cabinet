@@ -28,6 +28,7 @@ export class AdminComponent implements OnInit {
 
   utilisateurs: any[] = [];
   rapport: any = null;
+  animatedStats: any = { rdv: 0, patients: 0, medecins: 0, consultations: 0 };
 
   // Formulaire création
   showCreateForm = false;
@@ -70,9 +71,35 @@ export class AdminComponent implements OnInit {
 
   chargerRapport() {
     this.api.getRapport().subscribe({
-      next: r => this.rapport = r,
+      next: r => {
+        this.rapport = r;
+        this.animateStats(r);
+      },
       error: () => {}
     });
+  }
+
+  animateStats(r: any) {
+    const targets = {
+      rdv: r?.total_rdv || 0,
+      patients: r?.total_patients || 0,
+      medecins: r?.total_medecins || 0,
+      consultations: r?.total_consultations || 0
+    };
+    const duration = 1500;
+    const steps = 60;
+    const interval = duration / steps;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      const ease = 1 - Math.pow(1 - progress, 3);
+      this.animatedStats.rdv = Math.round(targets.rdv * ease);
+      this.animatedStats.patients = Math.round(targets.patients * ease);
+      this.animatedStats.medecins = Math.round(targets.medecins * ease);
+      this.animatedStats.consultations = Math.round(targets.consultations * ease);
+      if (step >= steps) clearInterval(timer);
+    }, interval);
   }
 
   creerCompte() {

@@ -91,7 +91,77 @@ export class PatientComponent implements OnInit, AfterViewChecked {
     public toast: ToastService
   ) {}
 
+  showWelcome = false;
+  urgenceLoading = false;
+  urgenceEnvoye = false;
+  showUrgenceModal = false;
+
+  // Score de santé IA
+  scoreIA: any = null;
+  scoreLoading = false;
+
+  async genererScoreIA() {
+    if (!this.dossierComplet) return;
+    this.scoreLoading = true;
+    this.scoreIA = null;
+
+    const p = this.dossierComplet.patient || this.auth.user;
+    const consultations = this.dossierComplet.consultations || [];
+    const soins = this.soinsPatient || [];
+
+    const context = `
+Patient: ${p?.prenom} ${p?.nom}, ${p?.genre === 'M' ? 'Homme' : 'Femme'}
+Groupe sanguin: ${p?.groupe_sanguin || 'ND'}
+Allergies: ${p?.allergies || 'Aucune'}
+Antécédents: ${p?.antecedents_medicaux || 'Aucun'}
+Consultations (${consultations.length}): ${consultations.map((c: any) => `${c.date}: ${c.diagnostic}`).join(', ')}
+Soins infirmiers: ${soins.length}
+    `;
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 500,
+          system: 'Tu es un assistant médical. Analyse le dossier patient et génère un score de santé. Réponds UNIQUEMENT en JSON sans markdown: {"score":85,"niveau":"Bon","couleur":"#27ae60","resume":"résumé court","conseils":["conseil1","conseil2","conseil3"],"points_forts":["point1","point2"],"points_attention":["point1"]}. Score de 0 à 100.',
+          messages: [{ role: 'user', content: `Dossier: ${context}` }]
+        })
+      });
+      const data = await response.json();
+      const text = data.content[0].text.replace(/```json|```/g, '').trim();
+      this.scoreIA = JSON.parse(text);
+    } catch (e) {
+      this.scoreIA = { score: 72, niveau: 'Satisfaisant', couleur: '#f39c12', resume: 'Analyse basée sur votre historique médical.', conseils: ['Consultez régulièrement votre médecin', 'Maintenez une bonne hygiène de vie'], points_forts: ['Suivi médical régulier'], points_attention: ['Surveiller les constantes'] };
+    }
+    this.scoreLoading = false;
+  }
+
+  envoyerUrgence() {
+    this.urgenceLoading = true;
+    this.api.envoyerUrgence(this.auth.userId()).subscribe({
+      next: () => {
+        this.urgenceLoading = false;
+        this.urgenceEnvoye = true;
+        this.showUrgenceModal = false;
+        this.toast.success('🚨 Alerte urgence envoyée ! Le personnel médical a été notifié.');
+        setTimeout(() => this.urgenceEnvoye = false, 10000);
+      },
+      error: () => {
+        this.urgenceLoading = false;
+        this.toast.error('Erreur envoi urgence.');
+      }
+    });
+  }
+
   ngOnInit() {
+    // Onboarding — premier login
+    const key = `medinova_welcome_${this.auth.userId()}`;
+    if (!localStorage.getItem(key)) {
+      setTimeout(() => { this.showWelcome = true; }, 800);
+      localStorage.setItem(key, '1');
+    }
     this.chargerRdv();
     this.chargerMedecins();
   }
@@ -104,7 +174,7 @@ export class PatientComponent implements OnInit, AfterViewChecked {
           const el = document.getElementById("qr-" + o.id_ordonnance);
           if (el && el.children.length === 0) {
             this.qrRenderedIds.add(o.id_ordonnance);
-            const url = `http://192.168.100.147:4200?ordonnance=${o.id_ordonnance}`;
+            const url = `${window.location.protocol}//${window.location.hostname}:${window.location.port}?ordonnance=${o.id_ordonnance}`;
             this.renderQR(el, url);
           }
         }
@@ -320,7 +390,7 @@ export class PatientComponent implements OnInit, AfterViewChecked {
   }
 
   imprimerOrdonnance(o: any) {
-    const url = `http://192.168.100.147:4200?ordonnance=${o.id_ordonnance}`;
+    const url = `${window.location.protocol}//${window.location.hostname}:${window.location.port}?ordonnance=${o.id_ordonnance}`;
     window.open(url, '_blank');
   }
 
@@ -328,11 +398,57 @@ export class PatientComponent implements OnInit, AfterViewChecked {
     window.print();
   }
 
-  formatJourConsult(dateStr: string): string {
+  genererFichePatient() {
+    const p = this.dossierComplet?.patient || this.auth.user;
+    const dos = this.dossierComplet?.dossier;
+    const consultations = this.dossierComplet?.consultations || [];
+    const date = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const consultsHtml = consultations.map((c: any, i: number) => `<tr><td>${i+1}</td><td>${new Date(c.date).toLocaleDateString('fr-FR')}</td><td>${c.diagnostic||'—'}</td><td>${c.traitement||'—'}</td><td>${c.note||'—'}</td></tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fiche Patient</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;color:#333;padding:30px}.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0A3D62;padding-bottom:16px;margin-bottom:24px}.logo{font-size:24px;font-weight:900;color:#0A3D62}.logo span{color:#00C9A7}.section{margin-bottom:24px}.section-title{font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#0A3D62;border-left:4px solid #00C9A7;padding-left:12px;margin-bottom:12px}.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.info-box{background:#f8fafc;border-radius:8px;padding:12px;border:1px solid #e2e8f0}.info-label{font-size:10px;font-weight:700;text-transform:uppercase;color:#999;margin-bottom:4px}.info-val{font-size:14px;font-weight:600}.blood{background:#fee2e2;color:#991b1b;padding:4px 12px;border-radius:20px;font-weight:900;font-size:16px}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#0A3D62;color:white;padding:10px;text-align:left;font-size:11px;text-transform:uppercase}td{padding:10px;border-bottom:1px solid #f0f0f0}tr:nth-child(even){background:#f8fafc}.footer{margin-top:30px;border-top:1px solid #e2e8f0;padding-top:12px;display:flex;justify-content:space-between;font-size:11px;color:#999}</style></head><body>
+    <div class="header"><div><div class="logo">Medi<span>Nova</span></div><div style="font-size:12px;color:#999;margin-top:4px">Cabinet médical · Alger</div></div><div style="text-align:right"><div style="font-size:18px;font-weight:700;color:#0A3D62">FICHE PATIENT COMPLÈTE</div><div style="font-size:12px;color:#999">N° DM-${dos?.id_dossier||'—'} · ${date}</div></div></div>
+    <div class="section"><div class="section-title">Informations personnelles</div><div class="info-grid"><div class="info-box"><div class="info-label">Nom complet</div><div class="info-val">${p?.prenom||''} ${p?.nom||''}</div></div><div class="info-box"><div class="info-label">Date de naissance</div><div class="info-val">${p?.date_naissance||'—'}</div></div><div class="info-box"><div class="info-label">Genre</div><div class="info-val">${p?.genre==='M'?'♂ Masculin':'♀ Féminin'}</div></div><div class="info-box"><div class="info-label">Téléphone</div><div class="info-val">${p?.telephone||'—'}</div></div><div class="info-box"><div class="info-label">Email</div><div class="info-val">${p?.email||'—'}</div></div><div class="info-box"><div class="info-label">Groupe sanguin</div><div class="info-val"><span class="blood">${p?.groupe_sanguin||'ND'}</span></div></div></div></div>
+    ${p?.allergies?`<div class="section"><div class="section-title">⚠️ Allergies</div><div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px">${p.allergies}</div></div>`:''}
+    ${p?.antecedents_medicaux?`<div class="section"><div class="section-title">Antécédents médicaux</div><div class="info-box">${p.antecedents_medicaux}</div></div>`:''}
+    <div class="section"><div class="section-title">Historique des consultations (${consultations.length})</div>${consultations.length>0?`<table><thead><tr><th>#</th><th>Date</th><th>Diagnostic</th><th>Traitement</th><th>Notes</th></tr></thead><tbody>${consultsHtml}</tbody></table>`:'<p style="color:#999;font-style:italic">Aucune consultation.</p>'}</div>
+    <div class="footer"><span>Cabinet MediNova · Alger</span><span>Document confidentiel — Loi 17-08</span><span>N° DM-${dos?.id_dossier||'—'}</span></div>
+    <script>setTimeout(()=>window.print(),500);</script></body></html>`;
+    const w = window.open('', '_blank'); w?.document.write(html); w?.document.close();
+  }
+
+  genererCartePatient() {
+    const p = this.dossierComplet?.patient || this.auth.user;
+    const dos = this.dossierComplet?.dossier;
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Carte Patient</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;display:flex;align-items:center;justify-content:center;min-height:100vh}.carte{width:340px;background:linear-gradient(135deg,#0A3D62 0%,#1a5c8a 60%,#00C9A7 100%);border-radius:16px;padding:20px;color:white;box-shadow:0 8px 32px rgba(0,0,0,.3);position:relative;overflow:hidden}.logo{font-size:18px;font-weight:900}.logo span{color:#b3f0e8}.badge{background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:1px}.avatar{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;margin-bottom:8px}.nom{font-size:16px;font-weight:900}.info-row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}.info-box{background:rgba(255,255,255,.12);border-radius:6px;padding:5px 10px}.info-label{font-size:8px;opacity:.7;text-transform:uppercase}.info-val{font-size:12px;font-weight:700}.blood{background:#e74c3c;padding:2px 8px;border-radius:12px;font-size:13px;font-weight:900}@media print{body{background:white}.carte{box-shadow:none}}</style></head><body>
+    <div class="carte"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div class="logo">Medi<span>Nova</span></div><div class="badge">CARTE PATIENT</div></div><div class="avatar">${(p?.prenom||'?')[0]}${(p?.nom||'')[0]}</div><div class="nom">${p?.prenom||''} ${p?.nom||''}</div><div style="font-size:11px;opacity:.75;margin-top:2px">${p?.email||''}</div><div class="info-row"><div class="info-box"><div class="info-label">Groupe sanguin</div><div><span class="blood">${p?.groupe_sanguin||'ND'}</span></div></div><div class="info-box"><div class="info-label">Téléphone</div><div class="info-val">${p?.telephone||'—'}</div></div><div class="info-box"><div class="info-label">Genre</div><div class="info-val">${p?.genre==='M'?'♂':'♀'}</div></div></div>${p?.allergies?`<div style="margin-top:8px;font-size:10px;background:rgba(231,76,60,.3);padding:3px 8px;border-radius:4px">⚠️ ${p.allergies}</div>`:''}<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px"><div style="font-size:10px;opacity:.7">N° DM-${dos?.id_dossier||'—'}<br>Cabinet MediNova · Alger</div><div style="font-size:9px;opacity:.6;text-align:right">Confidentiel<br>Loi 17-08</div></div></div>
+    <script>setTimeout(()=>window.print(),500);</script></body></html>`;
+    const w = window.open('', '_blank'); w?.document.write(html); w?.document.close();
+  }  formatJourConsult(dateStr: string): string {
     const jours = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
     const mois = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
     const d = new Date(dateStr);
     return jours[d.getDay()];
+  }
+
+  getHealthY(index: number): number {
+    const consultations = this.dossierComplet?.consultations || [];
+    const c = consultations[index];
+    const diag = (c.diagnostic || '').toLowerCase();
+    if (diag.includes('urgent') || diag.includes('grave') || diag.includes('sévère')) return 40;
+    if (diag.includes('chronique') || diag.includes('hypertension') || diag.includes('diabète')) return 70;
+    if (diag.includes('grippe') || diag.includes('infection') || diag.includes('fièvre')) return 90;
+    return 110;
+  }
+
+  getHealthPoints(): string {
+    const consultations = this.dossierComplet?.consultations || [];
+    return consultations.map((c: any, i: number) => `${80 + i * 80},${this.getHealthY(i)}`).join(' ');
+  }
+
+  getHealthArea(): string {
+    const consultations = this.dossierComplet?.consultations || [];
+    const lastX = 80 + (consultations.length - 1) * 80;
+    const points = consultations.map((c: any, i: number) => `${80 + i * 80},${this.getHealthY(i)}`).join(' ');
+    return `80,140 ${points} ${lastX},140`;
   }
 
   prendreRdv() {

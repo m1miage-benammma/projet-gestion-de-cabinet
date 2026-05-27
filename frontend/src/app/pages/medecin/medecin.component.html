@@ -123,20 +123,54 @@
         <div class="page-header">
           <div class="page-header-left">
             <h1>Mon planning</h1>
-            <p>Gestion des rendez-vous et consultations</p>
+            <p>{{ planning.length }} rendez-vous</p>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-secondary btn-sm" (click)="calendarView=!calendarView">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
-              {{ calendarView ? 'Liste' : 'Calendrier' }}
-            </button>
-            <button class="btn btn-primary btn-sm" (click)="chargerPlanning()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-              Actualiser
-            </button>
+            <button class="btn btn-sm" [class.btn-primary]="agendaView==='liste'" [class.btn-secondary]="agendaView!=='liste'" (click)="agendaView='liste'">📋 Liste</button>
+            <button class="btn btn-sm" [class.btn-primary]="agendaView==='semaine'" [class.btn-secondary]="agendaView!=='semaine'" (click)="agendaView='semaine'">📅 Semaine</button>
+            <button class="btn btn-sm" [class.btn-primary]="agendaView==='mois'" [class.btn-secondary]="agendaView!=='mois'" (click)="agendaView='mois';calendarView=true">🗓️ Mois</button>
           </div>
         </div>
 
+        <!-- VUE SEMAINE -->
+        <div *ngIf="agendaView==='semaine' && !loading['planning']">
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-body">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                <button class="btn btn-secondary btn-sm" (click)="semainePrecedente()">← Précédente</button>
+                <strong style="font-size:15px">{{ getSemaineLabel() }}</strong>
+                <button class="btn btn-secondary btn-sm" (click)="semaineSuivante()">Suivante →</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px">
+                <div *ngFor="let jour of getJoursSemaine()"
+                     [style.background]="isToday(jour) ? '#EBF5FB' : '#f8fafc'"
+                     [style.border]="isToday(jour) ? '2px solid var(--primary)' : '1px solid var(--border)'"
+                     style="border-radius:12px;padding:10px;min-height:120px">
+                  <!-- Header du jour -->
+                  <div style="text-align:center;margin-bottom:8px">
+                    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">
+                      {{ jour | date:'EEE':'':'fr' }}
+                    </div>
+                    <div [style.background]="isToday(jour) ? 'var(--primary)' : 'transparent'"
+                         [style.color]="isToday(jour) ? 'white' : 'var(--text)'"
+                         style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;margin:4px auto">
+                      {{ jour | date:'d' }}
+                    </div>
+                  </div>
+                  <!-- RDV du jour -->
+                  <div *ngFor="let rdv of getRdvDuJour(jour)"
+                       (click)="selectRdv(rdv)"
+                       style="background:var(--primary);color:white;border-radius:6px;padding:4px 6px;margin-bottom:4px;cursor:pointer;font-size:10px;font-weight:600;transition:opacity .15s"
+                       [style.background]="rdv.statut==='termine' ? '#95a5a6' : rdv.statut==='patient_arrive' ? '#27ae60' : rdv.statut==='annule' ? '#e74c3c' : 'var(--primary)'">
+                    <div>{{ rdv.heure_rdv?.slice(0,5) }}</div>
+                    <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ rdv.prenom }} {{ rdv.nom }}</div>
+                  </div>
+                  <div *ngIf="getRdvDuJour(jour).length===0" style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="loading-inline" *ngIf="loading['planning']">
           <div class="spinner spinner-sm"></div> Chargement du planning...
         </div>
@@ -283,15 +317,42 @@
             <div class="card-body">
               <div class="form-group">
                 <label class="form-label">Diagnostic <span class="req">*</span></label>
-                <textarea class="form-textarea" [(ngModel)]="consultForm.diagnostic" name="diag" placeholder="Diagnostic clinique..."></textarea>
+                <div style="position:relative">
+                  <textarea class="form-textarea" [(ngModel)]="consultForm.diagnostic" name="diag" placeholder="Diagnostic clinique..." style="padding-right:48px"></textarea>
+                  <button type="button" (click)="startDictation('diagnostic')"
+                    [style.color]="isRecording && recordingField==='diagnostic' ? '#e74c3c' : 'var(--muted)'"
+                    [style.background]="isRecording && recordingField==='diagnostic' ? '#fee2e2' : 'var(--bg)'"
+                    style="position:absolute;right:10px;top:10px;border:1px solid var(--border);border-radius:8px;padding:6px;cursor:pointer;transition:all .2s"
+                    title="Dictée vocale">
+                    🎤
+                  </button>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Traitement prescrit <span class="req">*</span></label>
-                <textarea class="form-textarea" [(ngModel)]="consultForm.traitement" name="trait" placeholder="Traitement recommandé..."></textarea>
+                <div style="position:relative">
+                  <textarea class="form-textarea" [(ngModel)]="consultForm.traitement" name="trait" placeholder="Traitement recommandé..." style="padding-right:48px"></textarea>
+                  <button type="button" (click)="startDictation('traitement')"
+                    [style.color]="isRecording && recordingField==='traitement' ? '#e74c3c' : 'var(--muted)'"
+                    [style.background]="isRecording && recordingField==='traitement' ? '#fee2e2' : 'var(--bg)'"
+                    style="position:absolute;right:10px;top:10px;border:1px solid var(--border);border-radius:8px;padding:6px;cursor:pointer;transition:all .2s"
+                    title="Dictée vocale">
+                    🎤
+                  </button>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Notes cliniques</label>
-                <textarea class="form-textarea" [(ngModel)]="consultForm.note" name="note" placeholder="Observations, notes complémentaires..."></textarea>
+                <div style="position:relative">
+                  <textarea class="form-textarea" [(ngModel)]="consultForm.note" name="note" placeholder="Observations, notes complémentaires..." style="padding-right:48px"></textarea>
+                  <button type="button" (click)="startDictation('note')"
+                    [style.color]="isRecording && recordingField==='note' ? '#e74c3c' : 'var(--muted)'"
+                    [style.background]="isRecording && recordingField==='note' ? '#fee2e2' : 'var(--bg)'"
+                    style="position:absolute;right:10px;top:10px;border:1px solid var(--border);border-radius:8px;padding:6px;cursor:pointer;transition:all .2s"
+                    title="Dictée vocale">
+                    🎤
+                  </button>
+                </div>
               </div>
               <div class="alert alert-danger" *ngIf="errorMsg">{{ errorMsg }}</div>
               <button class="btn btn-primary" (click)="effectuerConsultation()" [disabled]="loading['consult']">

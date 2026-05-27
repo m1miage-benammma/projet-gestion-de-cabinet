@@ -53,6 +53,7 @@ export class ApiService {
   // ── Soins ─────────────────────────────────────────────────────────────────
   soin(data: any): Observable<any>               { return this.http.post<any>(`${API}/soins`, data, this.h); }
   getSoins(): Observable<any[]>                  { return this.http.get<any[]>(`${API}/mes-soins`, this.h); }
+  envoyerUrgence(id: number): Observable<any>    { return this.http.post(`${API}/urgence`, { id_patient: id }, this.h); }
   getSoinsPatient(): Observable<any[]>           { return this.http.get<any[]>(`${API}/mes-soins-patient`, this.h); }
 
   // ── Patients ─────────────────────────────────────────────────────────────

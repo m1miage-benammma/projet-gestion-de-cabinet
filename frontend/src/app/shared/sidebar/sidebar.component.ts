@@ -39,7 +39,7 @@ import { AuthService } from "../../core/services/auth.service";
             </ng-container>
           </div>
           {{ tab.label }}
-          <span class="sidebar-notif-badge" *ngIf="tab.id==='notifications' && notifCount>0">{{ notifCount }}</span>
+          <span class="sidebar-notif-badge has-notif" *ngIf="tab.id==='notifications' && notifCount>0">{{ notifCount }}</span>
         </div>
       </nav>
 

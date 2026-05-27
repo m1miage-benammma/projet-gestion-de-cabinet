@@ -171,6 +171,40 @@ Route::middleware('auth.middleware')->group(function () {
         return response()->json($patients);
     });
 
+    // ── URGENCE ──────────────────────────────────────────────────
+    Route::post('/urgence', function (Request $r) {
+        $idPatient = (int) $r->input('id_patient');
+        $patient = DB::table('utilisateurs')->where('id_utilisateur', $idPatient)->first();
+        $nom = "{$patient?->prenom} {$patient?->nom}";
+        $heure = now()->format('H:i');
+
+        // Notifier tous les médecins
+        $medecins = DB::table('medecins')->pluck('id_utilisateur');
+        foreach ($medecins as $idMed) {
+            DB::table('notifications')->insert([
+                'id_utilisateur' => $idMed,
+                'message'        => "🚨 URGENCE — {$nom} signale une urgence médicale à {$heure} !",
+                'type'           => 'urgence',
+                'lu'             => false,
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
+        }
+        // Notifier toutes les infirmières
+        $infirmieres = DB::table('infirmieres')->pluck('id_utilisateur');
+        foreach ($infirmieres as $idInf) {
+            DB::table('notifications')->insert([
+                'id_utilisateur' => $idInf,
+                'message'        => "🚨 URGENCE — {$nom} signale une urgence médicale à {$heure} !",
+                'type'           => 'urgence',
+                'lu'             => false,
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
+        }
+        return response()->json(['message' => 'Urgence envoyée.']);
+    });
+
     Route::get('/patients', function () {
         return response()->json(
             DB::table('utilisateurs as u')

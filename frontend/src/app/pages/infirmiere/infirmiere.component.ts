@@ -18,6 +18,7 @@ export class InfirmiereComponent implements OnInit {
   TABS = [
     { id: "accueil",        label: "Accueil",           icon: "home" },
     { id: "patients",       label: "Rendez-vous",        icon: "calendar" },
+    { id: "file-attente",   label: "File d'attente",     icon: "users" },
     { id: "soins",          label: "Soins infirmiers",   icon: "activity" },
     { id: "notifications",  label: "Notifications",      icon: "bell" },
     { id: "profil",         label: "Mon profil",          icon: "user" },
@@ -30,6 +31,8 @@ export class InfirmiereComponent implements OnInit {
   errorMsg = "";
 
   rdvJour: any[] = [];
+  fileAttente: any[] = [];
+  fileAttenteInterval: any = null;
   patients: any[] = [];
   soins: any[] = [];
   notifications: any[] = [];
@@ -59,6 +62,7 @@ export class InfirmiereComponent implements OnInit {
   ngOnInit() {
     this.chargerRdvJour();
     this.chargerSoins();
+    this.chargerPatients();
   }
 
   setTab(tab: string) {
@@ -66,8 +70,10 @@ export class InfirmiereComponent implements OnInit {
     this.successMsg = "";
     this.errorMsg = "";
     if (tab === "accueil" || tab === "patients") this.chargerRdvJour();
-    if (tab === "soins")          this.chargerSoins();
-    if (tab === "notifications")  this.chargerNotifications();
+    if (tab === "file-attente") { this.chargerFileAttente(); this.startFileAttenteRefresh(); }
+    if (tab !== "file-attente") this.stopFileAttenteRefresh();
+    if (tab === "soins") this.chargerSoins();
+    if (tab === "notifications") this.chargerNotifications();
     if (tab === "profil") {
       const u = this.auth.user;
       this.profilNom = u?.nom || "";
@@ -75,6 +81,40 @@ export class InfirmiereComponent implements OnInit {
       this.profilTel = u?.telephone || "";
       this.profilEmail = u?.email || "";
     }
+  }
+
+  countStatut(statut: string): number {
+    return this.fileAttente.filter(r => r.statut === statut).length;
+  }
+
+  chargerFileAttente() {
+    this.api.getRdvJour().subscribe({
+      next: (r: any[]) => {
+        this.fileAttente = r
+          .filter((rdv: any) => rdv.statut === 'confirme' || rdv.statut === 'patient_arrive' || rdv.statut === 'en_attente')
+          .sort((a: any, b: any) => a.heure_rdv?.localeCompare(b.heure_rdv));
+      },
+      error: () => {}
+    });
+  }
+
+  startFileAttenteRefresh() {
+    this.stopFileAttenteRefresh();
+    this.fileAttenteInterval = setInterval(() => this.chargerFileAttente(), 15000);
+  }
+
+  stopFileAttenteRefresh() {
+    if (this.fileAttenteInterval) { clearInterval(this.fileAttenteInterval); this.fileAttenteInterval = null; }
+  }
+
+  getStatutLabel(statut: string): string {
+    const map: any = { 'en_attente': 'En attente', 'confirme': 'Confirmé', 'patient_arrive': '✅ Arrivé', 'en_cours': '🔵 En consultation', 'termine': 'Terminé', 'annule': 'Annulé' };
+    return map[statut] || statut;
+  }
+
+  getStatutColor(statut: string): string {
+    const map: any = { 'en_attente': '#f39c12', 'confirme': '#3498db', 'patient_arrive': '#27ae60', 'en_cours': '#8e44ad', 'termine': '#95a5a6', 'annule': '#e74c3c' };
+    return map[statut] || '#666';
   }
 
   chargerRdvJour() {
@@ -123,6 +163,13 @@ export class InfirmiereComponent implements OnInit {
     this.api.confirmerRdv(id).subscribe({
       next: () => { this.toast.success("Rendez-vous confirmé."); this.chargerRdvJour(); },
       error: e => this.toast.error(e.error?.message || "Erreur confirmation.")
+    });
+  }
+
+  marquerArrivee(id: number) {
+    this.api.patientArrive(id).subscribe({
+      next: () => { this.toast.success("Arrivée enregistrée."); this.chargerFileAttente(); this.chargerRdvJour(); },
+      error: e => this.toast.error(e.error?.message || "Erreur.")
     });
   }
 
@@ -195,17 +242,13 @@ export class InfirmiereComponent implements OnInit {
   }
 
   countJourStatut(s: string): number { return this.rdvJour.filter(r => r.statut?.toLowerCase() === s).length; }
-  countStatut(s: string): number { return this.rdvJour.filter(r => r.statut?.toLowerCase() === s).length; }
 
   getDate(): string {
     return new Date().toLocaleDateString("fr-DZ", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   }
 
   getBorderColor(statut: string): string {
-    const colors: any = {
-      en_attente: '#F59E0B', confirme: '#3B82F6',
-      patient_arrive: '#16A34A', annule: '#EF4444', termine: '#94A3B8'
-    };
+    const colors: any = { en_attente: '#F59E0B', confirme: '#3B82F6', patient_arrive: '#16A34A', annule: '#EF4444', termine: '#94A3B8' };
     return colors[statut?.toLowerCase()] || '#E2E8F0';
   }
 
