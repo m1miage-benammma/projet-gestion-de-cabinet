@@ -2,6 +2,8 @@ import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from "@angu
 import { CommonModule } from "@angular/common";
 import { AuthService } from "../../core/services/auth.service";
 import { ApiService } from "../../core/services/api.service";
+import { LangService } from "../../core/services/lang.service";
+import { ThemeService } from "../../core/services/theme.service";
 
 @Component({
   selector: "app-header",
@@ -67,6 +69,28 @@ import { ApiService } from "../../core/services/api.service";
           <svg *ngIf="!auth.darkMode" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           <svg *ngIf="auth.darkMode"  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/></svg>
         </button>
+
+        <!-- Sélecteur de langue -->
+        <div style="position:relative">
+          <select (change)="changeLang($event)"
+                  style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;font-weight:700;cursor:pointer;color:var(--text)">
+            <option value="fr" [selected]="lang.currentLang==='fr'">🇫🇷 FR</option>
+            <option value="en" [selected]="lang.currentLang==='en'">🇬🇧 EN</option>
+            <option value="ar" [selected]="lang.currentLang==='ar'">🇩🇿 AR</option>
+          </select>
+        </div>
+
+        <!-- Sélecteur de thème — patient seulement -->
+        <div *ngIf="auth.user?.role === 'patient'" style="display:flex;gap:4px;align-items:center">
+          <div *ngFor="let t of theme.themes"
+               (click)="changeTheme(t.id)"
+               [style.background]="t.primary"
+               [style.border]="theme.currentTheme===t.id ? '2px solid white' : '2px solid transparent'"
+               [style.box-shadow]="theme.currentTheme===t.id ? '0 0 0 2px ' + t.primary : 'none'"
+               style="width:18px;height:18px;border-radius:50%;cursor:pointer;transition:all .2s"
+               [title]="t.name">
+          </div>
+        </div>
         <div style="width:34px;height:34px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">
           {{ auth.initiales() }}
         </div>
@@ -132,7 +156,28 @@ export class HeaderComponent implements OnInit, OnDestroy {
   showNotifs = false;
   private interval: any;
 
-  constructor(public auth: AuthService, private api: ApiService) {}
+  constructor(public auth: AuthService, private api: ApiService, public lang: LangService, public theme: ThemeService) {}
+
+  changeLang(event: any) {
+    this.lang.setLang(event.target.value);
+    window.location.reload();
+  }
+
+  changeTheme(id: string) {
+    this.theme.applyTheme(id);
+    // Force re-render sidebar
+    document.querySelectorAll('.sidebar').forEach((el: any) => {
+      const colors: any = {
+        blue:   'linear-gradient(180deg, #0A3D62 0%, #1a5c8a 100%)',
+        green:  'linear-gradient(180deg, #166534 0%, #15803d 100%)',
+        purple: 'linear-gradient(180deg, #6D28D9 0%, #7C3AED 100%)',
+        red:    'linear-gradient(180deg, #991B1B 0%, #b91c1c 100%)',
+        orange: 'linear-gradient(180deg, #92400E 0%, #b45309 100%)',
+        teal:   'linear-gradient(180deg, #0f766e 0%, #0d9488 100%)',
+      };
+      el.style.background = colors[id] || colors['blue'];
+    });
+  }
 
   ngOnInit() {
     // Attendre que l'auth soit prête avant de charger

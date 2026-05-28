@@ -482,7 +482,7 @@ button{cursor:pointer}
 
 /* ── IA TRIAGE ────────────────────────────────────────────────────── */
 .ia-card{background:white;border:1.5px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:16px}
-.ia-header{background:linear-gradient(135deg,#1D4ED8,#7C3AED);padding:14px 18px;color:white;font-family:var(--font-head);font-size:14px;font-weight:700}
+.ia-header{background:linear-gradient(135deg,var(--primary),var(--primary-mid));padding:14px 18px;color:white;font-family:var(--font-head);font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
 .ia-body{padding:16px 18px}
 .ia-result{background:var(--info-bg);border:1px solid var(--info-border);border-radius:var(--r);padding:14px;margin-top:12px}
 .ia-urgence{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;margin-bottom:8px}
@@ -533,9 +533,9 @@ button{cursor:pointer}
 .btn-arr:hover{background:var(--info);color:white}
 .btn-lu{background:var(--primary-light);color:var(--primary);padding:4px 12px;border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;transition:all .2s}
 .btn-lu:hover{background:var(--primary);color:white}
-.btn-ia{background:linear-gradient(135deg,#1D4ED8,#7C3AED);color:white;padding:9px 18px;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;border:none}
+.btn-ia{background:linear-gradient(135deg,var(--primary),var(--primary-mid));color:white;padding:9px 18px;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;border:none}
 .btn-ia:hover{transform:translateY(-1px)}
-.btn-ia-submit{background:linear-gradient(135deg,#1D4ED8,#7C3AED);color:white;padding:11px;border-radius:var(--r);font-size:14px;font-weight:700;width:100%;cursor:pointer;transition:all .2s;border:none}
+.btn-ia-submit{background:linear-gradient(135deg,var(--primary),var(--primary-mid));color:white;padding:11px;border-radius:var(--r);font-size:14px;font-weight:700;width:100%;cursor:pointer;transition:all .2s;border:none}
 .btn-ia-submit:hover{transform:translateY(-1px)}
 .btn-ia-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
 

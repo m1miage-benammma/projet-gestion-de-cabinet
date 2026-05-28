@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService, API } from '../../core/services/auth.service';
 
@@ -15,7 +16,7 @@ const COLORS = [
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
@@ -428,6 +429,182 @@ const COLORS = [
       </div>
     </div>
   </div>
+
+  <!-- ═══ STATISTIQUES ═══ -->
+  <section style="background:linear-gradient(135deg,#0A3D62,#1a5c8a);padding:60px 24px">
+    <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center">
+      <div *ngFor="let s of stats" style="color:white">
+        <div style="font-size:48px;font-weight:900;font-family:Sora,sans-serif;line-height:1">{{ s.val }}</div>
+        <div style="font-size:13px;opacity:.75;margin-top:8px">{{ s.label }}</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ AVIS PATIENTS ═══ -->
+  <section style="padding:80px 24px;background:#f8fafc" id="avis">
+    <div style="max-width:1100px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:48px">
+        <span style="background:#EBF5FB;color:#0A3D62;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Témoignages</span>
+        <h2 style="font-family:Sora,sans-serif;font-size:32px;font-weight:800;margin-top:12px">Ce que disent nos patients</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+        <div *ngFor="let a of avis" style="background:white;border-radius:16px;padding:24px;border:1.5px solid #e2e8f0;transition:all .2s"
+             onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(10,61,98,.1)'"
+             onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+          <div style="display:flex;gap:4px;margin-bottom:12px">
+            <span *ngFor="let s of [1,2,3,4,5]" style="color:#f59e0b;font-size:16px">★</span>
+          </div>
+          <p style="font-size:14px;color:#475569;line-height:1.7;margin-bottom:16px;font-style:italic">"{{ a.texte }}"</p>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#0A3D62,#1a5c8a);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px">
+              {{ a.initiales }}
+            </div>
+            <div>
+              <div style="font-size:14px;font-weight:700">{{ a.nom }}</div>
+              <div style="font-size:11px;color:#94a3b8">{{ a.date }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ CARTE / LOCALISATION ═══ -->
+  <section style="padding:80px 24px;background:white" id="contact">
+    <div style="max-width:1100px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:48px">
+        <span style="background:#EBF5FB;color:#0A3D62;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Nous trouver</span>
+        <h2 style="font-family:Sora,sans-serif;font-size:32px;font-weight:800;margin-top:12px">Localisation du cabinet</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start">
+        <!-- Infos contact -->
+        <div>
+          <div *ngFor="let c of contacts" style="display:flex;align-items:flex-start;gap:16px;padding:20px;background:#f8fafc;border-radius:14px;border:1.5px solid #e2e8f0;margin-bottom:12px">
+            <div style="width:48px;height:48px;border-radius:12px;background:#EBF5FB;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">
+              {{ c.icon }}
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:4px">{{ c.label }}</div>
+              <div style="font-size:15px;font-weight:600;color:#0f172a">{{ c.valeur }}</div>
+            </div>
+          </div>
+          <!-- Horaires -->
+          <div style="background:#EBF5FB;border-radius:14px;padding:20px;margin-top:12px">
+            <div style="font-size:13px;font-weight:800;color:#0A3D62;margin-bottom:12px">🕐 Horaires d'ouverture</div>
+            <div *ngFor="let h of horaires" style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid rgba(10,61,98,.08)">
+              <span style="font-weight:600;color:#0A3D62">{{ h.jour }}</span>
+              <span [style.color]="h.ferme ? '#e74c3c' : '#166534'" style="font-weight:700">{{ h.heure }}</span>
+            </div>
+          </div>
+        </div>
+        <!-- Carte SVG -->
+        <div style="border-radius:20px;overflow:hidden;border:2px solid #e2e8f0;background:#f0f4f8;height:420px;display:flex;align-items:center;justify-content:center;position:relative">
+          <svg viewBox="0 0 400 300" style="width:100%;height:100%">
+            <!-- Fond carte -->
+            <rect width="400" height="300" fill="#e8f0f7"/>
+            <!-- Rues -->
+            <rect x="0" y="130" width="400" height="14" fill="#fff" opacity=".9" rx="2"/>
+            <rect x="180" y="0" width="14" height="300" fill="#fff" opacity=".9" rx="2"/>
+            <rect x="0" y="200" width="400" height="8" fill="#fff" opacity=".6" rx="2"/>
+            <rect x="100" y="0" width="8" height="300" fill="#fff" opacity=".6" rx="2"/>
+            <rect x="280" y="0" width="8" height="300" fill="#fff" opacity=".6" rx="2"/>
+            <!-- Blocs bâtiments -->
+            <rect x="40" y="50" width="50" height="70" fill="#cbd5e1" rx="4"/>
+            <rect x="110" y="20" width="60" height="100" fill="#94a3b8" rx="4"/>
+            <rect x="200" y="40" width="70" height="80" fill="#cbd5e1" rx="4"/>
+            <rect x="40" y="150" width="50" height="40" fill="#94a3b8" rx="4"/>
+            <rect x="200" y="160" width="70" height="30" fill="#cbd5e1" rx="4"/>
+            <rect x="300" y="50" width="60" height="70" fill="#94a3b8" rx="4"/>
+            <rect x="300" y="155" width="60" height="35" fill="#cbd5e1" rx="4"/>
+            <rect x="40" y="220" width="50" height="50" fill="#94a3b8" rx="4"/>
+            <rect x="200" y="215" width="70" height="55" fill="#cbd5e1" rx="4"/>
+            <!-- Marqueur Cabinet -->
+            <circle cx="187" cy="137" r="22" fill="#0A3D62" opacity=".15"/>
+            <circle cx="187" cy="137" r="14" fill="#0A3D62"/>
+            <text x="187" y="142" text-anchor="middle" font-size="14" fill="white">🏥</text>
+            <!-- Label -->
+            <rect x="120" y="105" width="120" height="24" fill="white" rx="12" opacity=".95"/>
+            <text x="180" y="121" text-anchor="middle" font-size="11" fill="#0A3D62" font-weight="700">Cabinet MediNova</text>
+            <!-- Labels rues -->
+            <text x="200" y="128" text-anchor="middle" font-size="9" fill="#64748b">Rue Didouche Mourad</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FORMULAIRE CONTACT ═══ -->
+  <section style="padding:80px 24px;background:#f8fafc">
+    <div style="max-width:680px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:48px">
+        <span style="background:#EBF5FB;color:#0A3D62;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Contact</span>
+        <h2 style="font-family:Sora,sans-serif;font-size:32px;font-weight:800;margin-top:12px">Écrivez-nous</h2>
+        <p style="color:#64748b;margin-top:8px">Nous vous répondrons dans les 24 heures</p>
+      </div>
+      <div style="background:white;border-radius:20px;padding:36px;border:1.5px solid #e2e8f0;box-shadow:0 4px 24px rgba(10,61,98,.06)">
+        <div *ngIf="contactSuccess" style="background:#dcfce7;border:1.5px solid #86efac;border-radius:12px;padding:16px;text-align:center;margin-bottom:20px;color:#166534;font-weight:700">
+          ✅ Message envoyé ! Nous vous répondrons bientôt.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#0f172a;display:block;margin-bottom:5px">Nom complet</label>
+            <input type="text" [(ngModel)]="contactNom" placeholder="Votre nom"
+                   style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 13px;font-size:13.5px;color:#0f172a;font-family:inherit"/>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#0f172a;display:block;margin-bottom:5px">Email</label>
+            <input type="email" [(ngModel)]="contactEmail" placeholder="votre@email.com"
+                   style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 13px;font-size:13.5px;color:#0f172a;font-family:inherit"/>
+          </div>
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:700;color:#0f172a;display:block;margin-bottom:5px">Sujet</label>
+          <input type="text" [(ngModel)]="contactSujet" placeholder="Ex: Prise de rendez-vous, Renseignement..."
+                 style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 13px;font-size:13.5px;color:#0f172a;font-family:inherit"/>
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="font-size:12px;font-weight:700;color:#0f172a;display:block;margin-bottom:5px">Message</label>
+          <textarea [(ngModel)]="contactMessage" placeholder="Votre message..."
+                    style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 13px;font-size:13.5px;color:#0f172a;font-family:inherit;min-height:120px;resize:vertical"></textarea>
+        </div>
+        <button (click)="envoyerContact()"
+                style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#0A3D62,#1a5c8a);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s"
+                onmouseenter="this.style.transform='translateY(-2px)'"
+                onmouseleave="this.style.transform='translateY(0)'">
+          📨 Envoyer le message
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ BLOG / ACTUALITES ═══ -->
+  <section style="padding:80px 24px;background:white">
+    <div style="max-width:1100px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:48px">
+        <span style="background:#EBF5FB;color:#0A3D62;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Blog Santé</span>
+        <h2 style="font-family:Sora,sans-serif;font-size:32px;font-weight:800;margin-top:12px">Actualités & Conseils</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+        <div *ngFor="let article of articles"
+             style="border-radius:16px;overflow:hidden;border:1.5px solid #e2e8f0;transition:all .2s;cursor:pointer"
+             onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(10,61,98,.1)'"
+             onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+          <div [style.background]="article.couleur" style="height:140px;display:flex;align-items:center;justify-content:center;font-size:56px">
+            {{ article.emoji }}
+          </div>
+          <div style="padding:20px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:6px">{{ article.categorie }}</div>
+            <h3 style="font-family:Sora,sans-serif;font-size:16px;font-weight:700;color:#0f172a;margin-bottom:8px;line-height:1.4">{{ article.titre }}</h3>
+            <p style="font-size:13px;color:#64748b;line-height:1.6;margin-bottom:12px">{{ article.extrait }}</p>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;color:#94a3b8">{{ article.date }}</span>
+              <span style="font-size:12px;font-weight:700;color:#0A3D62">Lire →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- FOOTER -->
   <footer class="footer">
@@ -964,6 +1141,49 @@ export class HomeComponent implements OnInit {
   stats: any = null;
   loading = true;
 
+  // Statistiques
+  statsData = [
+    { val: '2+', label: 'Médecins spécialistes' },
+    { val: '500+', label: 'Patients suivis' },
+    { val: '98%', label: 'Satisfaction patients' },
+    { val: '24/7', label: 'Dossier accessible' },
+  ];
+
+  // Avis patients
+  avis = [
+    { texte: 'Service exceptionnel ! La prise de rendez-vous en ligne est très pratique et le médecin est très attentionné.', nom: 'Amira B.', initiales: 'AB', date: 'Mai 2026' },
+    { texte: 'Le dossier médical numérique est une révolution. Je peux voir mes ordonnances et consultations à tout moment.', nom: 'Karim M.', initiales: 'KM', date: 'Avril 2026' },
+    { texte: 'Très professionnel. L\'IA de triage m\'a aidé à comprendre mes symptômes avant ma consultation.', nom: 'Fatima Z.', initiales: 'FZ', date: 'Mars 2026' },
+  ];
+
+  // Contact
+  contacts = [
+    { icon: '📍', label: 'Adresse', valeur: 'Rue Didouche Mourad, Alger Centre, Algérie' },
+    { icon: '📞', label: 'Téléphone', valeur: '+213 21 XX XX XX' },
+    { icon: '✉️', label: 'Email', valeur: 'contact@medinova.dz' },
+    { icon: '🕐', label: 'Urgences', valeur: 'Via l\'application 24h/24' },
+  ];
+
+  horaires = [
+    { jour: 'Lundi — Vendredi', heure: '08:00 — 17:00', ferme: false },
+    { jour: 'Samedi', heure: '08:00 — 12:00', ferme: false },
+    { jour: 'Dimanche', heure: 'Fermé', ferme: true },
+  ];
+
+  // Formulaire contact
+  contactNom = '';
+  contactEmail = '';
+  contactSujet = '';
+  contactMessage = '';
+  contactSuccess = false;
+
+  // Blog articles
+  articles = [
+    { emoji: '🫀', couleur: '#fee2e2', categorie: 'Cardiologie', titre: 'Comment prévenir les maladies cardiovasculaires ?', extrait: 'L\'hypertension artérielle touche 30% des algériens. Découvrez les gestes simples pour protéger votre cœur au quotidien.', date: '20 Mai 2026' },
+    { emoji: '🧠', couleur: '#f5f3ff', categorie: 'Neurologie', titre: 'Le stress chronique : reconnaître et agir', extrait: 'Le stress prolongé peut avoir des effets sérieux sur la santé. Notre médecin vous explique comment le gérer efficacement.', date: '15 Mai 2026' },
+    { emoji: '🍎', couleur: '#dcfce7', categorie: 'Nutrition', titre: 'Alimentation équilibrée en Algérie : guide pratique', extrait: 'Comment adapter une alimentation saine aux habitudes alimentaires algériennes ? Nos conseils nutritionnels accessibles.', date: '10 Mai 2026' },
+  ];
+
   heroStats: any[] = [
     { val: '—', label: 'Médecins actifs' },
     { val: '—', label: 'Rendez-vous' },
@@ -1010,6 +1230,18 @@ export class HomeComponent implements OnInit {
   ];
 
   constructor(public auth: AuthService, private http: HttpClient) {}
+
+  envoyerContact() {
+    if (!this.contactNom || !this.contactEmail || !this.contactMessage) return;
+    this.http.post(`${API}/contact`, {
+      nom: this.contactNom, email: this.contactEmail,
+      sujet: this.contactSujet, message: this.contactMessage
+    }).subscribe({ next: () => {}, error: () => {} });
+    this.contactSuccess = true;
+    this.contactNom = ''; this.contactEmail = '';
+    this.contactSujet = ''; this.contactMessage = '';
+    setTimeout(() => this.contactSuccess = false, 5000);
+  }
 
   ngOnInit() {
     this.chargerMedecins();

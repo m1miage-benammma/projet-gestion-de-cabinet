@@ -1,10 +1,11 @@
-import { Component, OnInit, AfterViewChecked } from "@angular/core";
+import { Component, OnInit, OnDestroy, AfterViewChecked } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { SidebarComponent } from "../../shared/sidebar/sidebar.component";
 import { HeaderComponent } from "../../shared/header/header.component";
 import { AuthService } from "../../core/services/auth.service";
 import { ApiService } from "../../core/services/api.service";
+import { LangService } from "../../core/services/lang.service";
 import { ToastService } from "../../core/services/toast.service";
 
 @Component({
@@ -13,13 +14,14 @@ import { ToastService } from "../../core/services/toast.service";
   imports: [CommonModule, FormsModule, SidebarComponent, HeaderComponent],
   templateUrl: "./medecin.component.html"
 })
-export class MedecinComponent implements OnInit, AfterViewChecked {
+export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   TABS = [
     { id: "accueil",        label: "Accueil",           icon: "home" },
     { id: "planning",       label: "Mon planning",       icon: "calendar" },
     { id: "consultation",   label: "Consultation",       icon: "activity" },
     { id: "dossiers",       label: "Dossiers patients",  icon: "folder" },
+    { id: "chat",           label: "Messages",           icon: "message-circle" },
     { id: "disponibilites", label: "Disponibilités",     icon: "clock" },
     { id: "notifications",  label: "Notifications",      icon: "bell" },
     { id: "profil",         label: "Mon profil",         icon: "user" },
@@ -70,6 +72,10 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
 
   // Dossiers patients
   patients: any[] = [];
+  // Chat
+  chatMessages: any[] = [];
+  chatInput = '';
+  chatPatientId = 0;
   patientSelectionne: any = null;
   dossierPatient: any = null;
   consultationsPatient: any[] = [];
@@ -83,12 +89,71 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
   constructor(
     public auth: AuthService,
     private api: ApiService,
-    public toast: ToastService
+    public toast: ToastService,
+    public lang: LangService
   ) {}
 
+  // Alerte urgence
+  alerteUrgence: any = null;
+  urgenceInterval: any = null;
+  lastNotifCount = 0;
+  urgencesVues: Set<number> = new Set(
+    JSON.parse(localStorage.getItem('urgences_vues') || '[]')
+  );
+
   ngOnInit() {
+    // Forcer le thème bleu pour le médecin
+    document.documentElement.style.setProperty('--primary', '#0A3D62');
+    document.documentElement.style.setProperty('--primary-mid', '#1a5c8a');
+    document.documentElement.style.setProperty('--primary-light', '#EBF5FB');
+    document.documentElement.style.setProperty('--primary-border', '#AED6F1');
     this.chargerPlanning();
     this.chargerDispos();
+    this.chargerNotifications();
+    // Polling urgence toutes les 10 secondes
+    this.urgenceInterval = setInterval(() => this.verifierUrgences(), 10000);
+  }
+
+  ngOnDestroy() {
+    if (this.urgenceInterval) clearInterval(this.urgenceInterval);
+  }
+
+  verifierUrgences() {
+    this.api.getNotifications(this.auth.userId()).subscribe({
+      next: (notifs: any[]) => {
+        const urgences = notifs.filter((n: any) => n.type === 'urgence' && !n.lu && !this.urgencesVues.has(n.id));
+        if (urgences.length > 0 && !this.alerteUrgence) {
+          this.alerteUrgence = urgences[0];
+          this.urgencesVues.add(urgences[0].id);
+          localStorage.setItem('urgences_vues', JSON.stringify([...this.urgencesVues]));
+          // Son d'alerte
+          try {
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            osc.start(); gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+            setTimeout(() => osc.stop(), 800);
+          } catch(e) {}
+        }
+        this.notifications = notifs;
+      },
+      error: () => {}
+    });
+  }
+
+  fermerAlerteUrgence() {
+    if (this.alerteUrgence) this.api.marquerLue(this.alerteUrgence.id).subscribe({ next: () => {}, error: () => {} });
+    this.alerteUrgence = null;
+  }
+
+  getUrgenceHeure(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    d.setHours(d.getHours() + 1); // Correction timezone Algérie UTC+1
+    return `Reçu à ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
   }
 
   ngAfterViewChecked() {
@@ -135,6 +200,10 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
     if (tab === "disponibilites") this.chargerDispos();
     if (tab === "notifications") this.chargerNotifications();
     if (tab === "dossiers") this.chargerPatients();
+    if (tab === "chat") {
+      this.chargerPatients();
+      if (this.chatPatientId) this.chargerChatMessages();
+    }
     if (tab === "consultation" && !this.rdvSelectionne) { this.setTab("planning"); return; }
     if (tab === "profil") {
       const u = this.auth.user;
@@ -224,6 +293,39 @@ export class MedecinComponent implements OnInit, AfterViewChecked {
       next: (p: any[]) => { this.patients = p; },
       error: () => {}
     });
+  }
+
+  chargerChatMessages() {
+    if (!this.chatPatientId) return;
+    this.api.getChatMessages(this.auth.userId(), this.chatPatientId).subscribe({
+      next: (m: any[]) => { this.chatMessages = m || []; this.scrollChat(); },
+      error: () => {}
+    });
+    // Refresh toutes les 5 secondes
+    setTimeout(() => { if (this.activeTab === 'chat') this.chargerChatMessages(); }, 5000);
+  }
+
+  envoyerMessageChat() {
+    if (!this.chatInput.trim() || !this.chatPatientId) return;
+    const texte = this.chatInput;
+    this.chatMessages.push({ contenu: texte, id_expediteur: this.auth.userId(), cree_a: new Date().toISOString() });
+    this.chatInput = '';
+    this.scrollChat();
+    this.api.envoyerChatMessage(this.auth.userId(), this.chatPatientId, texte).subscribe({
+      next: () => this.chargerChatMessages(),
+      error: () => this.toast.error('Erreur envoi.')
+    });
+  }
+
+  scrollChat() {
+    setTimeout(() => {
+      const el = document.getElementById('chat-med-messages');
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 100);
+  }
+
+  isMedecinMessage(msg: any): boolean {
+    return msg.id_expediteur === this.auth.userId();
   }
 
   chargerDossierPatient(patient: any) {

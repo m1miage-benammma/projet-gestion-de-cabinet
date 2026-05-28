@@ -205,6 +205,97 @@ Route::middleware('auth.middleware')->group(function () {
         return response()->json(['message' => 'Urgence envoyée.']);
     });
 
+    // ── CHAT EN DIRECT ──────────────────────────────────────────
+    Route::get('/chat/{idUser1}/{idUser2}', function (int $idUser1, int $idUser2) {
+        $messages = DB::table('chat_messages')
+            ->where(function($q) use ($idUser1, $idUser2) {
+                $q->where('id_expediteur', $idUser1)->where('id_destinataire', $idUser2);
+            })
+            ->orWhere(function($q) use ($idUser1, $idUser2) {
+                $q->where('id_expediteur', $idUser2)->where('id_destinataire', $idUser1);
+            })
+            ->orderBy('created_at', 'asc')
+            ->select('id', 'id_expediteur', 'id_destinataire', 'contenu', 'created_at as cree_a', 'lu')
+            ->get();
+        return response()->json($messages);
+    });
+
+    Route::post('/chat', function (Request $r) {
+        $idExp = (int) $r->input('id_expediteur');
+        $idDest = (int) $r->input('id_destinataire');
+        $contenu = trim($r->input('contenu', ''));
+        if (!$contenu) return response()->json(['message' => 'Message vide.'], 422);
+
+        // Créer la table si elle n'existe pas
+        if (!Schema::hasTable('chat_messages')) {
+            Schema::create('chat_messages', function ($table) {
+                $table->id();
+                $table->integer('id_expediteur');
+                $table->integer('id_destinataire');
+                $table->text('contenu');
+                $table->boolean('lu')->default(false);
+                $table->timestamps();
+            });
+        }
+
+        $id = DB::table('chat_messages')->insertGetId([
+            'id_expediteur'  => $idExp,
+            'id_destinataire'=> $idDest,
+            'contenu'        => $contenu,
+            'lu'             => false,
+            'created_at'     => now(),
+            'updated_at'     => now(),
+        ]);
+
+        // Notifier le destinataire
+        $exp = DB::table('utilisateurs')->where('id_utilisateur', $idExp)->first();
+        DB::table('notifications')->insert([
+            'id_utilisateur' => $idDest,
+            'message'        => "💬 Nouveau message de {$exp?->prenom} {$exp?->nom} : " . substr($contenu, 0, 50),
+            'type'           => 'message',
+            'lu'             => false,
+            'created_at'     => now(),
+            'updated_at'     => now(),
+        ]);
+
+        return response()->json(['id' => $id, 'message' => 'Message envoyé.']);
+    });
+
+    // ── PHOTO DE PROFIL ──────────────────────────────────────────
+    Route::post('/profil/photo', function (Request $r) {
+        $idUser = (int) $r->attributes->get('id_utilisateur');
+        $photo = $r->input('photo'); // base64
+        if (!$photo) return response()->json(['message' => 'Photo manquante.'], 422);
+        // Stocker en base (max 1MB en base64)
+        if (!Schema::hasColumn('utilisateurs', 'photo')) {
+            Schema::table('utilisateurs', function ($table) {
+                $table->longText('photo')->nullable();
+            });
+        }
+        DB::table('utilisateurs')->where('id_utilisateur', $idUser)->update(['photo' => $photo, 'updated_at' => now()]);
+        return response()->json(['message' => 'Photo mise à jour.', 'photo' => $photo]);
+    });
+
+    // ── MESSAGES CONTACT ────────────────────────────────────────
+    Route::post('/contact', function (Request $r) {
+        if (!Schema::hasTable('messages_contact')) {
+            Schema::create('messages_contact', function ($t) {
+                $t->id();
+                $t->string('nom'); $t->string('email');
+                $t->string('sujet')->nullable();
+                $t->text('message');
+                $t->boolean('lu')->default(false);
+                $t->timestamps();
+            });
+        }
+        DB::table('messages_contact')->insert([
+            'nom' => $r->input('nom'), 'email' => $r->input('email'),
+            'sujet' => $r->input('sujet'), 'message' => $r->input('message'),
+            'lu' => false, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        return response()->json(['message' => 'Message enregistré.']);
+    });
+
     Route::get('/patients', function () {
         return response()->json(
             DB::table('utilisateurs as u')
@@ -549,6 +640,14 @@ Route::middleware('auth.middleware')->group(function () {
         Route::patch('/admin/utilisateurs/{id}/activer',    [AdminController::class, 'activer']);
         Route::patch('/admin/utilisateurs/{id}/desactiver', [AdminController::class, 'desactiver']);
         Route::delete('/admin/utilisateurs/{id}',           [AdminController::class, 'supprimer']);
+        Route::get('/admin/messages-contact', function () {
+            $msgs = DB::table('messages_contact')->orderBy('created_at', 'desc')->get();
+            return response()->json($msgs);
+        });
+        Route::patch('/admin/messages-contact/{id}/lu', function (int $id) {
+            DB::table('messages_contact')->where('id', $id)->update(['lu' => true]);
+            return response()->json(['message' => 'Marqué lu.']);
+        });
         Route::get('/admin/rapport',                        [AdminController::class, 'rapport']);
     });
 });

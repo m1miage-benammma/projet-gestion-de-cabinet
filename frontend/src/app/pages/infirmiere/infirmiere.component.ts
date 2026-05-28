@@ -1,10 +1,11 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { SidebarComponent } from "../../shared/sidebar/sidebar.component";
 import { HeaderComponent } from "../../shared/header/header.component";
 import { AuthService } from "../../core/services/auth.service";
 import { ApiService } from "../../core/services/api.service";
+import { LangService } from "../../core/services/lang.service";
 import { ToastService } from "../../core/services/toast.service";
 
 @Component({
@@ -13,7 +14,7 @@ import { ToastService } from "../../core/services/toast.service";
   imports: [CommonModule, FormsModule, SidebarComponent, HeaderComponent],
   templateUrl: "./infirmiere.component.html"
 })
-export class InfirmiereComponent implements OnInit {
+export class InfirmiereComponent implements OnInit, OnDestroy {
 
   TABS = [
     { id: "accueil",        label: "Accueil",           icon: "home" },
@@ -56,13 +57,58 @@ export class InfirmiereComponent implements OnInit {
   constructor(
     public auth: AuthService,
     private api: ApiService,
-    public toast: ToastService
+    public toast: ToastService,
+    public lang: LangService
   ) {}
 
+  alerteUrgence: any = null;
+  urgenceInterval: any = null;
+  urgencesVues: Set<number> = new Set(
+    JSON.parse(localStorage.getItem('urgences_vues') || '[]')
+  );
+
   ngOnInit() {
+    // Forcer le thème violet pour l'infirmière
+    document.documentElement.style.setProperty('--primary', '#6D28D9');
+    document.documentElement.style.setProperty('--primary-mid', '#7C3AED');
+    document.documentElement.style.setProperty('--primary-light', '#F5F3FF');
+    document.documentElement.style.setProperty('--primary-border', '#C4B5FD');
     this.chargerRdvJour();
     this.chargerSoins();
     this.chargerPatients();
+    this.urgenceInterval = setInterval(() => this.verifierUrgences(), 10000);
+  }
+
+  ngOnDestroy() {
+    if (this.urgenceInterval) clearInterval(this.urgenceInterval);
+  }
+
+  verifierUrgences() {
+    this.api.getNotifications(this.auth.userId()).subscribe({
+      next: (notifs: any[]) => {
+        const urgences = notifs.filter((n: any) => n.type === 'urgence' && !n.lu && !this.urgencesVues.has(n.id));
+        if (urgences.length > 0 && !this.alerteUrgence) {
+          this.alerteUrgence = urgences[0];
+          this.urgencesVues.add(urgences[0].id);
+          localStorage.setItem('urgences_vues', JSON.stringify([...this.urgencesVues]));
+          try {
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 880; osc.start();
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+            setTimeout(() => osc.stop(), 800);
+          } catch(e) {}
+        }
+      }, error: () => {}
+    });
+  }
+
+  fermerAlerteUrgence() {
+    if (this.alerteUrgence) this.api.marquerLue(this.alerteUrgence.id).subscribe({ next: () => {}, error: () => {} });
+    this.alerteUrgence = null;
   }
 
   setTab(tab: string) {

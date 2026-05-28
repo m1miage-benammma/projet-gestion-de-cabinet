@@ -6,6 +6,7 @@ import { HeaderComponent } from "../../shared/header/header.component";
 import { AuthService } from "../../core/services/auth.service";
 import { ApiService } from "../../core/services/api.service";
 import { ToastService } from "../../core/services/toast.service";
+import { LangService } from "../../core/services/lang.service";
 
 @Component({
   selector: "app-patient",
@@ -20,6 +21,7 @@ export class PatientComponent implements OnInit, AfterViewChecked {
     { id: "rdv",            label: "Rendez-vous",       icon: "calendar" },
     { id: "dossier",        label: "Dossier médical",   icon: "folder" },
     { id: "ordonnances",    label: "Ordonnances",       icon: "file-text" },
+    { id: "chat",           label: "Messages",          icon: "message-circle" },
     { id: "notifications",  label: "Notifications",     icon: "bell" },
     { id: "profil",         label: "Mon profil",        icon: "user" },
   ];
@@ -88,10 +90,52 @@ export class PatientComponent implements OnInit, AfterViewChecked {
   constructor(
     public auth: AuthService,
     private api: ApiService,
-    public toast: ToastService
+    public toast: ToastService,
+    public lang: LangService
   ) {}
 
   showWelcome = false;
+  // Chat
+  chatMessages: any[] = [];
+  chatInput = '';
+  chatLoading = false;
+  chatMedecins: any[] = [];
+  chatMedecinId = 0;
+
+  chargerChatMessages() {
+    if (!this.chatMedecinId) return;
+    this.api.getChatMessages(this.auth.userId(), this.chatMedecinId).subscribe({
+      next: (m: any[]) => { this.chatMessages = m || []; this.scrollChat(); },
+      error: () => {}
+    });
+    // Refresh toutes les 5 secondes
+    setTimeout(() => { if (this.activeTab === 'chat') this.chargerChatMessages(); }, 5000);
+  }
+
+  envoyerMessage() {
+    if (!this.chatInput.trim() || !this.chatMedecinId) return;
+    const msg = { contenu: this.chatInput, id_expediteur: this.auth.userId(), id_destinataire: this.chatMedecinId, cree_a: new Date().toISOString(), en_cours: true };
+    this.chatMessages.push(msg);
+    const texte = this.chatInput;
+    this.chatInput = '';
+    this.scrollChat();
+    this.api.envoyerChatMessage(this.auth.userId(), this.chatMedecinId, texte).subscribe({
+      next: () => { this.chargerChatMessages(); },
+      error: () => { this.toast.error('Erreur envoi message.'); }
+    });
+  }
+
+  scrollChat() {
+    setTimeout(() => {
+      const el = document.getElementById('chat-messages');
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 100);
+  }
+
+  isMyMessage(msg: any): boolean {
+    return msg.id_expediteur === this.auth.userId();
+  }
+
   urgenceLoading = false;
   urgenceEnvoye = false;
   showUrgenceModal = false;
@@ -213,6 +257,13 @@ Soins infirmiers: ${soins.length}
     if (tab === "rdv") this.chargerRdv();
     if (tab === "dossier" || tab === "ordonnances") { this.chargerDossier(); this.chargerRdv(); }
     if (tab === "notifications") this.chargerNotifications();
+    if (tab === "chat") {
+      this.api.getPatients().subscribe({ next: () => {}, error: () => {} });
+      this.api.getMedecins().subscribe({
+        next: (m: any[]) => { this.chatMedecins = m; if (m.length && !this.chatMedecinId) { this.chatMedecinId = m[0].id_utilisateur; this.chargerChatMessages(); } },
+        error: () => {}
+      });
+    }
     if (tab === "profil") {
       const u = this.auth.user;
       this.profilNom = u?.nom || "";
@@ -422,7 +473,25 @@ Soins infirmiers: ${soins.length}
     <div class="carte"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div class="logo">Medi<span>Nova</span></div><div class="badge">CARTE PATIENT</div></div><div class="avatar">${(p?.prenom||'?')[0]}${(p?.nom||'')[0]}</div><div class="nom">${p?.prenom||''} ${p?.nom||''}</div><div style="font-size:11px;opacity:.75;margin-top:2px">${p?.email||''}</div><div class="info-row"><div class="info-box"><div class="info-label">Groupe sanguin</div><div><span class="blood">${p?.groupe_sanguin||'ND'}</span></div></div><div class="info-box"><div class="info-label">Téléphone</div><div class="info-val">${p?.telephone||'—'}</div></div><div class="info-box"><div class="info-label">Genre</div><div class="info-val">${p?.genre==='M'?'♂':'♀'}</div></div></div>${p?.allergies?`<div style="margin-top:8px;font-size:10px;background:rgba(231,76,60,.3);padding:3px 8px;border-radius:4px">⚠️ ${p.allergies}</div>`:''}<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px"><div style="font-size:10px;opacity:.7">N° DM-${dos?.id_dossier||'—'}<br>Cabinet MediNova · Alger</div><div style="font-size:9px;opacity:.6;text-align:right">Confidentiel<br>Loi 17-08</div></div></div>
     <script>setTimeout(()=>window.print(),500);</script></body></html>`;
     const w = window.open('', '_blank'); w?.document.write(html); w?.document.close();
-  }  formatJourConsult(dateStr: string): string {
+  }  uploadPhoto(event: any) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) { this.toast.error('Image trop grande (max 1MB)'); return; }
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const base64 = e.target.result;
+      this.api.uploadPhoto(base64).subscribe({
+        next: () => {
+          if (this.auth.user) this.auth.user.photo = base64;
+          this.toast.success('Photo mise à jour !');
+        },
+        error: () => this.toast.error('Erreur upload photo.')
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  formatJourConsult(dateStr: string): string {
     const jours = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
     const mois = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
     const d = new Date(dateStr);

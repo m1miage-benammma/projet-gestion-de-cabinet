@@ -16,7 +16,7 @@
         </div>
         <div style="background:#f0fdf4;border-radius:12px;padding:16px">
           <div style="font-size:28px">📋</div>
-          <div style="font-size:12px;font-weight:700;color:#166534;margin-top:6px">Dossier médical</div>
+          <div style="font-size:12px;font-weight:700;color:#166534;margin-top:6px">{{ lang.get('dossier_medical') }}</div>
         </div>
         <div style="background:#fef3c7;border-radius:12px;padding:16px">
           <div style="font-size:28px">🤖</div>
@@ -48,7 +48,7 @@
             <h2 style="font-size:22px;font-weight:900;color:#e74c3c;margin-bottom:8px">Confirmer l'urgence ?</h2>
             <p style="font-size:14px;color:#666;margin-bottom:24px">Tous les médecins et infirmières vont recevoir une alerte immédiate.</p>
             <div style="display:flex;gap:12px">
-              <button class="btn btn-secondary btn-full" (click)="showUrgenceModal=false">Annuler</button>
+              <button class="btn btn-secondary btn-full" (click)="showUrgenceModal=false">{{ lang.get('annuler') }}</button>
               <button class="btn btn-full" (click)="envoyerUrgence()" [disabled]="urgenceLoading"
                 style="background:#e74c3c;border-color:#e74c3c;color:white;font-weight:800">
                 <div class="spinner spinner-sm" *ngIf="urgenceLoading"></div>
@@ -84,8 +84,8 @@
 
         <div class="page-header">
           <div class="page-header-left">
-            <h1>Bonjour, {{ auth.user?.prenom }} {{ auth.user?.nom }}</h1>
-            <p>Bienvenue sur votre espace santé numérique</p>
+            <h1>{{ lang.get('bonjour') }}, {{ auth.user?.prenom }} {{ auth.user?.nom }}</h1>
+            <p>{{ lang.get('bienvenue') }}</p>
           </div>
         </div>
 
@@ -93,22 +93,22 @@
           <div class="kpi-card">
             <div class="kpi-card-top"><div class="kpi-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div></div>
             <div class="kpi-value">{{ rdvList.length }}</div>
-            <div class="kpi-label">Mes rendez-vous</div>
+            <div class="kpi-label">{{ lang.get('mes_rdv') }}</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-top"><div class="kpi-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div>
             <div class="kpi-value">{{ countRdvStatut('confirme') }}</div>
-            <div class="kpi-label">Confirmés</div>
+            <div class="kpi-label">{{ lang.get('confirmes') }}</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-top"><div class="kpi-icon orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div></div>
             <div class="kpi-value">{{ ordonnances.length }}</div>
-            <div class="kpi-label">Ordonnances</div>
+            <div class="kpi-label">{{ lang.get('ordonnances') }}</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-top"><div class="kpi-icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div></div>
             <div class="kpi-value">{{ notifCount() }}</div>
-            <div class="kpi-label">Notifications non lues</div>
+            <div class="kpi-label">{{ lang.get('notifs_non_lues') }}</div>
           </div>
         </div>
 
@@ -116,11 +116,11 @@
         <div class="ia-card" style="margin-bottom:16px">
           <div class="ia-header">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-            Analyse intelligente des symptômes
+            {{ lang.get('ia_title') }}
           </div>
           <div class="ia-body">
             <div class="form-group">
-              <label class="form-label">Décrivez vos symptômes</label>
+              <label class="form-label">{{ lang.get('ia_label') }}</label>
               <textarea class="form-textarea" [(ngModel)]="symptomes" name="sym" placeholder="Ex : j'ai de la fièvre depuis 3 jours, mal à la gorge et toux persistante..." style="min-height:80px"></textarea>
             </div>
             <button class="btn btn-primary btn-sm" (click)="analyserSymptomes()" [disabled]="triageLoading || !symptomes">
@@ -176,7 +176,7 @@
         </div>
 
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-primary" (click)="setTab('rdv')">Prendre un rendez-vous</button>
+          <button class="btn btn-primary" (click)="setTab('rdv')">{{ lang.get('prendre_rdv') }}</button>
           <button class="btn btn-secondary" (click)="setTab('dossier')">Mon dossier médical</button>
         </div>
       </div>
@@ -184,12 +184,12 @@
       <!-- ════ RENDEZ-VOUS ════ -->
       <div *ngIf="activeTab==='rdv'">
         <div class="page-header">
-          <div class="page-header-left"><h1>Mes rendez-vous</h1><p>Historique et prise de rendez-vous</p></div>
+          <div class="page-header-left"><h1>{{ lang.get('mes_rdv') }}</h1><p>Historique et prise de rendez-vous</p></div>
         </div>
 
         <!-- Formulaire prise RDV -->
         <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><div class="card-title">Prendre un rendez-vous</div></div>
+          <div class="card-header"><div class="card-title">{{ lang.get('prendre_rdv') }}</div></div>
           <div class="card-body">
 
             <!-- Étape 1 : Choisir médecin -->
@@ -328,7 +328,7 @@
                     <td>
                       <button class="btn btn-danger btn-sm"
                         *ngIf="r.statut!=='annule' && r.statut!=='termine'"
-                        (click)="annulerRdv(r.id_rdv)">Annuler</button>
+                        (click)="annulerRdv(r.id_rdv)">{{ lang.get('annuler') }}</button>
                     </td>
                   </tr>
                 </tbody>
@@ -343,10 +343,10 @@
         <div class="page-header">
           <div class="page-header-left"><h1>Mon dossier médical</h1><p>Historique médical complet</p></div>
           <div style="display:flex;gap:10px">
-            <button class="btn btn-secondary btn-sm" (click)="chargerDossier()">🔄 Actualiser</button>
+            <button class="btn btn-secondary btn-sm" (click)="chargerDossier()">🔄 {{ lang.get('actualiser') }}</button>
             <button class="btn btn-primary btn-sm" (click)="imprimerDossier()" *ngIf="dossierComplet">🖨️ Imprimer</button>
-            <button class="btn btn-success btn-sm" (click)="genererFichePatient()" *ngIf="dossierComplet" style="background:#27ae60;border-color:#27ae60;color:white">📄 Fiche patient PDF</button>
-            <button class="btn btn-sm" (click)="genererCartePatient()" *ngIf="dossierComplet" style="background:#8e44ad;border-color:#8e44ad;color:white">🪪 Carte patient</button>
+            <button class="btn btn-success btn-sm" (click)="genererFichePatient()" *ngIf="dossierComplet" style="background:#27ae60;border-color:#27ae60;color:white">📄 {{ lang.get('fiche_patient') }}</button>
+            <button class="btn btn-sm" (click)="genererCartePatient()" *ngIf="dossierComplet" style="background:#8e44ad;border-color:#8e44ad;color:white">🪪 {{ lang.get('carte_patient') }}</button>
           </div>
         </div>
 
@@ -375,7 +375,7 @@
               </div>
               <div class="dm-stat">
                 <div class="dm-stat-val" style="color:#27ae60">{{ ordonnances.length }}</div>
-                <div class="dm-stat-label">Ordonnances</div>
+                <div class="dm-stat-label">{{ lang.get('ordonnances') }}</div>
               </div>
               <div class="dm-stat">
                 <div class="dm-stat-val" style="color:#f39c12">{{ rdvPatient?.length || 0 }}</div>
@@ -417,7 +417,7 @@
                 <div class="empty-state-icon">
                   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 </div>
-                <h3>Aucune consultation</h3>
+                <h3>{{ lang.get('aucune_consultation') }}</h3>
                 <p>Votre historique apparaîtra ici après votre première consultation.</p>
               </div>
 
@@ -615,13 +615,13 @@
       <!-- ════ ORDONNANCES ════ -->
       <div *ngIf="activeTab==='ordonnances'">
         <div class="page-header">
-          <div class="page-header-left"><h1>Mes ordonnances</h1><p>Prescriptions médicales</p></div>
+          <div class="page-header-left"><h1>{{ lang.get('mes_ordonnances') }}</h1><p>Prescriptions médicales</p></div>
         </div>
-        <div class="loading-center" *ngIf="loading['dossier']"><div class="spinner"></div>Chargement...</div>
+        <div class="loading-center" *ngIf="loading['dossier']"><div class="spinner"></div>{{ lang.get('chargement') }}</div>
         <div *ngIf="!loading['dossier']">
           <div class="empty-state" *ngIf="ordonnances.length===0">
             <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg></div>
-            <h3>Aucune ordonnance</h3>
+            <h3>{{ lang.get('aucune_ordonnance') }}</h3>
             <p>Vos ordonnances médicales apparaîtront ici.</p>
           </div>
           <div *ngFor="let o of ordonnances" class="prescription">
@@ -670,9 +670,67 @@
       </div>
 
       <!-- ════ NOTIFICATIONS ════ -->
+      <!-- ════ CHAT ════ -->
+      <div *ngIf="activeTab==='chat'" style="height:calc(100vh - 120px);display:flex;flex-direction:column">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1>💬 Messages</h1>
+            <p>Communiquez directement avec votre médecin</p>
+          </div>
+        </div>
+
+        <!-- Choix médecin -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <div *ngFor="let m of chatMedecins"
+               (click)="chatMedecinId=m.id_utilisateur;chargerChatMessages()"
+               [style.background]="chatMedecinId===m.id_utilisateur ? 'var(--primary)' : 'white'"
+               [style.color]="chatMedecinId===m.id_utilisateur ? 'white' : 'var(--text)'"
+               style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:50px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">
+              {{ (m.prenom||'?')[0] }}{{ (m.nom||'')[0] }}
+            </div>
+            <span style="font-size:13px;font-weight:700">Dr. {{ m.prenom }} {{ m.nom }}</span>
+          </div>
+        </div>
+
+        <!-- Zone messages -->
+        <div class="card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div id="chat-messages" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:300px">
+            <div *ngIf="chatMessages.length===0" style="text-align:center;color:var(--muted);padding:40px">
+              <div style="font-size:40px;margin-bottom:8px">💬</div>
+              <p>{{ lang.get('aucun_message') }}</p>
+            </div>
+            <div *ngFor="let msg of chatMessages"
+                 [style.align-self]="isMyMessage(msg) ? 'flex-end' : 'flex-start'"
+                 style="max-width:70%">
+              <div [style.background]="isMyMessage(msg) ? 'var(--primary)' : '#f0f0f0'"
+                   [style.color]="isMyMessage(msg) ? 'white' : 'var(--text)'"
+                   style="padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5">
+                {{ msg.contenu }}
+              </div>
+              <div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:right">
+                {{ msg.cree_a | date:'HH:mm' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Input message -->
+          <div style="padding:16px;border-top:1px solid var(--border);display:flex;gap:10px">
+            <input type="text" class="form-input" [(ngModel)]="chatInput"
+                   placeholder="{{ lang.get('ecrire_message') }}"
+                   (keyup.enter)="envoyerMessage()"
+                   style="flex:1"/>
+            <button class="btn btn-primary" (click)="envoyerMessage()" [disabled]="!chatInput.trim() || !chatMedecinId">
+              ➤ Envoyer
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ NOTIFICATIONS ════ -->
       <div *ngIf="activeTab==='notifications'">
         <div class="page-header">
-          <div class="page-header-left"><h1>Notifications</h1><p>{{ notifCount() }} non lue(s)</p></div>
+          <div class="page-header-left"><h1>{{ lang.get('notifications') }}</h1><p>{{ notifCount() }} non lue(s)</p></div>
         </div>
         <div class="loading-inline" *ngIf="loading['notifs']"><div class="spinner spinner-sm"></div> Chargement...</div>
         <div class="card" *ngIf="!loading['notifs']">
@@ -688,7 +746,7 @@
               <div class="notif-dot" *ngIf="!n.lu"></div>
             </div>
             <div class="empty-state" *ngIf="notifications.length===0" style="padding:32px">
-              <h3>Aucune notification</h3>
+              <h3>{{ lang.get('aucune_notif') }}</h3>
             </div>
           </div>
         </div>
@@ -696,10 +754,17 @@
 
       <!-- ════ PROFIL ════ -->
       <div *ngIf="activeTab==='profil'">
-        <div class="page-header"><div class="page-header-left"><h1>Mon profil</h1><p>Informations personnelles et médicales</p></div></div>
+        <div class="page-header"><div class="page-header-left"><h1>{{ lang.get('profil') }}</h1><p>Informations personnelles et médicales</p></div></div>
         <div class="profil-card">
-          <div class="profil-avatar">{{ auth.initiales() }}</div>
-          <div class="form-section-title">Informations personnelles</div>
+          <div style="position:relative;display:inline-block;margin-bottom:20px">
+            <div class="profil-avatar" *ngIf="!auth.user?.photo">{{ auth.initiales() }}</div>
+            <img *ngIf="auth.user?.photo" [src]="auth.user.photo" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)"/>
+            <label style="position:absolute;bottom:0;right:0;background:var(--primary);color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px" title="Changer la photo">
+              📷
+              <input type="file" accept="image/*" style="display:none" (change)="uploadPhoto($event)"/>
+            </label>
+          </div>
+          <div class="form-section-title">{{ lang.get('infos_perso') }}</div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">Prénom</label><input type="text" class="form-input" [(ngModel)]="profilPrenom" name="pp"/></div>
             <div class="form-group"><label class="form-label">Nom</label><input type="text" class="form-input" [(ngModel)]="profilNom" name="pn"/></div>
@@ -719,7 +784,7 @@
         <!-- Changer mot de passe -->
         <div class="profil-card" style="margin-top:20px">
           <div class="profil-avatar" style="background:#e74c3c">🔑</div>
-          <h3 style="margin-bottom:16px;font-size:16px;font-weight:700">Changer le mot de passe</h3>
+          <h3 style="margin-bottom:16px;font-size:16px;font-weight:700">{{ lang.get('changer_mdp') }}</h3>
           <div class="alert alert-success" *ngIf="pwSuccess">{{ pwSuccess }}</div>
           <div class="alert alert-danger"  *ngIf="pwError">{{ pwError }}</div>
           <div class="form-group" style="margin-bottom:12px">

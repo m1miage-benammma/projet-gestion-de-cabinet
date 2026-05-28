@@ -5,6 +5,7 @@ import { SidebarComponent } from "../../shared/sidebar/sidebar.component";
 import { HeaderComponent } from "../../shared/header/header.component";
 import { AuthService } from "../../core/services/auth.service";
 import { ApiService } from "../../core/services/api.service";
+import { LangService } from "../../core/services/lang.service";
 import { ToastService } from "../../core/services/toast.service";
 
 @Component({
@@ -18,12 +19,14 @@ export class AdminComponent implements OnInit {
   TABS = [
     { id: "dashboard",    label: "Tableau de bord", icon: "bar-chart-2" },
     { id: "utilisateurs", label: "Utilisateurs",    icon: "users" },
+    { id: "messages",     label: "Messages contact", icon: "mail" },
   ];
 
   activeTab = "dashboard";
   sidebarOpen = false;
   loading: any = {};
   successMsg = "";
+  messagesContact: any[] = [];
   errorMsg = "";
 
   utilisateurs: any[] = [];
@@ -45,10 +48,16 @@ export class AdminComponent implements OnInit {
   constructor(
     public auth: AuthService,
     private api: ApiService,
-    public toast: ToastService
+    public toast: ToastService,
+    public lang: LangService
   ) {}
 
   ngOnInit() {
+    // Forcer le thème rouge pour l'admin
+    document.documentElement.style.setProperty('--primary', '#991B1B');
+    document.documentElement.style.setProperty('--primary-mid', '#b91c1c');
+    document.documentElement.style.setProperty('--primary-light', '#FEE2E2');
+    document.documentElement.style.setProperty('--primary-border', '#FCA5A5');
     this.chargerRapport();
     this.chargerUtilisateurs();
   }
@@ -59,6 +68,7 @@ export class AdminComponent implements OnInit {
     this.errorMsg = "";
     if (tab === "utilisateurs") this.chargerUtilisateurs();
     if (tab === "dashboard")    this.chargerRapport();
+    if (tab === "messages")     this.chargerMessagesContact();
   }
 
   chargerUtilisateurs() {
@@ -182,6 +192,31 @@ export class AdminComponent implements OnInit {
       admin:      { bg: "var(--danger-bg)",      text: "var(--danger)" },
     };
     return m[r] || { bg: "var(--bg)", text: "var(--muted)" };
+  }
+
+  chargerMessagesContact() {
+    this.api.getMessagesContact().subscribe({
+      next: (m: any[]) => this.messagesContact = m,
+      error: () => {}
+    });
+  }
+
+  marquerContactLu(msg: any) {
+    this.api.marquerContactLu(msg.id).subscribe({
+      next: () => { msg.lu = true; },
+      error: () => {}
+    });
+  }
+
+  getMoisStats(): any[] {
+    const mois = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+    const total = this.rapport?.total_rdv || 0;
+    // Simulation données par mois basée sur total
+    const base = Math.max(1, Math.floor(total / 12));
+    return mois.map((label, i) => {
+      const val = Math.max(0, base + Math.floor(Math.sin(i) * base * 0.5));
+      return { label, val, h: Math.min(100, val * 8) };
+    });
   }
 
   getBarWidth(val: number, total: number): string {

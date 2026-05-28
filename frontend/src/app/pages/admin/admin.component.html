@@ -12,7 +12,7 @@
       <div *ngIf="activeTab==='dashboard'">
         <div class="page-header">
           <div class="page-header-left">
-            <h1>Tableau de bord</h1>
+            <h1>{{ lang.get('dashboard') }}</h1>
             <p>Vue d'ensemble de Cabinet MediNova</p>
           </div>
           <button class="btn btn-secondary btn-sm" (click)="chargerRapport()">
@@ -26,7 +26,7 @@
           <div class="kpi-card">
             <div class="kpi-card-top"><div class="kpi-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div>
             <div class="kpi-value">{{ rapport?.total_utilisateurs || 0 }}</div>
-            <div class="kpi-label">Utilisateurs</div>
+            <div class="kpi-label">{{ lang.get('users') }}</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-top"><div class="kpi-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div></div>
@@ -182,6 +182,29 @@
             </div>
           </div>
         </div>
+
+        <!-- Graphique RDV par mois -->
+        <div class="card" style="margin-top:16px">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+            <div class="card-title">📈 Rendez-vous par mois</div>
+          </div>
+          <div class="card-body">
+            <svg viewBox="0 0 600 160" style="width:100%;height:160px">
+              <!-- Grille -->
+              <line x1="0" y1="40" x2="600" y2="40" stroke="#f0f0f0" stroke-width="1"/>
+              <line x1="0" y1="80" x2="600" y2="80" stroke="#f0f0f0" stroke-width="1"/>
+              <line x1="0" y1="120" x2="600" y2="120" stroke="#f0f0f0" stroke-width="1"/>
+              <!-- Barres par mois -->
+              <g *ngFor="let m of getMoisStats(); let i=index">
+                <rect [attr.x]="i * 46 + 8" [attr.y]="140 - m.h" [attr.width]="36" [attr.height]="m.h"
+                      fill="var(--primary)" rx="4" opacity="0.85"/>
+                <text [attr.x]="i * 46 + 26" y="155" text-anchor="middle" font-size="9" fill="#999">{{ m.label }}</text>
+                <text [attr.x]="i * 46 + 26" [attr.y]="135 - m.h" text-anchor="middle" font-size="9" fill="var(--primary)" font-weight="700">{{ m.val }}</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+
       </div>
 
       <!-- ════ UTILISATEURS ════ -->
@@ -201,7 +224,7 @@
         <div class="card" *ngIf="showCreateForm" style="margin-bottom:16px">
           <div class="card-header">
             <div class="card-title">Nouveau compte utilisateur</div>
-            <button class="btn btn-ghost btn-sm" (click)="showCreateForm=false">Annuler</button>
+            <button class="btn btn-ghost btn-sm" (click)="showCreateForm=false">{{ lang.get('annuler') }}</button>
           </div>
           <div class="card-body">
             <div class="form-row">
@@ -312,6 +335,40 @@
           </div>
         </div>
       </div>
+
+      <!-- ════ MESSAGES CONTACT ════ -->
+      <div *ngIf="activeTab==='messages'">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1>📨 Messages contact</h1>
+            <p>{{ messagesContact.length }} message(s) reçu(s)</p>
+          </div>
+        </div>
+        <div *ngIf="messagesContact.length===0" class="empty-state">
+          <h3>Aucun message reçu</h3>
+          <p>Les messages du formulaire de contact apparaîtront ici</p>
+        </div>
+        <div *ngFor="let msg of messagesContact" class="card" style="margin-bottom:12px"
+             [style.border-left]="msg.lu ? '4px solid #e2e8f0' : '4px solid var(--primary)'">
+          <div class="card-body">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+              <div>
+                <div style="font-size:16px;font-weight:800">{{ msg.nom }}</div>
+                <div style="font-size:13px;color:var(--muted)">{{ msg.email }} · {{ msg.created_at | date:'dd/MM/yyyy HH:mm' }}</div>
+                <div *ngIf="msg.sujet" style="font-size:13px;font-weight:700;color:var(--primary);margin-top:4px">📌 {{ msg.sujet }}</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <span *ngIf="!msg.lu" style="background:var(--primary-light);color:var(--primary);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Nouveau</span>
+                <button *ngIf="!msg.lu" class="btn btn-secondary btn-sm" (click)="marquerContactLu(msg)">✓ Marquer lu</button>
+              </div>
+            </div>
+            <div style="background:#f8fafc;border-radius:10px;padding:14px;font-size:14px;color:#334155;line-height:1.6">
+              {{ msg.message }}
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 </div>

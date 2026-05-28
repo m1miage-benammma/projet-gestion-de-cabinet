@@ -10,6 +10,12 @@ export class ApiService {
 
   // ── Médecins & Disponibilités ──────────────────────────────────────────────
   getMedecins(): Observable<any[]>               { return this.http.get<any[]>(`${API}/medecins`); }
+  uploadPhoto(photo: string): Observable<any>    { return this.http.post(`${API}/profil/photo`, { photo }, this.h); }
+  envoyerContact(data: any): Observable<any>     { return this.http.post(`${API}/contact`, data); }
+  getMessagesContact(): Observable<any[]>        { return this.http.get<any[]>(`${API}/admin/messages-contact`, this.h); }
+  marquerContactLu(id: number): Observable<any> { return this.http.patch(`${API}/admin/messages-contact/${id}/lu`, {}, this.h); }
+  getChatMessages(u1: number, u2: number): Observable<any[]> { return this.http.get<any[]>(`${API}/chat/${u1}/${u2}`, this.h); }
+  envoyerChatMessage(exp: number, dest: number, contenu: string): Observable<any> { return this.http.post(`${API}/chat`, { id_expediteur: exp, id_destinataire: dest, contenu }, this.h); }
   getMedecin(id: number): Observable<any>        { return this.http.get<any>(`${API}/medecins/${id}`); }
   /** Disponibilités publiques d'un médecin */
   getDispos(id: number): Observable<any[]>       { return this.http.get<any[]>(`${API}/disponibilites/medecin/${id}`, this.h); }

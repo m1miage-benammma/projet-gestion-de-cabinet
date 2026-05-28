@@ -2,6 +2,7 @@ import { Component } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { AuthService } from "../../core/services/auth.service";
+import { LangService } from "../../core/services/lang.service";
 
 @Component({
   selector: "app-login",
@@ -64,7 +65,7 @@ import { AuthService } from "../../core/services/auth.service";
       <div class="login-right">
         <div class="login-form-wrap">
           <div style="text-align:center;margin-bottom:32px">
-            <h1 class="auth-title">Bon retour 👋</h1>
+            <h1 class="auth-title">{{ lang.get('bonjour') }} 👋</h1>
             <p class="auth-subtitle">Connectez-vous à votre espace santé</p>
           </div>
 
@@ -72,7 +73,7 @@ import { AuthService } from "../../core/services/auth.service";
             <div class="form-group">
               <label class="form-label">Adresse email</label>
               <input type="email" class="form-input" [(ngModel)]="email"
-                name="email" placeholder="votre@email.com"
+                name="email" placeholder="{{ lang.get('email') }}"
                 autocomplete="email" (keyup.enter)="login()"/>
             </div>
 
@@ -81,7 +82,7 @@ import { AuthService } from "../../core/services/auth.service";
               <div style="position:relative">
                 <input [type]="showPwd?'text':'password'" class="form-input"
                   [(ngModel)]="password" name="pwd"
-                  placeholder="Votre mot de passe"
+                  placeholder="{{ lang.get('mot_de_passe') }}"
                   autocomplete="current-password"
                   (keyup.enter)="login()" style="padding-right:42px"/>
                 <button type="button" (click)="showPwd=!showPwd"
@@ -102,13 +103,13 @@ import { AuthService } from "../../core/services/auth.service";
 
             <button class="btn btn-primary btn-full btn-lg" (click)="login()" [disabled]="loading">
               <div class="spinner spinner-sm" *ngIf="loading"></div>
-              {{ loading ? 'Connexion...' : 'Se connecter →' }}
+              {{ loading ? lang.get('connexion') : lang.get('se_connecter') }}
             </button>
           </div>
 
           <div class="auth-footer" style="margin-top:24px">
             Pas encore de compte ?
-            <a (click)="auth.navigate('register')" style="cursor:pointer">Créer un compte patient</a>
+            <a (click)="auth.navigate('register')" style="cursor:pointer">{{ lang.get('creer_compte') }}</a>
           </div>
 
           <div style="text-align:center;margin-top:16px">
@@ -151,7 +152,7 @@ export class LoginComponent {
   loading  = false;
   error    = "";
 
-  constructor(public auth: AuthService) {}
+  constructor(public auth: AuthService, public lang: LangService) {}
 
   login() {
     if (!this.email || !this.password) {
