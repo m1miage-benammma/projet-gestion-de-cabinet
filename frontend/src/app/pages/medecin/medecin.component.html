@@ -426,6 +426,40 @@
               </div>
             </div>
 
+            <!-- Vaccin + Analyse + Consentement -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;padding:20px;border-top:1px solid var(--border)">
+              <!-- Vaccin -->
+              <div style="background:#f0fdf4;border-radius:12px;padding:16px;border:1px solid #86efac">
+                <div style="font-size:13px;font-weight:800;color:#166534;margin-bottom:10px">💉 Ajouter vaccin</div>
+                <input type="text" class="form-input" [(ngModel)]="vaccinForm.nom_vaccin" placeholder="Nom du vaccin" style="margin-bottom:8px"/>
+                <input type="date" class="form-input" [(ngModel)]="vaccinForm.date_administration" style="margin-bottom:8px"/>
+                <input type="date" class="form-input" [(ngModel)]="vaccinForm.date_rappel" placeholder="Date rappel (optionnel)" style="margin-bottom:8px"/>
+                <button class="btn btn-sm btn-full" (click)="ajouterVaccin()" style="background:#166534;color:white;border:none">✅ Enregistrer</button>
+              </div>
+              <!-- Analyse -->
+              <div style="background:#eff6ff;border-radius:12px;padding:16px;border:1px solid #bfdbfe">
+                <div style="font-size:13px;font-weight:800;color:#1e40af;margin-bottom:10px">🧪 Résultat analyse</div>
+                <input type="text" class="form-input" [(ngModel)]="analyseForm.type_analyse" placeholder="Type d'analyse" style="margin-bottom:8px"/>
+                <input type="date" class="form-input" [(ngModel)]="analyseForm.date_analyse" style="margin-bottom:8px"/>
+                <select class="form-select" [(ngModel)]="analyseForm.statut" style="margin-bottom:8px">
+                  <option value="normal">✅ Normal</option>
+                  <option value="anormal">⚠️ Anormal</option>
+                </select>
+                <input type="text" class="form-input" [(ngModel)]="analyseForm.note" placeholder="Note (optionnel)" style="margin-bottom:8px"/>
+                <button class="btn btn-sm btn-full" (click)="ajouterAnalyse()" style="background:#1e40af;color:white;border:none">✅ Enregistrer</button>
+              </div>
+              <!-- Consentement -->
+              <div style="background:#fef3c7;border-radius:12px;padding:16px;border:1px solid #fcd34d">
+                <div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:10px">📋 Consentement</div>
+                <input type="text" class="form-input" [(ngModel)]="consentementForm.type_acte" placeholder="Type d'acte médical" style="margin-bottom:8px"/>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px">
+                  <input type="checkbox" [(ngModel)]="consentementForm.signe" style="width:16px;height:16px"/>
+                  <label>Patient a signé</label>
+                </div>
+                <button class="btn btn-sm btn-full" (click)="ajouterConsentement()" style="background:#92400e;color:white;border:none">✅ Enregistrer</button>
+              </div>
+            </div>
+
             <!-- Ordonnance générée — affichage document médical -->
             <div *ngIf="ordonnanceGeneree" style="padding:20px">
 
@@ -650,6 +684,112 @@
                     </div>
                     <div style="font-size:13px;color:var(--muted)">{{ o.medicaments?.length || 0 }} médicament(s)</div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ FACTURATION ════ -->
+      <div *ngIf="activeTab==='facturation'">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1>💰 Facturation</h1>
+            <p>Gérez les factures de vos consultations</p>
+          </div>
+        </div>
+
+        <!-- KPI -->
+        <div class="kpi-grid" style="margin-bottom:24px">
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div></div>
+            <div class="kpi-value">{{ factures.length }}</div>
+            <div class="kpi-label">Total factures</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon green"></div></div>
+            <div class="kpi-value" style="color:#166534">{{ getTotalPayees().toLocaleString() }} DA</div>
+            <div class="kpi-label">✅ Encaissé</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon orange"></div></div>
+            <div class="kpi-value" style="color:#92400e">{{ getTotalImpayees().toLocaleString() }} DA</div>
+            <div class="kpi-label">⏳ En attente</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon purple"></div></div>
+            <div class="kpi-value">{{ getTotalFactures().toLocaleString() }} DA</div>
+            <div class="kpi-label">Total général</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:350px 1fr;gap:20px">
+          <!-- Formulaire nouvelle facture -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">➕ Nouvelle facture</div></div>
+            <div class="card-body">
+              <div *ngIf="factureSuccess" class="alert alert-success">✅ Facture créée !</div>
+              <div class="form-group">
+                <label class="form-label">Patient</label>
+                <select class="form-select" [(ngModel)]="factureForm.id_patient" (change)="factureForm.nom_patient = patients[$any($event.target).selectedIndex - 1]?.prenom + ' ' + patients[$any($event.target).selectedIndex - 1]?.nom">
+                  <option value="0">-- Choisir un patient --</option>
+                  <option *ngFor="let p of patients" [value]="p.id_utilisateur">{{ p.prenom }} {{ p.nom }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description</label>
+                <input type="text" class="form-input" [(ngModel)]="factureForm.description" placeholder="Consultation médicale"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Montant (DA)</label>
+                <input type="number" class="form-input" [(ngModel)]="factureForm.montant" placeholder="2000"/>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                <button class="btn btn-sm btn-secondary" (click)="factureForm.montant=2000">2 000 DA</button>
+                <button class="btn btn-sm btn-secondary" (click)="factureForm.montant=3000">3 000 DA</button>
+                <button class="btn btn-sm btn-secondary" (click)="factureForm.montant=5000">5 000 DA</button>
+              </div>
+              <button class="btn btn-primary btn-full" (click)="creerFacture()" [disabled]="!factureForm.id_patient">
+                💰 Créer la facture
+              </button>
+            </div>
+          </div>
+
+          <!-- Liste factures -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">📋 Historique des factures</div></div>
+            <div class="card-body" style="padding:0">
+              <div *ngIf="factures.length===0" class="empty-state" style="padding:32px">
+                <h3>Aucune facture</h3>
+                <p>Créez votre première facture</p>
+              </div>
+              <div *ngFor="let f of factures"
+                   style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid var(--border)">
+                <!-- Numéro -->
+                <div style="width:52px;height:52px;border-radius:12px;background:var(--primary-light);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
+                  <div style="font-size:10px;color:var(--primary);font-weight:700">F</div>
+                  <div style="font-size:15px;font-weight:900;color:var(--primary)">{{ f.id }}</div>
+                </div>
+                <!-- Info -->
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:14px;font-weight:700">{{ f.nom_patient }}</div>
+                  <div style="font-size:12px;color:var(--muted)">{{ f.description }}</div>
+                  <div style="font-size:11px;color:var(--muted)">{{ f.created_at | date:'dd/MM/yyyy' }}</div>
+                </div>
+                <!-- Montant -->
+                <div style="text-align:right;flex-shrink:0">
+                  <div style="font-size:18px;font-weight:900;color:var(--primary)">{{ Number(f.montant).toLocaleString() }} DA</div>
+                  <span [style.background]="f.statut==='payé' ? '#dcfce7' : '#fef3c7'"
+                        [style.color]="f.statut==='payé' ? '#166534' : '#92400e'"
+                        style="padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">
+                    {{ f.statut==='payé' ? '✅ Payée' : '⏳ En attente' }}
+                  </span>
+                </div>
+                <!-- Actions -->
+                <div style="display:flex;gap:6px;flex-shrink:0">
+                  <button class="btn btn-sm btn-secondary" (click)="imprimerFacture(f)" title="Imprimer">🖨️</button>
+                  <button *ngIf="f.statut!=='payé'" class="btn btn-sm btn-success" (click)="marquerPayee(f)">✓ Payée</button>
                 </div>
               </div>
             </div>

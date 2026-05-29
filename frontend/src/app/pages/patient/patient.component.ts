@@ -6,6 +6,7 @@ import { HeaderComponent } from "../../shared/header/header.component";
 import { AuthService } from "../../core/services/auth.service";
 import { ApiService } from "../../core/services/api.service";
 import { ToastService } from "../../core/services/toast.service";
+import { ThemeService } from "../../core/services/theme.service";
 import { LangService } from "../../core/services/lang.service";
 
 @Component({
@@ -83,6 +84,9 @@ export class PatientComponent implements OnInit, AfterViewChecked {
   pwSuccess = ""; pwError = ""; pwLoading = false;
   dossierTab = -1;
   soinsPatient: any[] = [];
+  vaccins: any[] = [];
+  analyses: any[] = [];
+  consentements: any[] = [];
 
   // QR code tracker (CORRECTIF duplication : tracker séparé)
   private qrRenderedIds = new Set<number>();
@@ -91,7 +95,8 @@ export class PatientComponent implements OnInit, AfterViewChecked {
     public auth: AuthService,
     private api: ApiService,
     public toast: ToastService,
-    public lang: LangService
+    public lang: LangService,
+    public theme: ThemeService
   ) {}
 
   showWelcome = false;
@@ -200,6 +205,8 @@ Soins infirmiers: ${soins.length}
   }
 
   ngOnInit() {
+    // Appliquer le thème sauvegardé du patient
+    this.theme.applyTheme(this.theme.currentTheme);
     // Onboarding — premier login
     const key = `medinova_welcome_${this.auth.userId()}`;
     if (!localStorage.getItem(key)) {
@@ -426,6 +433,9 @@ Soins infirmiers: ${soins.length}
       next: (s: any[]) => this.soinsPatient = s || [],
       error: () => {}
     });
+    this.api.getVaccins().subscribe({ next: (v: any[]) => this.vaccins = v || [], error: () => {} });
+    this.api.getAnalyses().subscribe({ next: (a: any[]) => this.analyses = a || [], error: () => {} });
+    this.api.getConsentements().subscribe({ next: (c: any[]) => this.consentements = c || [], error: () => {} });
   }
 
   chargerNotifications() {
@@ -461,7 +471,7 @@ Soins infirmiers: ${soins.length}
     ${p?.allergies?`<div class="section"><div class="section-title">⚠️ Allergies</div><div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px">${p.allergies}</div></div>`:''}
     ${p?.antecedents_medicaux?`<div class="section"><div class="section-title">Antécédents médicaux</div><div class="info-box">${p.antecedents_medicaux}</div></div>`:''}
     <div class="section"><div class="section-title">Historique des consultations (${consultations.length})</div>${consultations.length>0?`<table><thead><tr><th>#</th><th>Date</th><th>Diagnostic</th><th>Traitement</th><th>Notes</th></tr></thead><tbody>${consultsHtml}</tbody></table>`:'<p style="color:#999;font-style:italic">Aucune consultation.</p>'}</div>
-    <div class="footer"><span>Cabinet MediNova · Alger</span><span>Document confidentiel — Loi 17-08</span><span>N° DM-${dos?.id_dossier||'—'}</span></div>
+    <div class="footer"><span>Cabinet MediNova · Alger</span><span>Document confidentiel — Loi 18-07</span><span>N° DM-${dos?.id_dossier||'—'}</span></div>
     <script>setTimeout(()=>window.print(),500);</script></body></html>`;
     const w = window.open('', '_blank'); w?.document.write(html); w?.document.close();
   }
@@ -470,7 +480,7 @@ Soins infirmiers: ${soins.length}
     const p = this.dossierComplet?.patient || this.auth.user;
     const dos = this.dossierComplet?.dossier;
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Carte Patient</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;display:flex;align-items:center;justify-content:center;min-height:100vh}.carte{width:340px;background:linear-gradient(135deg,#0A3D62 0%,#1a5c8a 60%,#00C9A7 100%);border-radius:16px;padding:20px;color:white;box-shadow:0 8px 32px rgba(0,0,0,.3);position:relative;overflow:hidden}.logo{font-size:18px;font-weight:900}.logo span{color:#b3f0e8}.badge{background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:1px}.avatar{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;margin-bottom:8px}.nom{font-size:16px;font-weight:900}.info-row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}.info-box{background:rgba(255,255,255,.12);border-radius:6px;padding:5px 10px}.info-label{font-size:8px;opacity:.7;text-transform:uppercase}.info-val{font-size:12px;font-weight:700}.blood{background:#e74c3c;padding:2px 8px;border-radius:12px;font-size:13px;font-weight:900}@media print{body{background:white}.carte{box-shadow:none}}</style></head><body>
-    <div class="carte"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div class="logo">Medi<span>Nova</span></div><div class="badge">CARTE PATIENT</div></div><div class="avatar">${(p?.prenom||'?')[0]}${(p?.nom||'')[0]}</div><div class="nom">${p?.prenom||''} ${p?.nom||''}</div><div style="font-size:11px;opacity:.75;margin-top:2px">${p?.email||''}</div><div class="info-row"><div class="info-box"><div class="info-label">Groupe sanguin</div><div><span class="blood">${p?.groupe_sanguin||'ND'}</span></div></div><div class="info-box"><div class="info-label">Téléphone</div><div class="info-val">${p?.telephone||'—'}</div></div><div class="info-box"><div class="info-label">Genre</div><div class="info-val">${p?.genre==='M'?'♂':'♀'}</div></div></div>${p?.allergies?`<div style="margin-top:8px;font-size:10px;background:rgba(231,76,60,.3);padding:3px 8px;border-radius:4px">⚠️ ${p.allergies}</div>`:''}<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px"><div style="font-size:10px;opacity:.7">N° DM-${dos?.id_dossier||'—'}<br>Cabinet MediNova · Alger</div><div style="font-size:9px;opacity:.6;text-align:right">Confidentiel<br>Loi 17-08</div></div></div>
+    <div class="carte"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div class="logo">Medi<span>Nova</span></div><div class="badge">CARTE PATIENT</div></div><div class="avatar">${(p?.prenom||'?')[0]}${(p?.nom||'')[0]}</div><div class="nom">${p?.prenom||''} ${p?.nom||''}</div><div style="font-size:11px;opacity:.75;margin-top:2px">${p?.email||''}</div><div class="info-row"><div class="info-box"><div class="info-label">Groupe sanguin</div><div><span class="blood">${p?.groupe_sanguin||'ND'}</span></div></div><div class="info-box"><div class="info-label">Téléphone</div><div class="info-val">${p?.telephone||'—'}</div></div><div class="info-box"><div class="info-label">Genre</div><div class="info-val">${p?.genre==='M'?'♂':'♀'}</div></div></div>${p?.allergies?`<div style="margin-top:8px;font-size:10px;background:rgba(231,76,60,.3);padding:3px 8px;border-radius:4px">⚠️ ${p.allergies}</div>`:''}<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px"><div style="font-size:10px;opacity:.7">N° DM-${dos?.id_dossier||'—'}<br>Cabinet MediNova · Alger</div><div style="font-size:9px;opacity:.6;text-align:right">Confidentiel<br>Loi 18-07</div></div></div>
     <script>setTimeout(()=>window.print(),500);</script></body></html>`;
     const w = window.open('', '_blank'); w?.document.write(html); w?.document.close();
   }  uploadPhoto(event: any) {

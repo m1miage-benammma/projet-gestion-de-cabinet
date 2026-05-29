@@ -152,7 +152,15 @@ export class LoginComponent {
   loading  = false;
   error    = "";
 
-  constructor(public auth: AuthService, public lang: LangService) {}
+  constructor(public auth: AuthService, public lang: LangService) {
+    // Reset theme to default blue on login page
+    const vars: any = {
+      '--primary': '#0A3D62', '--primary-dark': '#072d48',
+      '--primary-mid': '#1a5c8a', '--primary-light': '#EBF5FB',
+      '--primary-border': '#AED6F1', '--accent': '#00C9A7'
+    };
+    Object.entries(vars).forEach(([k, v]) => document.documentElement.style.setProperty(k, v as string));
+  }
 
   login() {
     if (!this.email || !this.password) {

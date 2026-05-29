@@ -50,6 +50,16 @@ Route::get('/ordonnance-publique/{id}', function (int $id) {
     return response()->json(array_merge((array)$o, ['medicaments' => $meds]));
 });
 
+// Route contact publique (sans auth)
+Route::post('/contact', function (Request $r) {
+    DB::table('messages_contact')->insert([
+        'nom' => $r->input('nom', ''), 'email' => $r->input('email', ''),
+        'sujet' => $r->input('sujet', ''), 'message' => $r->input('message', ''),
+        'lu' => false, 'created_at' => now(), 'updated_at' => now(),
+    ]);
+    return response()->json(['message' => 'Message enregistré.']);
+});
+
 // ═══════════════════════════════════════════════════════════════════
 // PRISE DE RDV (authentifié)
 // ═══════════════════════════════════════════════════════════════════
@@ -151,6 +161,143 @@ Route::middleware('auth.middleware')->group(function () {
 
     // ── Patients ──────────────────────────────────────────────────
     // Patients du médecin connecté (seulement ceux qui ont eu un RDV avec lui)
+    // ── FACTURATION ───────────────────────────────────────────────
+    Route::get('/factures', function (Request $r) {
+        $idMed = (int) $r->attributes->get('id_utilisateur');
+        if (!Schema::hasTable('factures')) return response()->json([]);
+        return response()->json(
+            DB::table('factures as f')
+                ->leftJoin('utilisateurs as u', 'u.id_utilisateur', '=', 'f.id_patient')
+                ->where('f.id_medecin', $idMed)
+                ->select('f.*', DB::raw("CONCAT(u.prenom,' ',u.nom) as nom_patient"))
+                ->orderBy('f.created_at', 'desc')->get()
+        );
+    });
+
+    Route::post('/factures', function (Request $r) {
+        $idMed = (int) $r->attributes->get('id_utilisateur');
+        if (!Schema::hasTable('factures')) {
+            Schema::create('factures', function ($t) {
+                $t->id(); $t->integer('id_medecin'); $t->integer('id_patient');
+                $t->string('nom_patient')->nullable(); $t->decimal('montant', 10, 2);
+                $t->string('description')->nullable(); $t->string('statut')->default('impayé');
+                $t->timestamps();
+            });
+        }
+        $med = DB::table('utilisateurs')->where('id_utilisateur', $idMed)->first();
+        $id = DB::table('factures')->insertGetId([
+            'id_medecin' => $idMed, 'id_patient' => (int) $r->input('id_patient'),
+            'nom_patient' => $r->input('nom_patient'), 'montant' => (float) $r->input('montant'),
+            'description' => $r->input('description', 'Consultation médicale'),
+            'statut' => 'impayé', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        // Notifier le patient
+        DB::table('notifications')->insert([
+            'id_utilisateur' => (int) $r->input('id_patient'),
+            'message' => "💰 Nouvelle facture de {$med?->prenom} {$med?->nom} : " . number_format((float)$r->input('montant'), 0, ',', ' ') . " DA",
+            'type' => 'facture', 'lu' => false, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        return response()->json(['id' => $id, 'message' => 'Facture créée.']);
+    });
+
+    Route::patch('/factures/{id}/payer', function (int $id) {
+        DB::table('factures')->where('id', $id)->update(['statut' => 'payé', 'updated_at' => now()]);
+        return response()->json(['message' => 'Payée.']);
+    });
+
+    // ── VACCINS ───────────────────────────────────────────────────
+    Route::get('/mes-vaccins', function (Request $r) {
+        $id = (int) $r->attributes->get('id_utilisateur');
+        $patient = DB::table('patients')->where('id_utilisateur', $id)->first();
+        if (!$patient || !Schema::hasTable('vaccins')) return response()->json([]);
+        return response()->json(DB::table('vaccins')->where('id_patient', $patient->id_patient ?? $id)->orderBy('date_administration', 'desc')->get());
+    });
+
+    Route::post('/vaccins', function (Request $r) {
+        if (!Schema::hasTable('vaccins')) {
+            Schema::create('vaccins', function ($t) {
+                $t->id(); $t->integer('id_patient'); $t->integer('id_medecin');
+                $t->string('nom_vaccin'); $t->date('date_administration');
+                $t->date('date_rappel')->nullable(); $t->timestamps();
+            });
+        }
+        $id = DB::table('vaccins')->insertGetId([
+            'id_patient' => (int)$r->input('id_patient'),
+            'id_medecin' => (int)$r->attributes->get('id_utilisateur'),
+            'nom_vaccin' => $r->input('nom_vaccin'),
+            'date_administration' => $r->input('date_administration'),
+            'date_rappel' => $r->input('date_rappel'),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        return response()->json(['id' => $id, 'message' => 'Vaccin ajouté.']);
+    });
+
+    // ── ANALYSES ──────────────────────────────────────────────────
+    Route::get('/mes-analyses', function (Request $r) {
+        $id = (int) $r->attributes->get('id_utilisateur');
+        $patient = DB::table('patients')->where('id_utilisateur', $id)->first();
+        if (!$patient || !Schema::hasTable('analyses')) return response()->json([]);
+        return response()->json(
+            DB::table('analyses as a')
+                ->leftJoin('utilisateurs as u', 'u.id_utilisateur', '=', 'a.id_medecin')
+                ->where('a.id_patient', $patient->id_patient ?? $id)
+                ->select('a.*', DB::raw("CONCAT(u.prenom,' ',u.nom) as medecin_nom"))
+                ->orderBy('a.date_analyse', 'desc')->get()
+        );
+    });
+
+    Route::post('/analyses', function (Request $r) {
+        if (!Schema::hasTable('analyses')) {
+            Schema::create('analyses', function ($t) {
+                $t->id(); $t->integer('id_patient'); $t->integer('id_medecin');
+                $t->string('type_analyse'); $t->date('date_analyse');
+                $t->string('statut')->default('normal');
+                $t->text('note')->nullable(); $t->timestamps();
+            });
+        }
+        $id = DB::table('analyses')->insertGetId([
+            'id_patient' => (int)$r->input('id_patient'),
+            'id_medecin' => (int)$r->attributes->get('id_utilisateur'),
+            'type_analyse' => $r->input('type_analyse'),
+            'date_analyse' => $r->input('date_analyse'),
+            'statut' => $r->input('statut', 'normal'),
+            'note' => $r->input('note'),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        // Notifier le patient
+        DB::table('notifications')->insert([
+            'id_utilisateur' => (int)$r->input('id_patient_user'),
+            'message' => '🧪 Nouveaux résultats d\'analyses disponibles dans votre dossier médical.',
+            'type' => 'analyse', 'lu' => false, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        return response()->json(['id' => $id, 'message' => 'Analyse ajoutée.']);
+    });
+
+    // ── CONSENTEMENTS ─────────────────────────────────────────────
+    Route::get('/mes-consentements', function (Request $r) {
+        $id = (int) $r->attributes->get('id_utilisateur');
+        if (!Schema::hasTable('consentements')) return response()->json([]);
+        return response()->json(DB::table('consentements')->where('id_patient', $id)->orderBy('created_at', 'desc')->get());
+    });
+
+    Route::post('/consentements', function (Request $r) {
+        if (!Schema::hasTable('consentements')) {
+            Schema::create('consentements', function ($t) {
+                $t->id(); $t->integer('id_patient'); $t->integer('id_medecin');
+                $t->string('type_acte'); $t->boolean('signe')->default(false);
+                $t->timestamp('date_signature')->nullable(); $t->timestamps();
+            });
+        }
+        $id = DB::table('consentements')->insertGetId([
+            'id_patient' => (int)$r->input('id_patient'),
+            'id_medecin' => (int)$r->attributes->get('id_utilisateur'),
+            'type_acte' => $r->input('type_acte'),
+            'signe' => (bool)$r->input('signe', false),
+            'date_signature' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        return response()->json(['id' => $id, 'message' => 'Consentement enregistré.']);
+    });
+
     Route::get('/mes-patients', function (Request $r) {
         $idMedecin = (int) $r->attributes->get('id_utilisateur');
         $patients = DB::table('utilisateurs as u')
@@ -161,7 +308,7 @@ Route::middleware('auth.middleware')->group(function () {
             ->select('u.id_utilisateur','u.nom','u.prenom','u.email','u.telephone','u.genre','p.date_naissance','p.groupe_sanguin','p.adresse','p.allergies','p.antecedents_medicaux')
             ->distinct()
             ->get();
-        // Log d'accès (traçabilité loi 17-08)
+        // Log d'accès (traçabilité loi 18-07)
         DB::table('logs_acces_dossier')->insert([
             'id_medecin'   => $idMedecin,
             'action'       => 'consultation_liste_patients',
@@ -176,7 +323,7 @@ Route::middleware('auth.middleware')->group(function () {
         $idPatient = (int) $r->input('id_patient');
         $patient = DB::table('utilisateurs')->where('id_utilisateur', $idPatient)->first();
         $nom = "{$patient?->prenom} {$patient?->nom}";
-        $heure = now()->format('H:i');
+        $heure = now()->timezone('Africa/Algiers')->format('H:i');
 
         // Notifier tous les médecins
         $medecins = DB::table('medecins')->pluck('id_utilisateur');
@@ -274,26 +421,6 @@ Route::middleware('auth.middleware')->group(function () {
         }
         DB::table('utilisateurs')->where('id_utilisateur', $idUser)->update(['photo' => $photo, 'updated_at' => now()]);
         return response()->json(['message' => 'Photo mise à jour.', 'photo' => $photo]);
-    });
-
-    // ── MESSAGES CONTACT ────────────────────────────────────────
-    Route::post('/contact', function (Request $r) {
-        if (!Schema::hasTable('messages_contact')) {
-            Schema::create('messages_contact', function ($t) {
-                $t->id();
-                $t->string('nom'); $t->string('email');
-                $t->string('sujet')->nullable();
-                $t->text('message');
-                $t->boolean('lu')->default(false);
-                $t->timestamps();
-            });
-        }
-        DB::table('messages_contact')->insert([
-            'nom' => $r->input('nom'), 'email' => $r->input('email'),
-            'sujet' => $r->input('sujet'), 'message' => $r->input('message'),
-            'lu' => false, 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        return response()->json(['message' => 'Message enregistré.']);
     });
 
     Route::get('/patients', function () {
@@ -635,6 +762,24 @@ Route::middleware('auth.middleware')->group(function () {
     // ── Admin ─────────────────────────────────────────────────────
     Route::middleware('auth.middleware:admin')->group(function () {
         Route::get('/admin/utilisateurs',                   [AdminController::class, 'utilisateurs']);
+        Route::post('/admin/utilisateurs', function (Request $r) {
+            $role = $r->input('role', 'patient');
+            $hash = bcrypt($r->input('password'));
+            $id = DB::table('utilisateurs')->insertGetId([
+                'nom' => $r->input('nom'), 'prenom' => $r->input('prenom'),
+                'email' => $r->input('email'), 'password' => $hash,
+                'role' => $role, 'actif' => true,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            if ($role === 'medecin') {
+                DB::table('medecins')->insert(['id_utilisateur' => $id, 'numero_ordre' => 'ORD-' . $id, 'created_at' => now(), 'updated_at' => now()]);
+            } elseif ($role === 'patient') {
+                DB::table('patients')->insert(['id_utilisateur' => $id, 'created_at' => now(), 'updated_at' => now()]);
+            } elseif ($role === 'infirmiere') {
+                DB::table('infirmieres')->insert(['id_utilisateur' => $id, 'created_at' => now(), 'updated_at' => now()]);
+            }
+            return response()->json(['message' => 'Compte créé.', 'id' => $id]);
+        });
         Route::get('/admin/utilisateurs/{id}',              [AdminController::class, 'show']);
         Route::put('/admin/utilisateurs/{id}',              [AdminController::class, 'modifier']);
         Route::patch('/admin/utilisateurs/{id}/activer',    [AdminController::class, 'activer']);
@@ -647,6 +792,53 @@ Route::middleware('auth.middleware')->group(function () {
         Route::patch('/admin/messages-contact/{id}/lu', function (int $id) {
             DB::table('messages_contact')->where('id', $id)->update(['lu' => true]);
             return response()->json(['message' => 'Marqué lu.']);
+        });
+
+        // ── STOCK MÉDICAMENTS ─────────────────────────────────────
+        Route::get('/admin/stock', function () {
+            if (!Schema::hasTable('stock_medicaments')) return response()->json([]);
+            return response()->json(DB::table('stock_medicaments')->orderBy('nom')->get());
+        });
+
+        Route::post('/admin/stock', function (Request $r) {
+            if (!Schema::hasTable('stock_medicaments')) {
+                Schema::create('stock_medicaments', function ($t) {
+                    $t->id(); $t->string('nom'); $t->integer('quantite')->default(0);
+                    $t->string('unite')->default('comprimés');
+                    $t->integer('seuil_alerte')->default(10);
+                    $t->decimal('prix_unitaire', 10, 2)->default(0);
+                    $t->timestamps();
+                });
+            }
+            // Vérifier si existe déjà
+            $existing = DB::table('stock_medicaments')->where('nom', $r->input('nom'))->first();
+            if ($existing) {
+                DB::table('stock_medicaments')->where('id', $existing->id)->update([
+                    'quantite' => $existing->quantite + (int)$r->input('quantite'),
+                    'updated_at' => now()
+                ]);
+            } else {
+                DB::table('stock_medicaments')->insert([
+                    'nom' => $r->input('nom'), 'quantite' => (int)$r->input('quantite'),
+                    'unite' => $r->input('unite', 'comprimés'),
+                    'seuil_alerte' => (int)$r->input('seuil_alerte', 10),
+                    'prix_unitaire' => (float)$r->input('prix_unitaire', 0),
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+            return response()->json(['message' => 'Stock mis à jour.']);
+        });
+
+        Route::patch('/admin/stock/{id}', function (Request $r, int $id) {
+            DB::table('stock_medicaments')->where('id', $id)->update([
+                'quantite' => (int)$r->input('quantite'), 'updated_at' => now()
+            ]);
+            return response()->json(['message' => 'Stock mis à jour.']);
+        });
+
+        Route::delete('/admin/stock/{id}', function (int $id) {
+            DB::table('stock_medicaments')->where('id', $id)->delete();
+            return response()->json(['message' => 'Supprimé.']);
         });
         Route::get('/admin/rapport',                        [AdminController::class, 'rapport']);
     });

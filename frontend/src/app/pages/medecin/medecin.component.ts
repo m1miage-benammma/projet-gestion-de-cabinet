@@ -21,6 +21,7 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
     { id: "planning",       label: "Mon planning",       icon: "calendar" },
     { id: "consultation",   label: "Consultation",       icon: "activity" },
     { id: "dossiers",       label: "Dossiers patients",  icon: "folder" },
+    { id: "facturation",    label: "Facturation",        icon: "credit-card" },
     { id: "chat",           label: "Messages",           icon: "message-circle" },
     { id: "disponibilites", label: "Disponibilités",     icon: "clock" },
     { id: "notifications",  label: "Notifications",      icon: "bell" },
@@ -69,6 +70,102 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   notifications: any[] = [];
   loadingNotifs = false;
+
+  Number = Number;
+
+  // Vaccins / Analyses / Consentements
+  vaccinForm = { nom_vaccin: '', date_administration: '', date_rappel: '' };
+  analyseForm = { type_analyse: '', date_analyse: '', statut: 'normal', note: '' };
+  consentementForm = { type_acte: '', signe: false };
+
+  ajouterVaccin() {
+    if (!this.vaccinForm.nom_vaccin || !this.vaccinForm.date_administration || !this.rdvSelectionne) return;
+    this.api.ajouterVaccin({ ...this.vaccinForm, id_patient: this.rdvSelectionne.id_patient || this.rdvSelectionne.id_utilisateur }).subscribe({
+      next: () => { this.toast.success('💉 Vaccin enregistré !'); this.vaccinForm = { nom_vaccin: '', date_administration: '', date_rappel: '' }; },
+      error: () => this.toast.error('Erreur ajout vaccin.')
+    });
+  }
+
+  ajouterAnalyse() {
+    if (!this.analyseForm.type_analyse || !this.rdvSelectionne) return;
+    this.api.ajouterAnalyse({ ...this.analyseForm, id_patient: this.rdvSelectionne.id_patient || this.rdvSelectionne.id_utilisateur, id_patient_user: this.rdvSelectionne.id_utilisateur, date_analyse: this.analyseForm.date_analyse || new Date().toISOString().split('T')[0] }).subscribe({
+      next: () => { this.toast.success('🧪 Analyse enregistrée !'); this.analyseForm = { type_analyse: '', date_analyse: '', statut: 'normal', note: '' }; },
+      error: () => this.toast.error('Erreur ajout analyse.')
+    });
+  }
+
+  ajouterConsentement() {
+    if (!this.consentementForm.type_acte || !this.rdvSelectionne) return;
+    this.api.ajouterConsentement({ ...this.consentementForm, id_patient: this.rdvSelectionne.id_utilisateur }).subscribe({
+      next: () => { this.toast.success('📋 Consentement enregistré !'); this.consentementForm = { type_acte: '', signe: false }; },
+      error: () => this.toast.error('Erreur consentement.')
+    });
+  }
+
+  // Facturation
+  factures: any[] = [];
+  factureForm = { id_patient: 0, nom_patient: '', montant: 2000, description: 'Consultation médicale', statut: 'impayé' };
+  factureSuccess = false;
+
+  chargerFactures() {
+    this.api.getFactures().subscribe({
+      next: (f: any[]) => this.factures = f || [],
+      error: () => {}
+    });
+  }
+
+  creerFacture() {
+    if (!this.factureForm.id_patient || !this.factureForm.montant) return;
+    this.api.creerFacture(this.factureForm).subscribe({
+      next: () => {
+        this.factureSuccess = true;
+        this.chargerFactures();
+        setTimeout(() => this.factureSuccess = false, 3000);
+        this.toast.success('Facture créée !');
+      },
+      error: () => this.toast.error('Erreur création facture.')
+    });
+  }
+
+  marquerPayee(f: any) {
+    this.api.marquerFacturePayee(f.id).subscribe({
+      next: () => { f.statut = 'payé'; this.toast.success('Facture marquée payée !'); },
+      error: () => {}
+    });
+  }
+
+  imprimerFacture(f: any) {
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture #${f.id}</title>
+    <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0A3D62;padding-bottom:20px;margin-bottom:30px}
+    .logo{font-size:28px;font-weight:900;color:#0A3D62}.logo span{color:#00C9A7}
+    .badge{background:${f.statut==='payé'?'#dcfce7':'#fee2e2'};color:${f.statut==='payé'?'#166534':'#991b1b'};padding:6px 16px;border-radius:20px;font-weight:700;font-size:14px}
+    .section{margin-bottom:24px}.label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#999;margin-bottom:4px}
+    .val{font-size:15px;font-weight:600}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .montant-box{background:#f0f7ff;border-radius:12px;padding:20px;text-align:center;margin:24px 0}
+    .montant{font-size:42px;font-weight:900;color:#0A3D62}.devise{font-size:18px;color:#64748b;margin-top:4px}
+    .footer{border-top:1px solid #e2e8f0;padding-top:16px;display:flex;justify-content:space-between;font-size:12px;color:#999}
+    </style></head><body>
+    <div class="header"><div><div class="logo">Medi<span>Nova</span></div><div style="font-size:12px;color:#999;margin-top:4px">Cabinet médical · Alger, Algérie</div></div>
+    <div style="text-align:right"><div style="font-size:22px;font-weight:900;color:#0A3D62">FACTURE</div>
+    <div style="font-size:13px;color:#999">N° F-${String(f.id).padStart(4,'0')}</div>
+    <div class="badge" style="margin-top:8px">${f.statut==='payé'?'✅ PAYÉE':'⏳ EN ATTENTE'}</div></div></div>
+    <div class="grid">
+    <div class="section"><div class="label">Patient</div><div class="val">${f.nom_patient||'—'}</div></div>
+    <div class="section"><div class="label">Date</div><div class="val">${new Date(f.created_at||Date.now()).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</div></div>
+    <div class="section"><div class="label">Médecin</div><div class="val">Dr. ${f.medecin_nom||'—'}</div></div>
+    <div class="section"><div class="label">Référence</div><div class="val">F-${String(f.id).padStart(4,'0')}</div></div>
+    </div>
+    <div class="section"><div class="label">Description</div><div class="val">${f.description||'Consultation médicale'}</div></div>
+    <div class="montant-box"><div class="montant">${Number(f.montant).toLocaleString('fr-DZ')} DA</div><div class="devise">Dinars Algériens</div></div>
+    <div class="footer"><span>Cabinet MediNova · Alger</span><span>Merci de votre confiance</span><span>N° F-${String(f.id).padStart(4,'0')}</span></div>
+    <script>setTimeout(()=>window.print(),500);</script></body></html>`;
+    const w = window.open('', '_blank'); w?.document.write(html); w?.document.close();
+  }
+
+  getTotalFactures(): number { return this.factures.reduce((s, f) => s + Number(f.montant), 0); }
+  getTotalPayees(): number { return this.factures.filter(f => f.statut === 'payé').reduce((s, f) => s + Number(f.montant), 0); }
+  getTotalImpayees(): number { return this.factures.filter(f => f.statut !== 'payé').reduce((s, f) => s + Number(f.montant), 0); }
 
   // Dossiers patients
   patients: any[] = [];
@@ -200,6 +297,7 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (tab === "disponibilites") this.chargerDispos();
     if (tab === "notifications") this.chargerNotifications();
     if (tab === "dossiers") this.chargerPatients();
+    if (tab === "facturation") { this.chargerFactures(); this.chargerPatients(); }
     if (tab === "chat") {
       this.chargerPatients();
       if (this.chatPatientId) this.chargerChatMessages();

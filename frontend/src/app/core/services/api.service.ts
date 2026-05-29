@@ -12,6 +12,15 @@ export class ApiService {
   getMedecins(): Observable<any[]>               { return this.http.get<any[]>(`${API}/medecins`); }
   uploadPhoto(photo: string): Observable<any>    { return this.http.post(`${API}/profil/photo`, { photo }, this.h); }
   envoyerContact(data: any): Observable<any>     { return this.http.post(`${API}/contact`, data); }
+  getFactures(): Observable<any[]>               { return this.http.get<any[]>(`${API}/factures`, this.h); }
+  creerFacture(data: any): Observable<any>       { return this.http.post(`${API}/factures`, data, this.h); }
+  marquerFacturePayee(id: number): Observable<any> { return this.http.patch(`${API}/factures/${id}/payer`, {}, this.h); }
+  getStock(): Observable<any[]>                  { return this.http.get<any[]>(`${API}/admin/stock`, this.h); }
+  ajouterStock(data: any): Observable<any>       { return this.http.post(`${API}/admin/stock`, data, this.h); }
+  modifierStock(id: number, q: number): Observable<any> { return this.http.patch(`${API}/admin/stock/${id}`, { quantite: q }, this.h); }
+  supprimerStock(id: number): Observable<any>    { return this.http.delete(`${API}/admin/stock/${id}`, this.h); }
+  getRappelsRdv(): Observable<any>               { return this.http.get<any>(`${API}/rappels-rdv`, this.h); }
+  envoyerRappels(): Observable<any>              { return this.http.get<any>(`${API}/rappels-rdv`, this.h); }
   getMessagesContact(): Observable<any[]>        { return this.http.get<any[]>(`${API}/admin/messages-contact`, this.h); }
   marquerContactLu(id: number): Observable<any> { return this.http.patch(`${API}/admin/messages-contact/${id}/lu`, {}, this.h); }
   getChatMessages(u1: number, u2: number): Observable<any[]> { return this.http.get<any[]>(`${API}/chat/${u1}/${u2}`, this.h); }
@@ -61,6 +70,12 @@ export class ApiService {
   getSoins(): Observable<any[]>                  { return this.http.get<any[]>(`${API}/mes-soins`, this.h); }
   envoyerUrgence(id: number): Observable<any>    { return this.http.post(`${API}/urgence`, { id_patient: id }, this.h); }
   getSoinsPatient(): Observable<any[]>           { return this.http.get<any[]>(`${API}/mes-soins-patient`, this.h); }
+  getVaccins(): Observable<any[]>                { return this.http.get<any[]>(`${API}/mes-vaccins`, this.h); }
+  getAnalyses(): Observable<any[]>               { return this.http.get<any[]>(`${API}/mes-analyses`, this.h); }
+  getConsentements(): Observable<any[]>          { return this.http.get<any[]>(`${API}/mes-consentements`, this.h); }
+  ajouterVaccin(data: any): Observable<any>      { return this.http.post(`${API}/vaccins`, data, this.h); }
+  ajouterAnalyse(data: any): Observable<any>     { return this.http.post(`${API}/analyses`, data, this.h); }
+  ajouterConsentement(data: any): Observable<any>{ return this.http.post(`${API}/consentements`, data, this.h); }
 
   // ── Patients ─────────────────────────────────────────────────────────────
   getPatients(): Observable<any[]>               { return this.http.get<any[]>(`${API}/patients`, this.h); }
@@ -83,6 +98,10 @@ export class ApiService {
 
   // ── Admin ─────────────────────────────────────────────────────────────────
   getUtilisateurs(): Observable<any[]>           { return this.http.get<any[]>(`${API}/admin/utilisateurs`, this.h); }
+  creerUtilisateur(data: any): Observable<any>   { return this.http.post(`${API}/admin/utilisateurs`, data, this.h); }
+  activerUtilisateur(id: number): Observable<any>    { return this.http.patch(`${API}/admin/utilisateurs/${id}/activer`, {}, this.h); }
+  desactiverUtilisateur(id: number): Observable<any> { return this.http.patch(`${API}/admin/utilisateurs/${id}/desactiver`, {}, this.h); }
+  supprimerUtilisateur(id: number): Observable<any>  { return this.http.delete(`${API}/admin/utilisateurs/${id}`, this.h); }
   getRapport(): Observable<any>                  { return this.http.get<any>(`${API}/admin/rapport`, this.h); }
   activerCompte(id: number): Observable<any>     { return this.http.patch(`${API}/admin/utilisateurs/${id}/activer`, {}, this.h); }
   desactiverCompte(id: number): Observable<any>  { return this.http.patch(`${API}/admin/utilisateurs/${id}/desactiver`, {}, this.h); }

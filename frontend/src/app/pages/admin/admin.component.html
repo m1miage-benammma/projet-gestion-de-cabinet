@@ -10,204 +10,219 @@
 
       <!-- ════ TABLEAU DE BORD ════ -->
       <div *ngIf="activeTab==='dashboard'">
-        <div class="page-header">
-          <div class="page-header-left">
-            <h1>{{ lang.get('dashboard') }}</h1>
-            <p>Vue d'ensemble de Cabinet MediNova</p>
+
+        <!-- HEADER SALLE DE CONTRÔLE -->
+        <div style="background:linear-gradient(135deg,#0A3D62,#1a5c8a);border-radius:20px;padding:24px 28px;margin-bottom:24px;color:white;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-30px;right:-30px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.05)"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;opacity:.7;margin-bottom:4px">🏥 CENTRE DE CONTRÔLE</div>
+              <h1 style="font-size:26px;font-weight:900;margin-bottom:4px">Cabinet MediNova</h1>
+              <div style="font-size:13px;opacity:.75">{{ currentTime }} · Alger, Algérie</div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center">
+              <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);padding:8px 16px;border-radius:20px">
+                <span style="width:8px;height:8px;border-radius:50%;background:#00C9A7;animation:pulse 2s infinite;display:inline-block"></span>
+                <span style="font-size:13px;font-weight:700">Système opérationnel</span>
+              </div>
+              <button class="btn btn-sm" (click)="chargerRapport()" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3)">
+                🔄 Actualiser
+              </button>
+            </div>
           </div>
-          <button class="btn btn-secondary btn-sm" (click)="chargerRapport()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            Actualiser
-          </button>
         </div>
 
-        <!-- KPI cards -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
-          <div class="kpi-card">
-            <div class="kpi-card-top"><div class="kpi-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div>
-            <div class="kpi-value">{{ rapport?.total_utilisateurs || 0 }}</div>
-            <div class="kpi-label">{{ lang.get('users') }}</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-card-top"><div class="kpi-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div></div>
-            <div class="kpi-value">{{ animatedStats.medecins }}</div>
-            <div class="kpi-label">Médecins</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-card-top"><div class="kpi-icon orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div></div>
-            <div class="kpi-value">{{ animatedStats.rdv }}</div>
-            <div class="kpi-label">Rendez-vous</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-card-top"><div class="kpi-icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg></div></div>
+        <!-- KPI ANIMÉS -->
+        <div class="kpi-grid" style="margin-bottom:24px">
+          <div class="kpi-card" style="border-top:3px solid #0A3D62">
+            <div class="kpi-card-top">
+              <div class="kpi-icon blue">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <span style="font-size:11px;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-weight:700">Total</span>
+            </div>
             <div class="kpi-value">{{ animatedStats.patients }}</div>
-            <div class="kpi-label">Patients</div>
+            <div class="kpi-label">Patients enregistrés</div>
+          </div>
+          <div class="kpi-card" style="border-top:3px solid #6D28D9">
+            <div class="kpi-card-top">
+              <div class="kpi-icon purple">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <span style="font-size:11px;background:#eff6ff;color:#1e40af;padding:2px 8px;border-radius:20px;font-weight:700">Cumul</span>
+            </div>
+            <div class="kpi-value">{{ animatedStats.rdv }}</div>
+            <div class="kpi-label">Rendez-vous total</div>
+          </div>
+          <div class="kpi-card" style="border-top:3px solid #166534">
+            <div class="kpi-card-top">
+              <div class="kpi-icon green">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              </div>
+              <span style="font-size:11px;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-weight:700">Actif</span>
+            </div>
+            <div class="kpi-value">{{ animatedStats.medecins }}</div>
+            <div class="kpi-label">Médecins actifs</div>
+          </div>
+          <div class="kpi-card" style="border-top:3px solid #92400e">
+            <div class="kpi-card-top">
+              <div class="kpi-icon orange">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+              </div>
+              <span style="font-size:11px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-weight:700">Cumul</span>
+            </div>
+            <div class="kpi-value">{{ animatedStats.consultations }}</div>
+            <div class="kpi-label">Consultations</div>
           </div>
         </div>
 
-        <!-- Charts row -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+        <!-- GRILLE PRINCIPALE -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
 
-          <!-- Graphique RDV par statut -->
+          <!-- GRAPHIQUE RDV PAR STATUT -->
           <div class="card">
-            <div class="card-header"><div class="card-title">📊 Statut des rendez-vous</div></div>
+            <div class="card-header">
+              <div class="card-title">📊 Statut des rendez-vous</div>
+            </div>
             <div class="card-body" *ngIf="rapport">
               <div style="display:flex;flex-direction:column;gap:14px">
-                <!-- En attente -->
                 <div>
-                  <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
-                    <span style="color:#f39c12;font-weight:600">⏳ En attente</span>
-                    <span>{{ rapport.rdv_en_attente || 0 }}</span>
+                  <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+                    <span style="color:#f39c12;font-weight:700">⏳ En attente</span>
+                    <span style="font-weight:800">{{ rapport.rdv_en_attente || 0 }}</span>
                   </div>
-                  <div style="background:#f0f4f8;border-radius:6px;height:10px;overflow:hidden">
-                    <div [style.width]="getBarWidth(rapport.rdv_en_attente, rapport.total_rdv)" style="background:#f39c12;height:100%;border-radius:6px;transition:width 0.5s"></div>
+                  <div style="height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden">
+                    <div [style.width]="getBarWidth(rapport.rdv_en_attente, rapport.total_rdv)" style="height:100%;background:#f39c12;border-radius:4px;transition:width 1s ease"></div>
                   </div>
                 </div>
-                <!-- Confirmés -->
                 <div>
-                  <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
-                    <span style="color:#27ae60;font-weight:600">✅ Confirmés</span>
-                    <span>{{ rapport.rdv_confirmes || 0 }}</span>
+                  <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+                    <span style="color:#3498db;font-weight:700">✅ Confirmés</span>
+                    <span style="font-weight:800">{{ rapport.rdv_confirme || 0 }}</span>
                   </div>
-                  <div style="background:#f0f4f8;border-radius:6px;height:10px;overflow:hidden">
-                    <div [style.width]="getBarWidth(rapport.rdv_confirmes, rapport.total_rdv)" style="background:#27ae60;height:100%;border-radius:6px;transition:width 0.5s"></div>
+                  <div style="height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden">
+                    <div [style.width]="getBarWidth(rapport.rdv_confirme, rapport.total_rdv)" style="height:100%;background:#3498db;border-radius:4px;transition:width 1s ease"></div>
                   </div>
                 </div>
-                <!-- Terminés -->
                 <div>
-                  <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
-                    <span style="color:#0A3D62;font-weight:600">🏁 Terminés</span>
-                    <span>{{ rapport.rdv_termines || 0 }}</span>
+                  <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+                    <span style="color:#27ae60;font-weight:700">🏥 Terminés</span>
+                    <span style="font-weight:800">{{ rapport.rdv_termine || 0 }}</span>
                   </div>
-                  <div style="background:#f0f4f8;border-radius:6px;height:10px;overflow:hidden">
-                    <div [style.width]="getBarWidth(rapport.rdv_termines, rapport.total_rdv)" style="background:#0A3D62;height:100%;border-radius:6px;transition:width 0.5s"></div>
+                  <div style="height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden">
+                    <div [style.width]="getBarWidth(rapport.rdv_termine, rapport.total_rdv)" style="height:100%;background:#27ae60;border-radius:4px;transition:width 1s ease"></div>
                   </div>
                 </div>
-                <!-- Annulés -->
                 <div>
-                  <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
-                    <span style="color:#e74c3c;font-weight:600">❌ Annulés</span>
-                    <span>{{ rapport.rdv_annules || 0 }}</span>
+                  <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+                    <span style="color:#e74c3c;font-weight:700">❌ Annulés</span>
+                    <span style="font-weight:800">{{ rapport.rdv_annule || 0 }}</span>
                   </div>
-                  <div style="background:#f0f4f8;border-radius:6px;height:10px;overflow:hidden">
-                    <div [style.width]="getBarWidth(rapport.rdv_annules, rapport.total_rdv)" style="background:#e74c3c;height:100%;border-radius:6px;transition:width 0.5s"></div>
+                  <div style="height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden">
+                    <div [style.width]="getBarWidth(rapport.rdv_annule, rapport.total_rdv)" style="height:100%;background:#e74c3c;border-radius:4px;transition:width 1s ease"></div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Répartition utilisateurs -->
+          <!-- RÉPARTITION UTILISATEURS DONUT -->
           <div class="card">
             <div class="card-header"><div class="card-title">👥 Répartition des utilisateurs</div></div>
-            <div class="card-body" *ngIf="rapport">
-              <!-- Donut SVG -->
-              <div style="display:flex;align-items:center;gap:24px;justify-content:center">
-                <svg width="140" height="140" viewBox="0 0 140 140">
-                  <circle cx="70" cy="70" r="50" fill="none" stroke="#f0f4f8" stroke-width="22"/>
-                  <!-- Médecins -->
-                  <circle cx="70" cy="70" r="50" fill="none" stroke="#0A3D62" stroke-width="22"
-                    stroke-dasharray="{{ getDonutDash(rapport.total_medecins, rapport.total_utilisateurs) }} 314"
-                    stroke-dashoffset="0" transform="rotate(-90 70 70)"/>
-                  <!-- Infirmières -->
-                  <circle cx="70" cy="70" r="50" fill="none" stroke="#27ae60" stroke-width="22"
-                    stroke-dasharray="{{ getDonutDash(rapport.total_infirmieres, rapport.total_utilisateurs) }} 314"
-                    stroke-dashoffset="{{ getDonutOffset(rapport.total_medecins, rapport.total_utilisateurs) }}" transform="rotate(-90 70 70)"/>
-                  <!-- Patients -->
-                  <circle cx="70" cy="70" r="50" fill="none" stroke="#f39c12" stroke-width="22"
-                    stroke-dasharray="{{ getDonutDash(rapport.total_patients, rapport.total_utilisateurs) }} 314"
-                    stroke-dashoffset="{{ getDonutOffset2(rapport.total_medecins, rapport.total_infirmieres, rapport.total_utilisateurs) }}" transform="rotate(-90 70 70)"/>
-                  <text x="70" y="74" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)">{{ rapport.total_utilisateurs }}</text>
-                </svg>
-                <div style="display:flex;flex-direction:column;gap:10px">
-                  <div style="display:flex;align-items:center;gap:8px;font-size:13px">
-                    <div style="width:12px;height:12px;border-radius:3px;background:#0A3D62"></div>
-                    <span>Médecins ({{ rapport.total_medecins }})</span>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:8px;font-size:13px">
-                    <div style="width:12px;height:12px;border-radius:3px;background:#27ae60"></div>
-                    <span>Infirmières ({{ rapport.total_infirmieres }})</span>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:8px;font-size:13px">
-                    <div style="width:12px;height:12px;border-radius:3px;background:#f39c12"></div>
-                    <span>Patients ({{ rapport.total_patients }})</span>
-                  </div>
+            <div class="card-body" *ngIf="rapport" style="display:flex;align-items:center;gap:24px">
+              <svg viewBox="0 0 120 120" style="width:120px;height:120px;flex-shrink:0">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#f0f0f0" stroke-width="18"/>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#0A3D62" stroke-width="18"
+                  [attr.stroke-dasharray]="getDonutDash(rapport.total_patients, rapport.total_utilisateurs) + ' 314'"
+                  stroke-dashoffset="78.5" transform="rotate(-90 60 60)"/>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#6D28D9" stroke-width="18"
+                  [attr.stroke-dasharray]="getDonutDash(rapport.total_medecins, rapport.total_utilisateurs) + ' 314'"
+                  [attr.stroke-dashoffset]="314 - getDonutDash(rapport.total_patients, rapport.total_utilisateurs) + 78.5"
+                  transform="rotate(-90 60 60)"/>
+                <text x="60" y="56" text-anchor="middle" font-size="18" font-weight="900" fill="#0A3D62">{{ rapport.total_utilisateurs }}</text>
+                <text x="60" y="70" text-anchor="middle" font-size="9" fill="#999">utilisateurs</text>
+              </svg>
+              <div style="flex:1">
+                <div *ngFor="let u of [
+                  {label:'Patients', val:rapport.total_patients, color:'#0A3D62'},
+                  {label:'Médecins', val:rapport.total_medecins, color:'#6D28D9'},
+                  {label:'Infirmières', val:rapport.total_infirmieres, color:'#00C9A7'}
+                ]" style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                  <div [style.background]="u.color" style="width:12px;height:12px;border-radius:3px;flex-shrink:0"></div>
+                  <span style="font-size:13px;flex:1">{{ u.label }}</span>
+                  <span style="font-size:15px;font-weight:800" [style.color]="u.color">{{ u.val || 0 }}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Stats médicales + activité récente -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-          <!-- Stats médicales -->
-          <div class="card">
-            <div class="card-header"><div class="card-title">🏥 Activité médicale</div></div>
-            <div class="card-body" *ngIf="rapport">
-              <div style="display:flex;flex-direction:column;gap:16px">
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--hover-bg,#f8f9fa);border-radius:8px">
-                  <span style="font-size:14px">📋 Consultations</span>
-                  <span style="font-size:20px;font-weight:700;color:var(--primary)">{{ rapport.total_consultations || 0 }}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--hover-bg,#f8f9fa);border-radius:8px">
-                  <span style="font-size:14px">💊 Ordonnances</span>
-                  <span style="font-size:20px;font-weight:700;color:#27ae60">{{ rapport.total_ordonnances || 0 }}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--hover-bg,#f8f9fa);border-radius:8px">
-                  <span style="font-size:14px">🩺 Soins infirmiers</span>
-                  <span style="font-size:20px;font-weight:700;color:#f39c12">{{ rapport.total_soins || 0 }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Derniers RDV -->
-          <div class="card">
-            <div class="card-header"><div class="card-title">🕐 Derniers rendez-vous</div></div>
-            <div class="card-body" style="padding:0 20px">
-              <div *ngIf="!rapport?.rdv_recent?.length" class="empty-state" style="padding:20px">
-                <p>Aucun rendez-vous récent</p>
-              </div>
-              <div *ngFor="let r of (rapport?.rdv_recent || [])"
-                   style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
-                <div>
-                  <div style="font-size:14px;font-weight:600">{{ r.prenom }} {{ r.nom }}</div>
-                  <div style="font-size:12px;color:#6c757d">{{ r.date_rdv }} à {{ r.heure_rdv }}</div>
-                </div>
-                <span [style.background]="getStatutColor(r.statut)"
-                      style="font-size:11px;color:white;padding:3px 10px;border-radius:12px;font-weight:600">
-                  {{ r.statut }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Graphique RDV par mois -->
-        <div class="card" style="margin-top:16px">
-          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <!-- GRAPHIQUE PAR MOIS -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
             <div class="card-title">📈 Rendez-vous par mois</div>
+            <span style="font-size:12px;color:var(--muted)">Année {{ currentYear }}</span>
           </div>
           <div class="card-body">
-            <svg viewBox="0 0 600 160" style="width:100%;height:160px">
-              <!-- Grille -->
-              <line x1="0" y1="40" x2="600" y2="40" stroke="#f0f0f0" stroke-width="1"/>
-              <line x1="0" y1="80" x2="600" y2="80" stroke="#f0f0f0" stroke-width="1"/>
-              <line x1="0" y1="120" x2="600" y2="120" stroke="#f0f0f0" stroke-width="1"/>
-              <!-- Barres par mois -->
+            <svg viewBox="0 0 620 150" style="width:100%;height:150px">
+              <line x1="0" y1="30" x2="620" y2="30" stroke="#f0f0f0" stroke-width="1"/>
+              <line x1="0" y1="70" x2="620" y2="70" stroke="#f0f0f0" stroke-width="1"/>
+              <line x1="0" y1="110" x2="620" y2="110" stroke="#f0f0f0" stroke-width="1"/>
               <g *ngFor="let m of getMoisStats(); let i=index">
-                <rect [attr.x]="i * 46 + 8" [attr.y]="140 - m.h" [attr.width]="36" [attr.height]="m.h"
-                      fill="var(--primary)" rx="4" opacity="0.85"/>
-                <text [attr.x]="i * 46 + 26" y="155" text-anchor="middle" font-size="9" fill="#999">{{ m.label }}</text>
-                <text [attr.x]="i * 46 + 26" [attr.y]="135 - m.h" text-anchor="middle" font-size="9" fill="var(--primary)" font-weight="700">{{ m.val }}</text>
+                <rect [attr.x]="i * 48 + 10" [attr.y]="130 - m.h" [attr.width]="36" [attr.height]="m.h"
+                      fill="var(--primary)" rx="6" [attr.opacity]="m.actif ? 1 : 0.5"/>
+                <text [attr.x]="i * 48 + 28" y="146" text-anchor="middle" font-size="9" fill="#999">{{ m.label }}</text>
+                <text *ngIf="m.val > 0" [attr.x]="i * 48 + 28" [attr.y]="125 - m.h" text-anchor="middle" font-size="9" fill="var(--primary)" font-weight="700">{{ m.val }}</text>
               </g>
             </svg>
           </div>
         </div>
 
+        <!-- ALERTES EN TEMPS RÉEL -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🚨 Alertes stock critique</div>
+            </div>
+            <div class="card-body" style="padding:0">
+              <div *ngIf="stock.length===0 || getStockFaibleCount()===0" class="empty-state" style="padding:24px">
+                <h3>✅ Tout est OK</h3><p>Aucun médicament en alerte</p>
+              </div>
+              <div *ngFor="let s of stock" [hidden]="s.quantite > s.seuil_alerte"
+                   style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)">
+                <span style="font-size:20px">{{ s.quantite<=0 ? '❌' : '⚠️' }}</span>
+                <div style="flex:1"><div style="font-size:13px;font-weight:700">{{ s.nom }}</div></div>
+                <span style="font-size:18px;font-weight:900" [style.color]="s.quantite<=0 ? '#e74c3c' : '#f59e0b'">{{ s.quantite }}</span>
+                <span style="font-size:11px;color:var(--muted)">{{ s.unite }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">💰 Facturation du jour</div>
+            </div>
+            <div class="card-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="background:#f0fdf4;border-radius:12px;padding:16px;text-align:center">
+                  <div style="font-size:24px;font-weight:900;color:#166534">{{ getTodayRevenue().toLocaleString() }}</div>
+                  <div style="font-size:11px;color:#166534;margin-top:4px">DA encaissés</div>
+                </div>
+                <div style="background:#fef3c7;border-radius:12px;padding:16px;text-align:center">
+                  <div style="font-size:24px;font-weight:900;color:#92400e">{{ getTodayPending() }}</div>
+                  <div style="font-size:11px;color:#92400e;margin-top:4px">factures en attente</div>
+                </div>
+              </div>
+              <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:10px;text-align:center">
+                <div style="font-size:28px;font-weight:900;color:var(--primary)">{{ getTotalFactures().toLocaleString() }} DA</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px">Chiffre d'affaires total</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <!-- ════ UTILISATEURS ════ -->
       <div *ngIf="activeTab==='utilisateurs'">
         <div class="page-header">
           <div class="page-header-left">
@@ -332,6 +347,151 @@
           </div>
           <div class="empty-state" *ngIf="utilisateursFiltres().length===0" style="padding:32px">
             <h3>Aucun utilisateur trouvé</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ STOCK MÉDICAMENTS ════ -->
+      <div *ngIf="activeTab==='stock'">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1>💊 Stock médicaments</h1>
+            <p>{{ stock.length }} médicament(s) · {{ getStockFaibleCount() }} en alerte</p>
+          </div>
+          <button class="btn btn-secondary" (click)="imprimerStock()">🖨️ Imprimer inventaire</button>
+        </div>
+        <div *ngIf="getStockFaibleCount() > 0" class="alert alert-warning" style="margin-bottom:16px">
+          ⚠️ <strong>{{ getStockFaibleCount() }} médicament(s)</strong> en stock faible ou épuisé !
+        </div>
+        <div style="display:grid;grid-template-columns:340px 1fr;gap:20px">
+          <div class="card">
+            <div class="card-header"><div class="card-title">➕ Ajouter / Réapprovisionner</div></div>
+            <div class="card-body">
+              <div *ngIf="stockSuccess" class="alert alert-success">✅ Stock mis à jour !</div>
+              <div class="form-group">
+                <label class="form-label">Nom du médicament <span class="req">*</span></label>
+                <input type="text" class="form-input" [(ngModel)]="stockForm.nom" placeholder="Ex: Paracétamol 500mg"/>
+                <div class="form-hint">Si le médicament existe déjà, la quantité sera ajoutée</div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Quantité <span class="req">*</span></label>
+                  <input type="number" class="form-input" [(ngModel)]="stockForm.quantite" min="1" placeholder="100"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Unité</label>
+                  <select class="form-select" [(ngModel)]="stockForm.unite">
+                    <option>comprimés</option><option>gélules</option><option>ampoules</option>
+                    <option>flacons</option><option>sachets</option><option>tubes</option><option>boîtes</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Seuil alerte</label>
+                  <input type="number" class="form-input" [(ngModel)]="stockForm.seuil_alerte" min="0" placeholder="10"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Prix unitaire (DA)</label>
+                  <input type="number" class="form-input" [(ngModel)]="stockForm.prix_unitaire" min="0" placeholder="0"/>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-full" (click)="ajouterMedicament()" [disabled]="!stockForm.nom || stockForm.quantite <= 0">
+                💊 Ajouter au stock
+              </button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📦 Inventaire complet</div>
+              <span style="background:var(--primary-light);color:var(--primary);padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700">{{ stock.length }} articles</span>
+            </div>
+            <div *ngIf="stock.length===0" class="empty-state" style="padding:40px">
+              <div style="font-size:48px;margin-bottom:12px">💊</div>
+              <h3>Stock vide</h3><p>Ajoutez vos médicaments depuis le formulaire</p>
+            </div>
+            <div *ngFor="let s of stock" style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border)">
+              <div style="width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0"
+                   [style.background]="s.quantite<=0 ? '#fee2e2' : s.quantite<=s.seuil_alerte ? '#fef3c7' : '#f0fdf4'">💊</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:14px;font-weight:700">{{ s.nom }}</div>
+                <div style="font-size:12px;color:var(--muted)">Seuil : {{ s.seuil_alerte }} {{ s.unite }}<span *ngIf="s.prix_unitaire > 0"> · {{ s.prix_unitaire }} DA/unité</span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <button (click)="modifierQuantite(s, -1)" [disabled]="s.quantite<=0"
+                        style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:white;font-size:16px;cursor:pointer;font-weight:700">−</button>
+                <div style="text-align:center;min-width:60px">
+                  <div style="font-size:22px;font-weight:900;line-height:1"
+                       [style.color]="s.quantite<=0 ? '#e74c3c' : s.quantite<=s.seuil_alerte ? '#f59e0b' : '#166534'">{{ s.quantite }}</div>
+                  <div style="font-size:10px;color:var(--muted)">{{ s.unite }}</div>
+                </div>
+                <button (click)="modifierQuantite(s, 1)"
+                        style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:white;font-size:16px;cursor:pointer;font-weight:700">+</button>
+              </div>
+              <span style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap"
+                    [style.background]="s.quantite<=0 ? '#fee2e2' : s.quantite<=s.seuil_alerte ? '#fef3c7' : '#dcfce7'"
+                    [style.color]="s.quantite<=0 ? '#991b1b' : s.quantite<=s.seuil_alerte ? '#92400e' : '#166534'">
+                {{ s.quantite<=0 ? '❌ Épuisé' : s.quantite<=s.seuil_alerte ? '⚠️ Faible' : '✅ OK' }}
+              </span>
+              <button (click)="supprimerMedicament(s)" style="width:32px;height:32px;border-radius:50%;border:none;background:transparent;cursor:pointer;font-size:14px" title="Supprimer">🗑️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ════ RAPPELS RDV ════ -->
+      <div *ngIf="activeTab==='rappels'">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1>🔔 Rappels automatiques</h1>
+            <p>Envoyez des rappels aux patients 24h avant leur RDV</p>
+          </div>
+          <button class="btn btn-primary" (click)="envoyerRappels()">
+            📨 Envoyer les rappels maintenant
+          </button>
+        </div>
+
+        <!-- Explications -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body">
+            <div style="display:flex;align-items:center;gap:16px;padding:8px">
+              <div style="font-size:48px">🤖</div>
+              <div>
+                <div style="font-size:16px;font-weight:800;margin-bottom:4px">Rappels automatiques intelligents</div>
+                <div style="font-size:14px;color:var(--muted)">Le système détecte automatiquement les RDV prévus dans les prochaines 24 heures et envoie une notification à chaque patient. Cliquez sur le bouton pour déclencher l'envoi maintenant.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RDV à rappeler -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📅 RDV dans les 24 prochaines heures</div>
+            <span style="background:var(--primary-light);color:var(--primary);padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700">
+              {{ rappels.length }} RDV
+            </span>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div *ngIf="rappels.length===0" class="empty-state" style="padding:32px">
+              <h3>Aucun RDV dans les 24h</h3>
+              <p>Aucun rappel à envoyer pour le moment</p>
+            </div>
+            <div *ngFor="let r of rappels" style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--border)">
+              <div style="width:44px;height:44px;border-radius:12px;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">
+                {{ (r.prenom||'?')[0] }}{{ (r.nom||'')[0] }}
+              </div>
+              <div style="flex:1">
+                <div style="font-size:14px;font-weight:700">{{ r.prenom }} {{ r.nom }}</div>
+                <div style="font-size:12px;color:var(--muted)">{{ r.email }}</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:14px;font-weight:700">{{ r.date_rdv }}</div>
+                <div style="font-size:12px;color:var(--primary);font-weight:600">{{ r.heure_rdv }}</div>
+              </div>
+              <span style="background:#dcfce7;color:#166534;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">✅ Rappel envoyé</span>
+            </div>
           </div>
         </div>
       </div>
