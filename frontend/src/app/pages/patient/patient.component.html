@@ -1,0 +1,886 @@
+<div class="dashboard">
+
+  <!-- MODAL BIENVENUE -->
+  <div *ngIf="showWelcome" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;animation:fadeIn .3s ease">
+    <div style="background:white;border-radius:24px;padding:40px;max-width:480px;width:90%;text-align:center;animation:slideUp .4s cubic-bezier(.16,1,.3,1)">
+      <div style="font-size:56px;margin-bottom:16px">👋</div>
+      <h2 style="font-size:24px;font-weight:900;color:#0A3D62;margin-bottom:8px">Bienvenue sur MediNova !</h2>
+      <p style="font-size:14px;color:#666;margin-bottom:24px;line-height:1.7">
+        Votre espace santé personnel est prêt.<br>
+        Prenez vos rendez-vous, accédez à votre dossier médical et vos ordonnances en toute sécurité.
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:28px">
+        <div style="background:#f0f7ff;border-radius:12px;padding:16px">
+          <div style="font-size:28px">📅</div>
+          <div style="font-size:12px;font-weight:700;color:#0A3D62;margin-top:6px">Rendez-vous</div>
+        </div>
+        <div style="background:#f0fdf4;border-radius:12px;padding:16px">
+          <div style="font-size:28px">📋</div>
+          <div style="font-size:12px;font-weight:700;color:#166534;margin-top:6px">{{ lang.get('dossier_medical') }}</div>
+        </div>
+        <div style="background:#fef3c7;border-radius:12px;padding:16px">
+          <div style="font-size:28px">🤖</div>
+          <div style="font-size:12px;font-weight:700;color:#92400e;margin-top:6px">IA médicale</div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-lg btn-full" (click)="showWelcome=false">
+        Commencer →
+      </button>
+    </div>
+  </div>
+
+  <app-sidebar [tabs]="TABS" [activeTab]="activeTab" [color]="'patient'"
+    [open]="sidebarOpen" [notifCount]="notifCount()" (tabChange)="setTab($event)" (closeOverlay)="sidebarOpen=false"></app-sidebar>
+  <main class="dash-main">
+    <app-header [activeTab]="activeTab" (menuClick)="sidebarOpen=!sidebarOpen"></app-header>
+
+    <div class="dash-content">
+      <div class="alert alert-danger" *ngIf="errorMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>{{ errorMsg }}</div>
+      <div class="alert alert-success" *ngIf="successMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>{{ successMsg }}</div>
+
+      <!-- ════ ACCUEIL ════ -->
+      <div *ngIf="activeTab==='accueil'">
+
+        <!-- MODAL CONFIRMATION URGENCE -->
+        <div *ngIf="showUrgenceModal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center">
+          <div style="background:white;border-radius:20px;padding:36px;max-width:400px;width:90%;text-align:center">
+            <div style="font-size:52px;margin-bottom:12px">🚨</div>
+            <h2 style="font-size:22px;font-weight:900;color:#e74c3c;margin-bottom:8px">Confirmer l'urgence ?</h2>
+            <p style="font-size:14px;color:#666;margin-bottom:24px">Tous les médecins et infirmières vont recevoir une alerte immédiate.</p>
+            <div style="display:flex;gap:12px">
+              <button class="btn btn-secondary btn-full" (click)="showUrgenceModal=false">{{ lang.get('annuler') }}</button>
+              <button class="btn btn-full" (click)="envoyerUrgence()" [disabled]="urgenceLoading"
+                style="background:#e74c3c;border-color:#e74c3c;color:white;font-weight:800">
+                <div class="spinner spinner-sm" *ngIf="urgenceLoading"></div>
+                {{ urgenceLoading ? 'Envoi...' : '🚨 ENVOYER L\'URGENCE' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOUTON URGENCE -->
+        <div *ngIf="!urgenceEnvoye"
+             (click)="showUrgenceModal=true"
+             style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:white;border-radius:16px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px;cursor:pointer;box-shadow:0 4px 20px rgba(231,76,60,.3);transition:transform .2s,box-shadow .2s"
+             onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 30px rgba(231,76,60,.4)'"
+             onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 20px rgba(231,76,60,.3)'">
+          <div style="width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;animation:urgencePulse 1.5s ease-in-out infinite">🚨</div>
+          <div>
+            <div style="font-size:18px;font-weight:900;letter-spacing:-.3px">Bouton d'urgence médicale</div>
+            <div style="font-size:13px;opacity:.85;margin-top:2px">Appuyez en cas d'urgence — alerte immédiate au personnel médical</div>
+          </div>
+          <svg style="margin-left:auto;flex-shrink:0;opacity:.7" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+        <!-- Confirmation urgence envoyée -->
+        <div *ngIf="urgenceEnvoye"
+             style="background:#dcfce7;border:2px solid #16a34a;border-radius:16px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+          <div style="font-size:32px">✅</div>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:#166534">Urgence signalée !</div>
+            <div style="font-size:13px;color:#16a34a;margin-top:2px">Le personnel médical a été notifié et arrive.</div>
+          </div>
+        </div>
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1>{{ lang.get('bonjour') }}, {{ auth.user?.prenom }} {{ auth.user?.nom }}</h1>
+            <p>{{ lang.get('bienvenue') }}</p>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div></div>
+            <div class="kpi-value">{{ rdvList.length }}</div>
+            <div class="kpi-label">{{ lang.get('mes_rdv') }}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+            <div class="kpi-value">{{ countRdvStatut('confirme') }}</div>
+            <div class="kpi-label">{{ lang.get('confirmes') }}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div></div>
+            <div class="kpi-value">{{ ordonnances.length }}</div>
+            <div class="kpi-label">{{ lang.get('ordonnances') }}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-top"><div class="kpi-icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div></div>
+            <div class="kpi-value">{{ notifCount() }}</div>
+            <div class="kpi-label">{{ lang.get('notifs_non_lues') }}</div>
+          </div>
+        </div>
+
+        <!-- Analyse IA des symptômes -->
+        <div class="ia-card" style="margin-bottom:16px">
+          <div class="ia-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            {{ lang.get('ia_title') }}
+          </div>
+          <div class="ia-body">
+            <div class="form-group">
+              <label class="form-label">{{ lang.get('ia_label') }}</label>
+              <textarea class="form-textarea" [(ngModel)]="symptomes" name="sym" placeholder="Ex : j'ai de la fièvre depuis 3 jours, mal à la gorge et toux persistante..." style="min-height:80px"></textarea>
+            </div>
+            <button class="btn btn-primary btn-sm" (click)="analyserSymptomes()" [disabled]="triageLoading || !symptomes">
+              <div class="spinner spinner-sm" *ngIf="triageLoading"></div>
+              {{ triageLoading ? 'Analyse en cours...' : '🤖 Analyser avec IA' }}
+            </button>
+
+            <!-- Erreur -->
+            <div class="alert alert-danger" *ngIf="triageError" style="margin-top:12px">{{ triageError }}</div>
+
+            <!-- Résultat erreur IA -->
+            <div class="alert alert-warning" *ngIf="triageResult?.erreur" style="margin-top:12px">
+              ⚠️ {{ triageResult.message }}
+            </div>
+
+            <!-- Résultat normal -->
+            <div class="ia-result" *ngIf="triageResult && !triageResult.erreur">
+              <!-- Urgence badge -->
+              <div class="ia-urgence" [ngClass]="triageResult.urgence?.toLowerCase()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Niveau d'urgence : <strong>{{ triageResult.urgence }}</strong>
+              </div>
+
+              <!-- Diagnostic + Spécialité -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0">
+                <div style="background:var(--bg);border-radius:10px;padding:12px" *ngIf="triageResult.specialite">
+                  <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Spécialité</div>
+                  <div style="font-size:14px;font-weight:700;color:var(--primary)">{{ triageResult.specialite }}</div>
+                </div>
+                <div style="background:var(--bg);border-radius:10px;padding:12px" *ngIf="triageResult.diagnostic_possible">
+                  <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Diagnostic possible</div>
+                  <div style="font-size:13px;color:var(--text)">{{ triageResult.diagnostic_possible }}</div>
+                </div>
+              </div>
+
+              <!-- Recommandations -->
+              <div *ngIf="triageResult.recommandations?.length" style="margin-bottom:10px">
+                <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:6px">📋 Recommandations</div>
+                <div *ngFor="let r of triageResult.recommandations" style="font-size:13px;margin-bottom:6px;color:var(--text);display:flex;gap:6px;align-items:flex-start">
+                  <span style="color:var(--primary);flex-shrink:0">→</span>{{ r }}
+                </div>
+              </div>
+
+              <!-- Médicaments -->
+              <div *ngIf="triageResult.medicaments?.length" style="margin-bottom:10px">
+                <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:6px">💊 Médicaments courants</div>
+                <div *ngFor="let m of triageResult.medicaments" style="font-size:13px;color:var(--text-2);margin-bottom:4px">• {{ m }}</div>
+              </div>
+
+              <div class="ia-disclaimer">⚕️ {{ triageResult.avertissement }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" (click)="setTab('rdv')">{{ lang.get('prendre_rdv') }}</button>
+          <button class="btn btn-secondary" (click)="setTab('dossier')">Mon dossier médical</button>
+        </div>
+      </div>
+
+      <!-- ════ RENDEZ-VOUS ════ -->
+      <div *ngIf="activeTab==='rdv'">
+        <div class="page-header">
+          <div class="page-header-left"><h1>{{ lang.get('mes_rdv') }}</h1><p>Historique et prise de rendez-vous</p></div>
+        </div>
+
+        <!-- Formulaire prise RDV -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">{{ lang.get('prendre_rdv') }}</div></div>
+          <div class="card-body">
+
+            <!-- Étape 1 : Choisir médecin -->
+            <div class="form-group">
+              <label class="form-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Choisir un médecin <span class="req">*</span>
+              </label>
+              <div class="loading-inline" *ngIf="loading['medecins']"><div class="spinner spinner-sm"></div> Chargement...</div>
+              <div *ngIf="!loading['medecins']">
+                <div *ngIf="medecins.length === 0" class="alert alert-warning" style="margin:0">
+                  Aucun médecin disponible pour le moment.
+                </div>
+                <div class="medecins-grid" *ngIf="medecins.length > 0">
+                  <div *ngFor="let m of medecins"
+                    class="medecin-card-rdv"
+                    [class.selected]="rdvMedecinId == m.id_utilisateur"
+                    (click)="rdvMedecinId = m.id_utilisateur; chargerDispos()">
+                    <div class="mcr-ava">{{ (m.prenom||'?')[0] }}{{ (m.nom||'')[0] }}</div>
+                    <div>
+                      <div class="mcr-name">Dr. {{ m.prenom }} {{ m.nom }}</div>
+                      <div class="mcr-spec">{{ m.specialite || 'Médecin généraliste' }}</div>
+                    </div>
+                    <div class="mcr-check" *ngIf="rdvMedecinId == m.id_utilisateur">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Étape 2 : Créneaux disponibles -->
+            <div class="form-group" *ngIf="rdvMedecinId">
+              <label class="form-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Choisir un créneau <span class="req">*</span>
+              </label>
+              <div class="loading-inline" *ngIf="loading['dispos']"><div class="spinner spinner-sm"></div> Chargement...</div>
+              <div *ngIf="!loading['dispos']">
+                <div *ngIf="rdvSlots.length === 0" class="alert alert-warning" style="margin:0">
+                  Ce médecin n'a pas encore défini son planning.
+                </div>
+                <div *ngIf="rdvSlots.length > 0">
+
+                  <!-- Légende -->
+                  <div style="display:flex;gap:16px;margin-bottom:14px;font-size:12px;font-weight:600">
+                    <span style="display:flex;align-items:center;gap:5px;color:#1a6fa8"><span style="width:14px;height:14px;border-radius:4px;background:#e8f4fd;border:2px solid #1a6fa8;display:inline-block"></span>Disponible</span>
+                    <span style="display:flex;align-items:center;gap:5px;color:#0A3D62"><span style="width:14px;height:14px;border-radius:4px;background:#0A3D62;display:inline-block"></span>Sélectionné</span>
+                    <span style="display:flex;align-items:center;gap:5px;color:#c53030"><span style="width:14px;height:14px;border-radius:4px;background:#fed7d7;border:2px solid #e53e3e;display:inline-block"></span>Pris</span>
+                  </div>
+
+                  <!-- Jour -->
+                  <p style="font-size:11px;text-transform:uppercase;font-weight:800;color:#888;letter-spacing:.6px;margin-bottom:8px">① Choisir un jour</p>
+                  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+                    <button *ngFor="let date of getDatesDispos(); trackBy: trackByDate"
+                      (click)="rdvJourSelectionne = date; rdvSlotSelected = null"
+                      [style.background]="rdvJourSelectionne === date ? '#0A3D62' : '#f0f7ff'"
+                      [style.color]="rdvJourSelectionne === date ? 'white' : '#0A3D62'"
+                      [style.border]="rdvJourSelectionne === date ? '2px solid #0A3D62' : '2px solid #cce4f7'"
+                      style="padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;min-width:72px;line-height:1.4">
+                      <span style="font-size:10px;text-transform:uppercase">{{ formatJourNom(date) }}</span>
+                      <span style="font-size:18px;font-weight:900">{{ formatJourNum(date) }}</span>
+                      <span style="font-size:10px;opacity:.8">{{ formatJourMois(date) }}</span>
+                    </button>
+                  </div>
+
+                  <!-- Heure -->
+                  <div *ngIf="rdvJourSelectionne">
+                    <p style="font-size:11px;text-transform:uppercase;font-weight:800;color:#888;letter-spacing:.6px;margin-bottom:8px">② Choisir une heure</p>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+                      <button *ngFor="let s of getSlotsParDate(rdvJourSelectionne); trackBy: trackBySlot"
+                        (click)="!s.pris && selectionnerSlot(s)"
+                        [disabled]="s.pris"
+                        [style.background]="rdvSlotSelected?.date===s.date && rdvSlotSelected?.heure===s.heure ? '#0A3D62' : s.pris ? '#fed7d7' : '#e8f4fd'"
+                        [style.color]="rdvSlotSelected?.date===s.date && rdvSlotSelected?.heure===s.heure ? 'white' : s.pris ? '#c53030' : '#1a6fa8'"
+                        [style.border]="rdvSlotSelected?.date===s.date && rdvSlotSelected?.heure===s.heure ? '2px solid #0A3D62' : s.pris ? '2px solid #e53e3e' : '2px solid #cce4f7'"
+                        [style.cursor]="s.pris ? 'not-allowed' : 'pointer'"
+                        style="padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;min-width:70px;transition:all .15s;text-align:center">
+                        {{ s.heure }}
+                        <span *ngIf="s.pris" style="display:block;font-size:9px;font-weight:600;text-transform:uppercase">pris</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Résumé -->
+                  <div *ngIf="rdvSlotSelected" style="display:flex;align-items:center;gap:8px;background:#e8f4fd;border:2px solid #0A3D62;border-radius:10px;padding:10px 14px">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0A3D62" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span style="font-size:13px;font-weight:700;color:#0A3D62">Créneau : <strong>{{ rdvSlotSelected.label }}</strong></span>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            <!-- Étape 3 : Motif -->
+            <div class="form-group" *ngIf="rdvSlotSelected">
+              <label class="form-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Motif de la consultation <span class="req">*</span>
+              </label>
+              <input type="text" class="form-input" [(ngModel)]="rdvMotif" name="rmo"
+                placeholder="Ex: Douleurs abdominales, contrôle tension, renouvellement ordonnance..."/>
+            </div>
+
+            <div class="alert alert-danger" *ngIf="rdvError">{{ rdvError }}</div>
+            <div class="alert alert-success" *ngIf="rdvSuccess">{{ rdvSuccess }}</div>
+
+            <button class="btn btn-primary" (click)="prendreRdv()"
+              [disabled]="loading['rdv-form'] || !rdvSlotSelected || !rdvMotif"
+              *ngIf="rdvSlotSelected">
+              <div class="spinner spinner-sm" *ngIf="loading['rdv-form']"></div>
+              {{ loading['rdv-form'] ? 'Réservation...' : 'Confirmer le rendez-vous' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Liste RDV -->
+        <div class="loading-inline" *ngIf="loading['rdv']"><div class="spinner spinner-sm"></div> Chargement...</div>
+        <div *ngIf="!loading['rdv']">
+          <div class="empty-state" *ngIf="rdvList.length===0">
+            <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <h3>Aucun rendez-vous</h3><p>Prenez votre premier rendez-vous ci-dessus.</p>
+          </div>
+          <div class="card" *ngIf="rdvList.length>0">
+            <div class="card-header"><div class="card-title">Historique des rendez-vous ({{ rdvList.length }})</div></div>
+            <div class="table-wrap" style="border:none;border-radius:0">
+              <table class="table">
+                <thead><tr><th>Date</th><th>Heure</th><th>Médecin</th><th>Motif</th><th>Statut</th><th>Action</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let r of rdvList">
+                    <td style="font-weight:700">{{ r.date_rdv | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ r.heure_rdv?.slice(0,5) }}</td>
+                    <td>Dr. {{ r.medecin_prenom }} {{ r.medecin_nom }}</td>
+                    <td style="font-size:12px;color:var(--text-2)">{{ r.motif }}</td>
+                    <td><span class="statut" [ngClass]="'statut-'+r.statut?.toLowerCase()">{{ formatStatut(r.statut) }}</span></td>
+                    <td>
+                      <button class="btn btn-danger btn-sm"
+                        *ngIf="r.statut!=='annule' && r.statut!=='termine'"
+                        (click)="annulerRdv(r.id_rdv)">{{ lang.get('annuler') }}</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ DOSSIER MÉDICAL ════ -->
+      <div *ngIf="activeTab==='dossier'">
+        <div class="page-header">
+          <div class="page-header-left"><h1>Mon dossier médical</h1><p>Historique médical complet</p></div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-secondary btn-sm" (click)="chargerDossier()">🔄 {{ lang.get('actualiser') }}</button>
+            <button class="btn btn-primary btn-sm" (click)="imprimerDossier()" *ngIf="dossierComplet">🖨️ Imprimer</button>
+            <button class="btn btn-success btn-sm" (click)="genererFichePatient()" *ngIf="dossierComplet" style="background:#27ae60;border-color:#27ae60;color:white">📄 {{ lang.get('fiche_patient') }}</button>
+            <button class="btn btn-sm" (click)="genererCartePatient()" *ngIf="dossierComplet" style="background:#8e44ad;border-color:#8e44ad;color:white">🪪 {{ lang.get('carte_patient') }}</button>
+          </div>
+        </div>
+
+        <div class="loading-center" *ngIf="loading['dossier']"><div class="spinner"></div>Chargement du dossier...</div>
+
+        <div *ngIf="!loading['dossier'] && dossierComplet">
+
+          <!-- En-tête patient -->
+          <div class="dm-hero">
+            <div class="dm-hero-left">
+              <div class="dm-avatar">{{ auth.initiales() }}</div>
+              <div class="dm-hero-info">
+                <div class="dm-hero-name">{{ dossierComplet.patient?.prenom }} {{ dossierComplet.patient?.nom }}</div>
+                <div class="dm-hero-sub">{{ dossierComplet.patient?.genre === 'M' ? '♂ Masculin' : '♀ Féminin' }} · {{ dossierComplet.patient?.date_naissance || 'Date non renseignée' }}</div>
+                <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+                  <span class="dm-tag">📞 {{ dossierComplet.patient?.telephone || 'Non renseigné' }}</span>
+                  <span class="dm-tag">✉️ {{ auth.user?.email }}</span>
+                  <span class="dm-tag dm-tag-blood">🩸 {{ dossierComplet.patient?.groupe_sanguin || 'ND' }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="dm-hero-stats">
+              <div class="dm-stat">
+                <div class="dm-stat-val">{{ dossierComplet.consultations?.length || 0 }}</div>
+                <div class="dm-stat-label">Consultations</div>
+              </div>
+              <div class="dm-stat">
+                <div class="dm-stat-val" style="color:#27ae60">{{ ordonnances.length }}</div>
+                <div class="dm-stat-label">{{ lang.get('ordonnances') }}</div>
+              </div>
+              <div class="dm-stat">
+                <div class="dm-stat-val" style="color:#f39c12">{{ rdvPatient?.length || 0 }}</div>
+                <div class="dm-stat-label">Rendez-vous</div>
+              </div>
+              <div class="dm-stat">
+                <div class="dm-stat-val">N° DM-{{ dossierComplet.dossier?.id_dossier }}</div>
+                <div class="dm-stat-label">Dossier</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alertes médicales -->
+          <div class="dm-alert" *ngIf="dossierComplet.patient?.allergies">
+            <span style="font-size:18px">🚨</span>
+            <div>
+              <strong>Allergies connues :</strong> {{ dossierComplet.patient.allergies }}
+            </div>
+          </div>
+          <div class="dm-alert dm-alert-info" *ngIf="dossierComplet.patient?.antecedents_medicaux">
+            <span style="font-size:18px">📋</span>
+            <div>
+              <strong>Antécédents médicaux :</strong> {{ dossierComplet.patient.antecedents_medicaux }}
+            </div>
+          </div>
+
+          <!-- Timeline consultations -->
+          <div class="card" style="margin-top:20px">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+              <div class="card-title">🩺 Historique des consultations</div>
+              <span style="font-size:12px;color:var(--muted);background:var(--bg);padding:4px 12px;border-radius:20px;font-weight:600">
+                {{ dossierComplet.consultations?.length || 0 }} consultation(s)
+              </span>
+            </div>
+            <div class="card-body">
+
+              <!-- Vide -->
+              <div class="empty-state" *ngIf="!dossierComplet.consultations?.length" style="padding:30px 0">
+                <div class="empty-state-icon">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <h3>{{ lang.get('aucune_consultation') }}</h3>
+                <p>Votre historique apparaîtra ici après votre première consultation.</p>
+              </div>
+
+              <!-- Timeline -->
+              <div class="dm-timeline" *ngIf="dossierComplet.consultations?.length">
+                <div *ngFor="let c of dossierComplet.consultations; let i=index"
+                     class="dm-timeline-item"
+                     [class.dm-timeline-open]="dossierTab === i"
+                     (click)="dossierTab = dossierTab === i ? -1 : i">
+
+                  <!-- Header consultation -->
+                  <div class="dm-timeline-header">
+                    <div class="dm-timeline-dot"></div>
+                    <div class="dm-timeline-date">
+                      <div style="font-weight:700;font-size:15px;color:var(--primary)">{{ c.date | date:'dd/MM/yyyy' }}</div>
+                      <div style="font-size:11px;color:var(--muted)">{{ formatJourConsult(c.date) }}</div>
+                    </div>
+                    <div class="dm-timeline-main">
+                      <div class="dm-timeline-title">{{ c.diagnostic }}</div>
+                      <div class="dm-timeline-sub">Dr. {{ c.medecin_prenom }} {{ c.medecin_nom }}</div>
+                    </div>
+                    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                           [style.transform]="dossierTab===i ? 'rotate(180deg)' : 'rotate(0)'"
+                           style="transition:transform .2s;color:var(--muted)">
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Détails (expandable) -->
+                  <div class="dm-timeline-body" *ngIf="dossierTab === i">
+                    <div class="dm-detail-grid">
+                      <div class="dm-detail-box">
+                        <div class="dm-detail-label">🔍 Diagnostic</div>
+                        <div class="dm-detail-value">{{ c.diagnostic }}</div>
+                      </div>
+                      <div class="dm-detail-box">
+                        <div class="dm-detail-label">💊 Traitement prescrit</div>
+                        <div class="dm-detail-value">{{ c.traitement }}</div>
+                      </div>
+                      <div class="dm-detail-box" *ngIf="c.note">
+                        <div class="dm-detail-label">📝 Notes du médecin</div>
+                        <div class="dm-detail-value">{{ c.note }}</div>
+                      </div>
+                      <div class="dm-detail-box">
+                        <div class="dm-detail-label">👨‍⚕️ Médecin traitant</div>
+                        <div class="dm-detail-value">Dr. {{ c.medecin_prenom }} {{ c.medecin_nom }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Score de santé IA -->
+              <div class="card" style="margin-top:16px">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+                  <div class="card-title">🎯 Score de santé IA</div>
+                  <button class="btn btn-primary btn-sm" (click)="genererScoreIA()" [disabled]="scoreLoading">
+                    <div class="spinner spinner-sm" *ngIf="scoreLoading"></div>
+                    {{ scoreLoading ? 'Analyse...' : '🤖 Analyser mon dossier' }}
+                  </button>
+                </div>
+                <div class="card-body">
+                  <div *ngIf="!scoreIA && !scoreLoading" style="text-align:center;padding:20px;color:var(--muted)">
+                    <div style="font-size:40px;margin-bottom:8px">🤖</div>
+                    <p>Cliquez sur "Analyser" pour obtenir votre score de santé basé sur votre dossier médical complet</p>
+                  </div>
+
+                  <div *ngIf="scoreIA" style="animation:fadeUp .5s ease both">
+                    <!-- Score principal -->
+                    <div style="display:flex;align-items:center;gap:24px;margin-bottom:20px;flex-wrap:wrap">
+                      <!-- Cercle score -->
+                      <div style="position:relative;flex-shrink:0">
+                        <svg width="120" height="120" viewBox="0 0 120 120">
+                          <circle cx="60" cy="60" r="50" fill="none" stroke="#f0f0f0" stroke-width="10"/>
+                          <circle cx="60" cy="60" r="50" fill="none"
+                            [attr.stroke]="scoreIA.couleur" stroke-width="10"
+                            stroke-linecap="round"
+                            [attr.stroke-dasharray]="(scoreIA.score / 100 * 314) + ' 314'"
+                            stroke-dashoffset="78.5"
+                            transform="rotate(-90 60 60)"
+                            style="transition:stroke-dasharray 1.5s ease"/>
+                          <text x="60" y="56" text-anchor="middle" font-size="26" font-weight="900" [attr.fill]="scoreIA.couleur">{{ scoreIA.score }}</text>
+                          <text x="60" y="72" text-anchor="middle" font-size="11" fill="#999">/100</text>
+                        </svg>
+                      </div>
+                      <div style="flex:1">
+                        <div style="font-size:22px;font-weight:900;" [style.color]="scoreIA.couleur">{{ scoreIA.niveau }}</div>
+                        <div style="font-size:14px;color:var(--text);margin-top:6px;line-height:1.6">{{ scoreIA.resume }}</div>
+                      </div>
+                    </div>
+
+                    <!-- Points forts / Attention -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+                      <div style="background:#f0fdf4;border-radius:12px;padding:14px">
+                        <div style="font-size:12px;font-weight:800;color:#166534;margin-bottom:8px">✅ Points forts</div>
+                        <div *ngFor="let p of scoreIA.points_forts" style="font-size:13px;color:#166534;margin-bottom:4px">• {{ p }}</div>
+                      </div>
+                      <div style="background:#fef3c7;border-radius:12px;padding:14px">
+                        <div style="font-size:12px;font-weight:800;color:#92400e;margin-bottom:8px">⚠️ À surveiller</div>
+                        <div *ngFor="let p of scoreIA.points_attention" style="font-size:13px;color:#92400e;margin-bottom:4px">• {{ p }}</div>
+                      </div>
+                    </div>
+
+                    <!-- Conseils -->
+                    <div style="background:#f8fafc;border-radius:12px;padding:14px">
+                      <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px">💡 Conseils personnalisés</div>
+                      <div *ngFor="let c of scoreIA.conseils" style="font-size:13px;color:var(--text);margin-bottom:6px;display:flex;gap:8px">
+                        <span style="color:var(--primary)">→</span>{{ c }}
+                      </div>
+                    </div>
+
+                    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px">
+                      ⚕️ Score indicatif uniquement — consultez votre médecin pour un avis médical officiel
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Graphique santé -->
+              <div class="card" style="margin-top:16px" *ngIf="dossierComplet?.consultations?.length > 1">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+                  <div class="card-title">📈 Évolution de santé</div>
+                  <div style="display:flex;gap:8px">
+                    <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#e74c3c"><span style="width:10px;height:3px;background:#e74c3c;border-radius:2px;display:inline-block"></span>Consultations</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <svg [attr.viewBox]="'0 0 ' + (dossierComplet.consultations.length * 80 + 40) + ' 160'"
+                       style="width:100%;height:160px;overflow:visible">
+                    <!-- Grille horizontale -->
+                    <line *ngFor="let y of [40,80,120]" x1="40" [attr.y1]="y" [attr.x2]="dossierComplet.consultations.length * 80 + 40" [attr.y2]="y" stroke="#f0f0f0" stroke-width="1"/>
+                    <!-- Labels Y -->
+                    <text x="35" y="43" text-anchor="end" font-size="9" fill="#999">Élevé</text>
+                    <text x="35" y="83" text-anchor="end" font-size="9" fill="#999">Moyen</text>
+                    <text x="35" y="123" text-anchor="end" font-size="9" fill="#999">Bas</text>
+                    <!-- Ligne courbe consultations -->
+                    <polyline
+                      [attr.points]="getHealthPoints()"
+                      fill="none" stroke="#0A3D62" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Zone sous la courbe -->
+                    <polygon
+                      [attr.points]="getHealthArea()"
+                      fill="rgba(10,61,98,.08)"/>
+                    <!-- Points sur la courbe -->
+                    <ng-container *ngFor="let c of dossierComplet.consultations; let i=index">
+                      <circle
+                        [attr.cx]="80 + i * 80"
+                        [attr.cy]="getHealthY(i)"
+                        r="5" fill="#0A3D62" stroke="white" stroke-width="2"/>
+                      <!-- Label date -->
+                      <text [attr.x]="80 + i * 80" y="150" text-anchor="middle" font-size="9" fill="#999">
+                        {{ c.date | date:'dd/MM' }}
+                      </text>
+                    </ng-container>
+                  </svg>
+                  <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">
+                    Basé sur {{ dossierComplet.consultations.length }} consultations
+                  </p>
+                </div>
+              </div>
+
+              <!-- 💉 CARNET DE VACCINATION -->
+              <div class="card" style="margin-top:16px">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+                  <div class="card-title">💉 Carnet de vaccination</div>
+                  <span style="font-size:12px;background:#dcfce7;color:#166534;padding:4px 12px;border-radius:20px;font-weight:700">{{ vaccins.length }} vaccin(s)</span>
+                </div>
+                <div class="card-body" style="padding:0">
+                  <div *ngIf="vaccins.length===0" class="empty-state" style="padding:24px">
+                    <p>Aucun vaccin enregistré</p>
+                  </div>
+                  <div *ngFor="let v of vaccins" style="display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--border)">
+                    <div style="width:40px;height:40px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💉</div>
+                    <div style="flex:1">
+                      <div style="font-size:14px;font-weight:700">{{ v.nom_vaccin }}</div>
+                      <div style="font-size:12px;color:var(--muted)">Administré le {{ v.date_administration | date:'dd/MM/yyyy' }}</div>
+                    </div>
+                    <div style="text-align:right">
+                      <div *ngIf="v.date_rappel" style="font-size:12px;font-weight:700;color:#f59e0b">⏰ Rappel : {{ v.date_rappel | date:'dd/MM/yyyy' }}</div>
+                      <div *ngIf="!v.date_rappel" style="font-size:12px;color:#166534;font-weight:700">✅ Complet</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 🧪 RÉSULTATS D'ANALYSES -->
+              <div class="card" style="margin-top:16px">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+                  <div class="card-title">🧪 Résultats d'analyses</div>
+                  <span style="font-size:12px;background:#eff6ff;color:#1e40af;padding:4px 12px;border-radius:20px;font-weight:700">{{ analyses.length }} résultat(s)</span>
+                </div>
+                <div class="card-body" style="padding:0">
+                  <div *ngIf="analyses.length===0" class="empty-state" style="padding:24px">
+                    <p>Aucune analyse disponible</p>
+                  </div>
+                  <div *ngFor="let a of analyses" style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border)">
+                    <div style="width:40px;height:40px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🧪</div>
+                    <div style="flex:1">
+                      <div style="font-size:14px;font-weight:700">{{ a.type_analyse }}</div>
+                      <div style="font-size:12px;color:var(--muted)">{{ a.date_analyse | date:'dd/MM/yyyy' }} · Dr. {{ a.medecin_nom }}</div>
+                      <div *ngIf="a.note" style="font-size:12px;color:var(--text-2);margin-top:2px">{{ a.note }}</div>
+                    </div>
+                    <div>
+                      <span [style.background]="a.statut==='normal' ? '#dcfce7' : '#fee2e2'"
+                            [style.color]="a.statut==='normal' ? '#166534' : '#991b1b'"
+                            style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">
+                        {{ a.statut==='normal' ? '✅ Normal' : '⚠️ Anormal' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 📋 CONSENTEMENT ÉCLAIRÉ -->
+              <div class="card" style="margin-top:16px">
+                <div class="card-header">
+                  <div class="card-title">📋 Consentement éclairé</div>
+                </div>
+                <div class="card-body">
+                  <div *ngIf="consentements.length===0" class="empty-state" style="padding:24px">
+                    <p>Aucun consentement enregistré</p>
+                  </div>
+                  <div *ngFor="let c of consentements" style="display:flex;align-items:center;gap:14px;padding:12px;background:#f8fafc;border-radius:12px;margin-bottom:8px;border:1px solid var(--border)">
+                    <div style="font-size:24px">{{ c.signe ? '✅' : '⏳' }}</div>
+                    <div style="flex:1">
+                      <div style="font-size:14px;font-weight:700">{{ c.type_acte }}</div>
+                      <div style="font-size:12px;color:var(--muted)">{{ c.date_signature | date:'dd/MM/yyyy HH:mm' }}</div>
+                    </div>
+                    <span [style.background]="c.signe ? '#dcfce7' : '#fef3c7'"
+                          [style.color]="c.signe ? '#166534' : '#92400e'"
+                          style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">
+                      {{ c.signe ? 'Signé' : 'En attente' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Soins infirmiers -->
+              <div class="card" style="margin-top:16px" *ngIf="soinsPatient?.length > 0">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+                  <div class="card-title">💉 Soins infirmiers</div>
+                  <span style="font-size:12px;color:var(--muted);background:var(--bg);padding:4px 12px;border-radius:20px;font-weight:600">{{ soinsPatient.length }}</span>
+                </div>
+                <div class="card-body" style="padding:0 20px">
+                  <div *ngFor="let s of soinsPatient" style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)">
+                    <div style="width:40px;height:40px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💉</div>
+                    <div style="flex:1">
+                      <div style="font-size:14px;font-weight:700;color:var(--text)">{{ s.type_soin }}</div>
+                      <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ s.infirmiere_prenom }} {{ s.infirmiere_nom }} · {{ s.date | date:'dd/MM/yyyy' }}</div>
+                      <div style="font-size:12px;color:var(--text-2);margin-top:2px" *ngIf="s.observation">{{ s.observation }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="!loading['dossier'] && !dossierComplet">
+          <div class="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <h3>Dossier non disponible</h3>
+          <p>Votre dossier médical sera créé lors de votre première consultation.</p>
+        </div>
+      </div>
+
+      <!-- ════ ORDONNANCES ════ -->
+      <div *ngIf="activeTab==='ordonnances'">
+        <div class="page-header">
+          <div class="page-header-left"><h1>{{ lang.get('mes_ordonnances') }}</h1><p>Prescriptions médicales</p></div>
+        </div>
+        <div class="loading-center" *ngIf="loading['dossier']"><div class="spinner"></div>{{ lang.get('chargement') }}</div>
+        <div *ngIf="!loading['dossier']">
+          <div class="empty-state" *ngIf="ordonnances.length===0">
+            <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg></div>
+            <h3>{{ lang.get('aucune_ordonnance') }}</h3>
+            <p>Vos ordonnances médicales apparaîtront ici.</p>
+          </div>
+          <div *ngFor="let o of ordonnances" class="prescription">
+            <div class="presc-header">
+              <div>
+                <div class="presc-clinic-name">Cabinet MediNova</div>
+                <div class="presc-clinic-info">Dr. {{ o.medecin_prenom }} {{ o.medecin_nom }}</div>
+              </div>
+              <div>
+                <div class="presc-title">ORDONNANCE</div>
+                <div class="presc-num">N° ORD-{{ o.id_ordonnance }}</div>
+              </div>
+            </div>
+            <div class="presc-patient-bar">
+              <span>Patient : <strong>{{ auth.user?.prenom }} {{ auth.user?.nom }}</strong></span>
+              <span>Date : <strong>{{ o.date_emission | date:'dd/MM/yyyy' }}</strong></span>
+            </div>
+            <div class="presc-body">
+              <div class="presc-rx">℞</div>
+              <div *ngFor="let m of (o.medicaments||[]); let i=index" class="presc-med">
+                <div class="presc-med-num">{{ i+1 }}</div>
+                <div>
+                  <div class="presc-med-name">{{ m.nom }}</div>
+                  <div class="presc-med-details">{{ m.dosage }} — {{ m.duree }}</div>
+                </div>
+              </div>
+              <div class="presc-instructions" *ngIf="o.instructions">Instructions : {{ o.instructions }}</div>
+            </div>
+            <div class="presc-footer">
+              <div class="presc-date">{{ o.date_emission | date:'dd/MM/yyyy' }}</div>
+              <div style="display:flex;align-items:flex-end;gap:24px">
+                <div class="qr-wrap">
+                  <div [id]="'qr-'+o.id_ordonnance" style="width:64px;height:64px"></div>
+                  <div class="qr-label">Scan de vérification</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+                  <button class="btn btn-primary btn-sm" (click)="imprimerOrdonnance(o)" style="display:flex;align-items:center;gap:6px">
+                    🖨️ Imprimer
+                  </button>
+                  <div class="presc-signature">Signature Médecin</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ NOTIFICATIONS ════ -->
+      <!-- ════ CHAT ════ -->
+      <div *ngIf="activeTab==='chat'" style="height:calc(100vh - 120px);display:flex;flex-direction:column">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1>💬 Messages</h1>
+            <p>Communiquez directement avec votre médecin</p>
+          </div>
+        </div>
+
+        <!-- Choix médecin -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <div *ngFor="let m of chatMedecins"
+               (click)="chatMedecinId=m.id_utilisateur;chargerChatMessages()"
+               [style.background]="chatMedecinId===m.id_utilisateur ? 'var(--primary)' : 'white'"
+               [style.color]="chatMedecinId===m.id_utilisateur ? 'white' : 'var(--text)'"
+               style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:50px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">
+              {{ (m.prenom||'?')[0] }}{{ (m.nom||'')[0] }}
+            </div>
+            <span style="font-size:13px;font-weight:700">Dr. {{ m.prenom }} {{ m.nom }}</span>
+          </div>
+        </div>
+
+        <!-- Zone messages -->
+        <div class="card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div id="chat-messages" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:300px">
+            <div *ngIf="chatMessages.length===0" style="text-align:center;color:var(--muted);padding:40px">
+              <div style="font-size:40px;margin-bottom:8px">💬</div>
+              <p>{{ lang.get('aucun_message') }}</p>
+            </div>
+            <div *ngFor="let msg of chatMessages"
+                 [style.align-self]="isMyMessage(msg) ? 'flex-end' : 'flex-start'"
+                 style="max-width:70%">
+              <div [style.background]="isMyMessage(msg) ? 'var(--primary)' : '#f0f0f0'"
+                   [style.color]="isMyMessage(msg) ? 'white' : 'var(--text)'"
+                   style="padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5">
+                {{ msg.contenu }}
+              </div>
+              <div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:right">
+                {{ msg.cree_a | date:'HH:mm' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Input message -->
+          <div style="padding:16px;border-top:1px solid var(--border);display:flex;gap:10px">
+            <input type="text" class="form-input" [(ngModel)]="chatInput"
+                   placeholder="{{ lang.get('ecrire_message') }}"
+                   (keyup.enter)="envoyerMessage()"
+                   style="flex:1"/>
+            <button class="btn btn-primary" (click)="envoyerMessage()" [disabled]="!chatInput.trim() || !chatMedecinId">
+              ➤ Envoyer
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ NOTIFICATIONS ════ -->
+      <div *ngIf="activeTab==='notifications'">
+        <div class="page-header">
+          <div class="page-header-left"><h1>{{ lang.get('notifications') }}</h1><p>{{ notifCount() }} non lue(s)</p></div>
+        </div>
+        <div class="loading-inline" *ngIf="loading['notifs']"><div class="spinner spinner-sm"></div> Chargement...</div>
+        <div class="card" *ngIf="!loading['notifs']">
+          <div class="card-body" style="padding:0 20px">
+            <div class="notif-item" *ngFor="let n of notifications" [style.opacity]="n.lu?'.65':'1'" (click)="marquerLue(n.id_notification)">
+              <div class="notif-icon" [ngClass]="n.lu ? 'read' : 'unread'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </div>
+              <div style="flex:1">
+                <div class="notif-msg">{{ n.message }}</div>
+                <div class="notif-date">{{ n.created_at | date:'dd/MM/yyyy HH:mm' }}</div>
+              </div>
+              <div class="notif-dot" *ngIf="!n.lu"></div>
+            </div>
+            <div class="empty-state" *ngIf="notifications.length===0" style="padding:32px">
+              <h3>{{ lang.get('aucune_notif') }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PROFIL ════ -->
+      <div *ngIf="activeTab==='profil'">
+        <div class="page-header"><div class="page-header-left"><h1>{{ lang.get('profil') }}</h1><p>Informations personnelles et médicales</p></div></div>
+        <div class="profil-card">
+          <div style="position:relative;display:inline-block;margin-bottom:20px">
+            <div class="profil-avatar" *ngIf="!auth.user?.photo">{{ auth.initiales() }}</div>
+            <img *ngIf="auth.user?.photo" [src]="auth.user.photo" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)"/>
+            <label style="position:absolute;bottom:0;right:0;background:var(--primary);color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px" title="Changer la photo">
+              📷
+              <input type="file" accept="image/*" style="display:none" (change)="uploadPhoto($event)"/>
+            </label>
+          </div>
+          <div class="form-section-title">{{ lang.get('infos_perso') }}</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Prénom</label><input type="text" class="form-input" [(ngModel)]="profilPrenom" name="pp"/></div>
+            <div class="form-group"><label class="form-label">Nom</label><input type="text" class="form-input" [(ngModel)]="profilNom" name="pn"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" [(ngModel)]="profilEmail" name="pe"/></div>
+            <div class="form-group"><label class="form-label">Téléphone</label><input type="tel" class="form-input" [(ngModel)]="profilTel" name="pt"/></div>
+          </div>
+          <div class="alert alert-danger" *ngIf="profilError">{{ profilError }}</div>
+          <div class="alert alert-success" *ngIf="profilSuccess">{{ profilSuccess }}</div>
+          <button class="btn btn-primary" (click)="sauvegarderProfil()" [disabled]="profilLoading">
+            <div class="spinner spinner-sm" *ngIf="profilLoading"></div>
+            {{ profilLoading ? 'Sauvegarde...' : 'Sauvegarder les modifications' }}
+          </button>
+        </div>
+
+        <!-- Changer mot de passe -->
+        <div class="profil-card" style="margin-top:20px">
+          <div class="profil-avatar" style="background:#e74c3c">🔑</div>
+          <h3 style="margin-bottom:16px;font-size:16px;font-weight:700">{{ lang.get('changer_mdp') }}</h3>
+          <div class="alert alert-success" *ngIf="pwSuccess">{{ pwSuccess }}</div>
+          <div class="alert alert-danger"  *ngIf="pwError">{{ pwError }}</div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Ancien mot de passe</label>
+            <input type="password" class="form-input" [(ngModel)]="pwAncien" placeholder="••••••••"/>
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Nouveau mot de passe</label>
+            <input type="password" class="form-input" [(ngModel)]="pwNouveau" placeholder="Minimum 6 caractères"/>
+          </div>
+          <div class="form-group" style="margin-bottom:16px">
+            <label class="form-label">Confirmer le nouveau mot de passe</label>
+            <input type="password" class="form-input" [(ngModel)]="pwConfirm" placeholder="••••••••"/>
+          </div>
+          <button class="btn btn-danger" (click)="changerMotDePasse()" [disabled]="pwLoading">
+            <div class="spinner spinner-sm" *ngIf="pwLoading"></div>
+            {{ pwLoading ? 'Changement...' : 'Changer le mot de passe' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

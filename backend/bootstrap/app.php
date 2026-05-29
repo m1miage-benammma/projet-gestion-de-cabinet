@@ -10,7 +10,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // Enregistrer le middleware d'authentification
+        $middleware->alias([
+            'auth.middleware' => \App\Http\Middleware\AuthMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

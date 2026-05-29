@@ -1,0 +1,10 @@
+[33mf49dc81[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature-backend-utilisateur[m[33m)[m HEAD@{0}: commit: feat: add Utilisateur module with migration
+[33mc5eda34[m[33m ([m[1;31morigin/dev[m[33m, [m[1;32mdev[m[33m)[m HEAD@{1}: checkout: moving from dev to feature-backend-utilisateur
+[33mc5eda34[m[33m ([m[1;31morigin/dev[m[33m, [m[1;32mdev[m[33m)[m HEAD@{2}: checkout: moving from feature-backend-patients to dev
+[33m3f812b5[m HEAD@{3}: commit: Update app.html before starting backend feature
+[33mc5eda34[m[33m ([m[1;31morigin/dev[m[33m, [m[1;32mdev[m[33m)[m HEAD@{4}: checkout: moving from dev to feature-backend-patients
+[33mc5eda34[m[33m ([m[1;31morigin/dev[m[33m, [m[1;32mdev[m[33m)[m HEAD@{5}: checkout: moving from main to dev
+[33mf829421[m[33m ([m[1;32mmain[m[33m)[m HEAD@{6}: commit: nikb
+[33mf9ad47c[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{7}: pull: Fast-forward
+[33m99bc956[m HEAD@{8}: commit: docker file fix
+[33m0b54246[m[33m ([m[1;31morigin/Dev[m[33m)[m HEAD@{9}: clone: from https://github.com/m1miage-benammma/projet-gestion-de-cabinet.git
