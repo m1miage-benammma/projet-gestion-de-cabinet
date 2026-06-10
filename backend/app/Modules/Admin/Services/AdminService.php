@@ -91,10 +91,10 @@ final class AdminService
             'total_infirmieres'   => DB::table('infirmieres')->count(),
             'total_utilisateurs'  => DB::table('utilisateurs')->count(),
             'total_rdv'           => DB::table('rendez_vous')->count(),
-            'rdv_en_attente'      => DB::table('rendez_vous')->whereIn('statut', ['en_attente','EN_ATTENTE'])->count(),
-            'rdv_confirmes'       => DB::table('rendez_vous')->whereIn('statut', ['confirme','CONFIRME','patient_arrive','PATIENT_ARRIVE'])->count(),
-            'rdv_annules'         => DB::table('rendez_vous')->whereIn('statut', ['annule','ANNULE'])->count(),
-            'rdv_termines'        => DB::table('rendez_vous')->whereIn('statut', ['termine','TERMINE'])->count(),
+            'rdv_en_attente'      => DB::table('rendez_vous')->where('statut', 'en_attente')->count(),
+            'rdv_confirmes'       => DB::table('rendez_vous')->whereIn('statut', ['confirme', 'patient_arrive'])->count(),
+            'rdv_annules'         => DB::table('rendez_vous')->where('statut', 'annule')->count(),
+            'rdv_termines'        => DB::table('rendez_vous')->where('statut', 'termine')->count(),
             'total_consultations' => DB::table('consultations')->count(),
             'total_ordonnances'   => DB::table('ordonnances')->count(),
             'total_soins'         => DB::table('soins')->count(),
@@ -102,6 +102,13 @@ final class AdminService
                 ->join('utilisateurs as p', 'rv.id_patient', '=', 'p.id_utilisateur')
                 ->select('rv.date_rdv','rv.heure_rdv','rv.statut','p.nom','p.prenom')
                 ->orderBy('rv.created_at','desc')->limit(5)->get(),
+            'rdv_par_mois'        => array_values(array_map(
+                fn($m) => (int) DB::table('rendez_vous')
+                    ->whereYear('date_rdv', date('Y'))
+                    ->whereMonth('date_rdv', $m)
+                    ->count(),
+                range(1, 12)
+            )),
         ];
     }
 }

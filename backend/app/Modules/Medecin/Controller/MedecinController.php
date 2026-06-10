@@ -29,7 +29,7 @@ final class MedecinController extends Controller
         $validated = $request->validate([
             'nom'          => 'required|string|max:100',
             'prenom'       => 'required|string|max:100',
-            'email'        => 'required|email:rfc,dns|unique:utilisateurs,email',
+            'email'        => 'required|email|unique:utilisateurs,email',
             'telephone'    => ['required', 'regex:/^(05|06|07)[0-9]{8}$/'],
             'genre'        => 'required|in:M,F',
             'mot_de_passe' => 'required|string|min:6',

@@ -36,16 +36,20 @@ FROM php:8.4-fpm-alpine AS backend
 
 WORKDIR /var/www/html
 
-RUN apk update && apk add --update --no-cache \
+RUN apk update && apk add --no-cache \
     nginx \
     curl \
     libpng-dev \
     libzip-dev \
     zip \
     unzip \
-    oniguruma-dev
+    oniguruma-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    icu-dev
 
-RUN docker-php-ext-install \
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+ && docker-php-ext-install -j$(nproc) \
     pdo \
     pdo_mysql \
     mbstring \

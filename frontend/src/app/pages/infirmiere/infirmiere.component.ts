@@ -5,7 +5,6 @@ import { SidebarComponent } from "../../shared/sidebar/sidebar.component";
 import { HeaderComponent } from "../../shared/header/header.component";
 import { AuthService } from "../../core/services/auth.service";
 import { ApiService } from "../../core/services/api.service";
-import { LangService } from "../../core/services/lang.service";
 import { ToastService } from "../../core/services/toast.service";
 
 @Component({
@@ -22,6 +21,7 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
     { id: "file-attente",   label: "File d'attente",     icon: "users" },
     { id: "soins",          label: "Soins infirmiers",   icon: "activity" },
     { id: "notifications",  label: "Notifications",      icon: "bell" },
+    { id: "facturation",    label: "Facturation",         icon: "file-text" },
     { id: "profil",         label: "Mon profil",          icon: "user" },
   ];
 
@@ -49,6 +49,15 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
   soinError = "";
   soinSuccess = "";
 
+  showFactureForm = false;
+  factures: any[] = [];
+  facturePatientId = 0;
+  factureMontant = 0;
+  factureDesc = "";
+  factureError = "";
+  factureSuccess = "";
+  factureLoading = false;
+
   profilNom = ""; profilPrenom = ""; profilTel = ""; profilEmail = "";
   profilLoading = false; profilError = ""; profilSuccess = "";
   pwAncien = ""; pwNouveau = ""; pwConfirm = "";
@@ -57,8 +66,7 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
   constructor(
     public auth: AuthService,
     private api: ApiService,
-    public toast: ToastService,
-    public lang: LangService
+    public toast: ToastService
   ) {}
 
   alerteUrgence: any = null;
@@ -74,8 +82,11 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
     document.documentElement.style.setProperty('--primary-light', '#F5F3FF');
     document.documentElement.style.setProperty('--primary-border', '#C4B5FD');
     this.chargerRdvJour();
+    this.chargerFactures();
     this.chargerSoins();
     this.chargerPatients();
+    this.chargerNotifications();
+    this.verifierUrgences();
     this.urgenceInterval = setInterval(() => this.verifierUrgences(), 10000);
   }
 
@@ -84,13 +95,13 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
   }
 
   verifierUrgences() {
+    if (!this.auth.userId()) return;
     this.api.getNotifications(this.auth.userId()).subscribe({
       next: (notifs: any[]) => {
-        const urgences = notifs.filter((n: any) => n.type === 'urgence' && !n.lu && !this.urgencesVues.has(n.id));
+        const urgences = notifs.filter((n: any) => n.type === 'urgence' && !n.lu && !this.urgencesVues.has(n.id_notification));
         if (urgences.length > 0 && !this.alerteUrgence) {
           this.alerteUrgence = urgences[0];
-          this.urgencesVues.add(urgences[0].id);
-          localStorage.setItem('urgences_vues', JSON.stringify([...this.urgencesVues]));
+          this.urgencesVues.add(urgences[0].id_notification);
           try {
             const ctx = new AudioContext();
             const osc = ctx.createOscillator();
@@ -107,7 +118,10 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
   }
 
   fermerAlerteUrgence() {
-    if (this.alerteUrgence) this.api.marquerLue(this.alerteUrgence.id).subscribe({ next: () => {}, error: () => {} });
+    if (this.alerteUrgence) {
+      this.api.marquerLue(this.alerteUrgence.id_notification).subscribe({ next: () => {}, error: () => {} });
+      this.urgencesVues.add(this.alerteUrgence.id_notification);
+    }
     this.alerteUrgence = null;
   }
 
@@ -119,6 +133,7 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
     if (tab === "file-attente") { this.chargerFileAttente(); this.startFileAttenteRefresh(); }
     if (tab !== "file-attente") this.stopFileAttenteRefresh();
     if (tab === "soins") this.chargerSoins();
+    if (tab === "facturation") this.chargerFactures();
     if (tab === "notifications") this.chargerNotifications();
     if (tab === "profil") {
       const u = this.auth.user;
@@ -219,13 +234,6 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
     });
   }
 
-  patientArrive(id: number) {
-    this.api.patientArrive(id).subscribe({
-      next: () => { this.toast.success("Arrivée du patient enregistrée."); this.chargerRdvJour(); },
-      error: e => this.toast.error(e.error?.message || "Erreur.")
-    });
-  }
-
   annulerRdv(id: number) {
     if (!confirm("Confirmer l'annulation de ce rendez-vous ?")) return;
     this.api.annulerRdv(id).subscribe({
@@ -315,5 +323,61 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
 
   getDateAujourdhui(): string {
     return new Date().toLocaleDateString("fr-DZ", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  }
+
+  get patientsUniques(): any[] {
+    const seen = new Set();
+    return this.rdvJour.filter(r => {
+      if (seen.has(r.id_patient)) return false;
+      seen.add(r.id_patient);
+      return true;
+    });
+  }
+
+  chargerFactures() {
+    this.api.getFactures().subscribe({
+      next: (data: any) => {
+        this.factures = [...(data || [])];
+        console.log('Factures chargées:', this.factures.length);
+      },
+      error: (e: any) => { console.error('Erreur factures:', e); }
+    });
+  }
+
+  creerFacture() {
+    if (!this.facturePatientId || !this.factureMontant) {
+      this.factureError = 'Patient et montant obligatoires.';
+      return;
+    }
+    this.factureLoading = true;
+    this.factureError = '';
+    this.api.creerFacture({
+      id_patient: this.facturePatientId,
+      montant: this.factureMontant,
+      description: this.factureDesc,
+      statut: 'en_attente'
+    }).subscribe({
+      next: () => {
+        this.factureLoading = false;
+        this.factureSuccess = 'Facture créée avec succès.';
+        this.showFactureForm = false;
+        this.facturePatientId = 0;
+        this.factureMontant = 0;
+        this.factureDesc = '';
+        this.chargerFactures();
+        setTimeout(() => this.factureSuccess = '', 3000);
+      },
+      error: () => {
+        this.factureLoading = false;
+        this.factureError = 'Erreur lors de la création.';
+      }
+    });
+  }
+
+  marquerPayee(id: number) {
+    this.api.marquerFacturePayee(id).subscribe({
+      next: () => this.chargerFactures(),
+      error: () => {}
+    });
   }
 }

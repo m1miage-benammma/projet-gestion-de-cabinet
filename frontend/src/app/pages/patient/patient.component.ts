@@ -6,8 +6,6 @@ import { HeaderComponent } from "../../shared/header/header.component";
 import { AuthService } from "../../core/services/auth.service";
 import { ApiService } from "../../core/services/api.service";
 import { ToastService } from "../../core/services/toast.service";
-import { ThemeService } from "../../core/services/theme.service";
-import { LangService } from "../../core/services/lang.service";
 
 @Component({
   selector: "app-patient",
@@ -79,6 +77,10 @@ export class PatientComponent implements OnInit, AfterViewChecked {
 
   // Profil
   profilNom = ""; profilPrenom = ""; profilTel = ""; profilEmail = "";
+  profilGroupeSanguin = ""; profilDateNaissance = ""; profilAdresse = "";
+  profilAllergies = ""; profilAntecedents = "";
+  medicalLoading = false; medicalSuccess = ""; medicalError = "";
+  patientMedical: any = null;
   profilSuccess = ""; profilError = ""; profilLoading = false;
   pwAncien = ""; pwNouveau = ""; pwConfirm = "";
   pwSuccess = ""; pwError = ""; pwLoading = false;
@@ -94,9 +96,7 @@ export class PatientComponent implements OnInit, AfterViewChecked {
   constructor(
     public auth: AuthService,
     private api: ApiService,
-    public toast: ToastService,
-    public lang: LangService,
-    public theme: ThemeService
+    public toast: ToastService
   ) {}
 
   showWelcome = false;
@@ -206,7 +206,6 @@ Soins infirmiers: ${soins.length}
 
   ngOnInit() {
     // Appliquer le thème sauvegardé du patient
-    this.theme.applyTheme(this.theme.currentTheme);
     // Onboarding — premier login
     const key = `medinova_welcome_${this.auth.userId()}`;
     if (!localStorage.getItem(key)) {
@@ -215,6 +214,9 @@ Soins infirmiers: ${soins.length}
     }
     this.chargerRdv();
     this.chargerMedecins();
+    this.chargerDossier();
+    this.chargerDonneesMedicales();
+    this.chargerOrdonnances();
   }
 
   ngAfterViewChecked() {
@@ -262,7 +264,8 @@ Soins infirmiers: ${soins.length}
     this.successMsg = "";
     this.errorMsg = "";
     if (tab === "rdv") this.chargerRdv();
-    if (tab === "dossier" || tab === "ordonnances") { this.chargerDossier(); this.chargerRdv(); }
+    if (tab === "dossier" || tab === "ordonnances" || tab === "profil") { this.chargerDossier(); this.chargerRdv(); }
+    if (tab === "profil") { this.chargerDonneesMedicales(); }
     if (tab === "notifications") this.chargerNotifications();
     if (tab === "chat") {
       this.api.getPatients().subscribe({ next: () => {}, error: () => {} });
@@ -277,10 +280,24 @@ Soins infirmiers: ${soins.length}
       this.profilPrenom = u?.prenom || "";
       this.profilTel = u?.telephone || "";
       this.profilEmail = u?.email || "";
+      // Fill medical data
+      const pm = this.patientMedical || this.dossierComplet?.patient;
+      this.profilGroupeSanguin = pm?.groupe_sanguin || "";
+      this.profilDateNaissance = pm?.date_naissance ? pm.date_naissance.split("T")[0] : "";
+      this.profilAdresse = pm?.adresse || "";
+      this.profilAllergies = pm?.allergies || "";
+      this.profilAntecedents = pm?.antecedents_medicaux || "";
     }
   }
 
   notifCount(): number { return this.notifications.filter(n => !n.lu).length; }
+
+  chargerOrdonnances() {
+    this.api.getOrdonnances(this.auth.userId()).subscribe({
+      next: (o: any[]) => { this.ordonnances = o || []; },
+      error: () => {}
+    });
+  }
 
   chargerRdv() {
     this.loading["rdv"] = true;
@@ -313,16 +330,24 @@ Soins infirmiers: ${soins.length}
     this.api.getDispos(this.rdvMedecinId).subscribe({
       next: (dispos: any[]) => {
         this.rdvDispos = dispos;
-        this.loading['dispos'] = false;
-        // Générer les slots pour les 14 prochains jours
-        this.genererSlotsAuto(dispos);
+        // Charger les RDV existants pour marquer les créneaux pris
+        this.api.getPlanning(this.rdvMedecinId).subscribe({
+          next: (rdvs: any[]) => {
+            this.loading['dispos'] = false;
+            this.genererSlotsAuto(dispos, rdvs);
+          },
+          error: () => {
+            this.loading['dispos'] = false;
+            this.genererSlotsAuto(dispos, []);
+          }
+        });
       },
       error: () => { this.loading['dispos'] = false; }
     });
   }
 
   // Génère les créneaux automatiquement pour 14 jours
-  genererSlotsAuto(dispos: any[]) {
+  genererSlotsAuto(dispos: any[], rdvsExistants: any[] = []) {
     this.rdvSlots = [];
     const today = new Date();
     const joursMap: any = {
@@ -344,12 +369,19 @@ Soins infirmiers: ${soins.length}
         const m = current % 60;
         const heure = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
         const dateStr = date.toISOString().split('T')[0];
+        // Vérifier si ce créneau est déjà pris
+        const estPris = rdvsExistants.some((r: any) =>
+          r.date_rdv === dateStr &&
+          (r.heure_rdv || '').slice(0, 5) === heure &&
+          r.id_disponibilite === dispo.id_disponibilite &&
+          r.statut !== 'annule'
+        );
         this.rdvSlots.push({
           date: dateStr,
           heure,
           id_disponibilite: dispo.id_disponibilite,
           label: `${date.toLocaleDateString('fr-DZ', {weekday:'short', day:'numeric', month:'short'})} à ${heure}`,
-          pris: false
+          pris: estPris
         });
         current += 30;
       }
@@ -409,14 +441,14 @@ Soins infirmiers: ${soins.length}
             console.log('CONSULTATIONS:', consultations);
             this.dossierComplet = {
               dossier: dos,
-              patient: this.auth.user,
+              patient: { ...this.auth.user, ...(dos.patient || {}) },
               consultations: consultations || []
             };
             this.loading["dossier"] = false;
           },
           error: (e: any) => {
             console.log('ERREUR CONSULTATIONS:', e);
-            this.dossierComplet = { dossier: dos, patient: this.auth.user, consultations: [] };
+            this.dossierComplet = { dossier: dos, patient: { ...this.auth.user, ...(dos.patient || {}) }, consultations: [] };
             this.loading["dossier"] = false;
           }
         });
@@ -450,9 +482,202 @@ Soins infirmiers: ${soins.length}
     this.api.marquerLue(id).subscribe({ next: () => this.chargerNotifications(), error: () => {} });
   }
 
+  chargerDonneesMedicales() {
+    this.api.dossierUtilisateur(this.auth.userId()).subscribe({
+      next: (data: any) => {
+        if (data?.patient) this.patientMedical = data.patient;
+      },
+      error: () => {}
+    });
+  }
+
   imprimerOrdonnance(o: any) {
-    const url = `${window.location.protocol}//${window.location.hostname}:${window.location.port}?ordonnance=${o.id_ordonnance}`;
-    window.open(url, '_blank');
+    const p = this.auth.user;
+    // Charger les données patient depuis l'API pour avoir date_naissance et groupe_sanguin
+    const patientData = this.dossierComplet?.patient || p;
+    this._genererPDFOrdonnance(o, patientData);
+  }
+
+  _genererPDFOrdonnance(o: any, patient: any) {
+    const p = this.auth.user;
+    const dateNow = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+    const dateEmission = o.date_emission
+      ? new Date(o.date_emission).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })
+      : dateNow;
+
+    // Calcul âge patient
+    let age = '—';
+    if (patient?.date_naissance) {
+      const diff = Date.now() - new Date(patient.date_naissance).getTime();
+      age = Math.floor(diff / (365.25 * 24 * 3600 * 1000)) + ' ans';
+    }
+
+    const medsHtml = (o.medicaments || []).map((m: any, i: number) => `
+      <div class="med-line">
+        <span class="med-num">${i + 1} —</span>
+        <div class="med-body">
+          <div class="med-name">${m.nom}</div>
+          <div class="med-posol">Dosage : ${m.dosage} &nbsp;|&nbsp; Durée : ${m.duree}</div>
+        </div>
+      </div>`).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Ordonnance — Dr. ${o.medecin_prenom || ''} ${o.medecin_nom || ''}</title>
+<style>
+  @page { size: A4; margin: 0 }
+  * { margin:0; padding:0; box-sizing:border-box }
+  body { font-family: 'Times New Roman', Times, serif; font-size:12pt; color:#000; background:#fff }
+  .page { width:210mm; min-height:297mm; padding:18mm 20mm 18mm 22mm; position:relative; }
+
+  /* EN-TÊTE MÉDECIN */
+  .entete { display:flex; justify-content:space-between; padding-bottom:10mm; border-bottom:2px solid #000; margin-bottom:8mm; }
+  .entete-gauche { max-width:60%; }
+  .med-titre { font-size:15pt; font-weight:bold; text-transform:uppercase; letter-spacing:.5px; margin-bottom:3mm; }
+  .med-spec { font-size:11pt; font-weight:bold; margin-bottom:2mm; }
+  .med-info { font-size:10pt; line-height:1.7; color:#222; }
+  .entete-droite { text-align:right; }
+  .ordo-label { font-size:20pt; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#000; }
+  .ordo-num   { font-size:10pt; color:#555; margin-top:2mm; }
+  .ordo-date  { font-size:10pt; margin-top:1mm; }
+
+  /* PATIENT */
+  .patient-box { border:1px solid #000; padding:5mm 8mm; margin-bottom:8mm; }
+  .patient-title { font-size:9pt; font-weight:bold; text-transform:uppercase; letter-spacing:.5px; color:#555; margin-bottom:3mm; }
+  .patient-row { display:flex; gap:20mm; flex-wrap:wrap; }
+  .patient-field { min-width:60mm; }
+  .patient-label { font-size:9pt; color:#555; }
+  .patient-val { font-size:11pt; font-weight:bold; }
+
+  /* RX */
+  .rx-section { margin-bottom:8mm; }
+  .rx-symbol { font-size:30pt; font-style:italic; font-weight:bold; margin-bottom:5mm; line-height:1; }
+  .med-line { display:flex; align-items:flex-start; gap:4mm; margin-bottom:6mm; padding-bottom:5mm; border-bottom:1px dotted #ccc; }
+  .med-line:last-child { border-bottom:none; }
+  .med-num  { font-size:12pt; font-weight:bold; white-space:nowrap; padding-top:1mm; }
+  .med-name { font-size:13pt; font-weight:bold; margin-bottom:2mm; }
+  .med-posol { font-size:11pt; color:#333; }
+
+  /* INSTRUCTIONS */
+  .instructions { border-left:3px solid #000; padding:3mm 5mm; margin-top:5mm; margin-bottom:8mm; }
+  .instr-label { font-size:9pt; font-weight:bold; text-transform:uppercase; letter-spacing:.5px; color:#555; margin-bottom:2mm; }
+  .instr-text  { font-size:11pt; line-height:1.6; }
+
+  /* PIED */
+  .pied { position:absolute; bottom:18mm; left:22mm; right:20mm; border-top:1px solid #000; padding-top:5mm; display:flex; justify-content:space-between; align-items:flex-end; }
+  .pied-info { font-size:9pt; color:#555; line-height:1.8; }
+  .signature-zone { text-align:center; }
+  .signature-space { height:20mm; }
+  .signature-line  { border-top:1px solid #000; width:50mm; margin:0 auto 2mm; }
+  .signature-label { font-size:9pt; }
+  .cachet-zone { border:1px solid #ccc; width:35mm; height:20mm; display:flex; align-items:center; justify-content:center; font-size:8pt; color:#aaa; }
+
+  /* MENTION LÉGALE */
+  .mention { font-size:8pt; color:#777; text-align:center; margin-top:4mm; border-top:1px dotted #ccc; padding-top:3mm; }
+
+  /* BOUTONS NO-PRINT */
+  .no-print { position:fixed; bottom:20px; right:20px; display:flex; gap:10px; font-family:Arial,sans-serif; }
+  .btn-print { background:#1a1a1a; color:#fff; border:none; padding:12px 24px; border-radius:6px; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-close { background:#fff; color:#1a1a1a; border:1px solid #ccc; padding:12px 20px; border-radius:6px; font-size:14px; cursor:pointer; }
+
+  @media print {
+    .no-print { display:none !important }
+    body { background:#fff }
+    .page { padding:18mm 20mm 40mm 22mm }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- EN-TÊTE -->
+  <div class="entete">
+    <div class="entete-gauche">
+      <div class="med-titre">Dr. ${o.medecin_prenom || ''} ${o.medecin_nom || ''}</div>
+      <div class="med-spec">Médecine générale</div>
+      <div class="med-info">
+        Cabinet MediNova<br>
+        Rue Didouche Mourad, Alger Centre<br>
+        Tél : +213 21 XX XX XX<br>
+        N° Ordre : XXXX/CONS/20XX
+      </div>
+    </div>
+    <div class="entete-droite">
+      <div class="ordo-label">Ordonnance</div>
+      <div class="ordo-num">N° ORD-${o.id_ordonnance}</div>
+      <div class="ordo-date">Le ${dateEmission}</div>
+    </div>
+  </div>
+
+  <!-- PATIENT -->
+  <div class="patient-box">
+    <div class="patient-title">Identité du patient</div>
+    <div class="patient-row">
+      <div class="patient-field">
+        <div class="patient-label">Nom & Prénom</div>
+        <div class="patient-val">${patient?.prenom || p?.prenom || '—'} ${patient?.nom || p?.nom || '—'}</div>
+      </div>
+      <div class="patient-field">
+        <div class="patient-label">Âge</div>
+        <div class="patient-val">${age}</div>
+      </div>
+      <div class="patient-field">
+        <div class="patient-label">Sexe</div>
+        <div class="patient-val">${(patient?.genre || p?.genre) === 'M' ? 'Masculin' : 'Féminin'}</div>
+      </div>
+      <div class="patient-field">
+        <div class="patient-label">Groupe sanguin</div>
+        <div class="patient-val">${patient?.groupe_sanguin || 'ND'}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRESCRIPTION -->
+  <div class="rx-section">
+    <div class="rx-symbol">℞</div>
+    ${medsHtml}
+  </div>
+
+  ${o.instructions ? `
+  <div class="instructions">
+    <div class="instr-label">Instructions au patient</div>
+    <div class="instr-text">${o.instructions}</div>
+  </div>` : ''}
+
+  <div class="mention">
+    Ce document est délivré conformément à la législation algérienne en vigueur (Loi n° 85-05 du 16 février 1985, modifiée et complétée).
+    Il est valable pour la date de prescription uniquement. Document confidentiel.
+  </div>
+
+  <!-- PIED -->
+  <div class="pied">
+    <div class="pied-info">
+      Cabinet MediNova · Alger, Algérie<br>
+      N° ORD-${o.id_ordonnance} · ${dateNow}<br>
+      Document médico-légal confidentiel
+    </div>
+    <div class="signature-zone">
+      <div class="signature-space"></div>
+      <div class="signature-line"></div>
+      <div class="signature-label">Cachet & Signature du médecin</div>
+    </div>
+    <div class="cachet-zone">CACHET<br>MÉDECIN</div>
+  </div>
+
+</div>
+
+<div class="no-print">
+  <button class="btn-print" onclick="window.print()">🖨️ Imprimer / PDF</button>
+  <button class="btn-close" onclick="window.close()">Fermer</button>
+</div>
+</body>
+</html>`;
+
+    const w = window.open('', '_blank', 'width=900,height=1000');
+    w?.document.write(html);
+    w?.document.close();
   }
 
   imprimerDossier() {
@@ -460,30 +685,396 @@ Soins infirmiers: ${soins.length}
   }
 
   genererFichePatient() {
-    const p = this.dossierComplet?.patient || this.auth.user;
-    const dos = this.dossierComplet?.dossier;
-    const consultations = this.dossierComplet?.consultations || [];
-    const date = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
-    const consultsHtml = consultations.map((c: any, i: number) => `<tr><td>${i+1}</td><td>${new Date(c.date).toLocaleDateString('fr-FR')}</td><td>${c.diagnostic||'—'}</td><td>${c.traitement||'—'}</td><td>${c.note||'—'}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fiche Patient</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;color:#333;padding:30px}.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0A3D62;padding-bottom:16px;margin-bottom:24px}.logo{font-size:24px;font-weight:900;color:#0A3D62}.logo span{color:#00C9A7}.section{margin-bottom:24px}.section-title{font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#0A3D62;border-left:4px solid #00C9A7;padding-left:12px;margin-bottom:12px}.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.info-box{background:#f8fafc;border-radius:8px;padding:12px;border:1px solid #e2e8f0}.info-label{font-size:10px;font-weight:700;text-transform:uppercase;color:#999;margin-bottom:4px}.info-val{font-size:14px;font-weight:600}.blood{background:#fee2e2;color:#991b1b;padding:4px 12px;border-radius:20px;font-weight:900;font-size:16px}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#0A3D62;color:white;padding:10px;text-align:left;font-size:11px;text-transform:uppercase}td{padding:10px;border-bottom:1px solid #f0f0f0}tr:nth-child(even){background:#f8fafc}.footer{margin-top:30px;border-top:1px solid #e2e8f0;padding-top:12px;display:flex;justify-content:space-between;font-size:11px;color:#999}</style></head><body>
-    <div class="header"><div><div class="logo">Medi<span>Nova</span></div><div style="font-size:12px;color:#999;margin-top:4px">Cabinet médical · Alger</div></div><div style="text-align:right"><div style="font-size:18px;font-weight:700;color:#0A3D62">FICHE PATIENT COMPLÈTE</div><div style="font-size:12px;color:#999">N° DM-${dos?.id_dossier||'—'} · ${date}</div></div></div>
-    <div class="section"><div class="section-title">Informations personnelles</div><div class="info-grid"><div class="info-box"><div class="info-label">Nom complet</div><div class="info-val">${p?.prenom||''} ${p?.nom||''}</div></div><div class="info-box"><div class="info-label">Date de naissance</div><div class="info-val">${p?.date_naissance||'—'}</div></div><div class="info-box"><div class="info-label">Genre</div><div class="info-val">${p?.genre==='M'?'♂ Masculin':'♀ Féminin'}</div></div><div class="info-box"><div class="info-label">Téléphone</div><div class="info-val">${p?.telephone||'—'}</div></div><div class="info-box"><div class="info-label">Email</div><div class="info-val">${p?.email||'—'}</div></div><div class="info-box"><div class="info-label">Groupe sanguin</div><div class="info-val"><span class="blood">${p?.groupe_sanguin||'ND'}</span></div></div></div></div>
-    ${p?.allergies?`<div class="section"><div class="section-title">⚠️ Allergies</div><div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px">${p.allergies}</div></div>`:''}
-    ${p?.antecedents_medicaux?`<div class="section"><div class="section-title">Antécédents médicaux</div><div class="info-box">${p.antecedents_medicaux}</div></div>`:''}
-    <div class="section"><div class="section-title">Historique des consultations (${consultations.length})</div>${consultations.length>0?`<table><thead><tr><th>#</th><th>Date</th><th>Diagnostic</th><th>Traitement</th><th>Notes</th></tr></thead><tbody>${consultsHtml}</tbody></table>`:'<p style="color:#999;font-style:italic">Aucune consultation.</p>'}</div>
-    <div class="footer"><span>Cabinet MediNova · Alger</span><span>Document confidentiel — Loi 18-07</span><span>N° DM-${dos?.id_dossier||'—'}</span></div>
-    <script>setTimeout(()=>window.print(),500);</script></body></html>`;
-    const w = window.open('', '_blank'); w?.document.write(html); w?.document.close();
+    const patientData = this.dossierComplet?.patient || this.auth.user;
+    this._genFiche(patientData);
+  }
+
+  _genFiche(p: any) {
+    const dos          = this.dossierComplet?.dossier;
+    const consultations= this.dossierComplet?.consultations || [];
+    const dateNow      = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+
+    let age = '—';
+    if (p?.date_naissance) {
+      const diff = Date.now() - new Date(p.date_naissance).getTime();
+      age = Math.floor(diff / (365.25 * 24 * 3600 * 1000)) + ' ans';
+    }
+
+    const dnFormatted = p?.date_naissance
+      ? new Date(p.date_naissance).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })
+      : '—';
+
+    const consultsRows = consultations.map((c: any, i: number) => `
+      <tr>
+        <td class="tc">${i+1}</td>
+        <td>${c.date ? new Date(c.date).toLocaleDateString('fr-FR') : '—'}</td>
+        <td>${c.diagnostic || '—'}</td>
+        <td>${c.traitement  || '—'}</td>
+        <td class="tn">${c.note || '—'}</td>
+      </tr>`).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Fiche Patient — ${p?.prenom || ''} ${p?.nom || ''}</title>
+<style>
+  @page { size:A4; margin:0 }
+  *{ margin:0; padding:0; box-sizing:border-box }
+  body{ font-family:'Times New Roman',Times,serif; font-size:11pt; color:#000; background:#fff }
+  .page{ width:210mm; min-height:297mm; padding:16mm 18mm 40mm }
+
+  /* EN-TÊTE */
+  .hd{ display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #000; padding-bottom:10mm; margin-bottom:8mm }
+  .hd-logo-name{ font-size:22pt; font-weight:bold; letter-spacing:.5px; text-transform:uppercase }
+  .hd-logo-sub { font-size:10pt; color:#444; margin-top:2mm }
+  .hd-right    { text-align:right }
+  .hd-doc-title{ font-size:16pt; font-weight:bold; text-transform:uppercase; letter-spacing:1px }
+  .hd-doc-ref  { font-size:10pt; color:#555; margin-top:2mm }
+  .hd-doc-date { font-size:10pt; color:#555; margin-top:1mm }
+
+  /* SECTION */
+  .sec       { margin-bottom:8mm }
+  .sec-title { font-size:9pt; font-weight:bold; text-transform:uppercase; letter-spacing:.8px; color:#000; border-left:4px solid #000; padding-left:4mm; margin-bottom:4mm }
+
+  /* INFOS PATIENT */
+  .info-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:3mm }
+  .info-box { border:1px solid #ccc; padding:3mm 4mm }
+  .info-lbl { font-size:8pt; color:#666; text-transform:uppercase; letter-spacing:.5px; margin-bottom:1mm }
+  .info-val { font-size:11pt; font-weight:bold }
+  .blood-val{ display:inline-block; background:#000; color:#fff; padding:1mm 4mm; font-size:12pt; font-weight:bold }
+
+  /* ALERTES */
+  .alert-box{ border:1.5px solid #000; padding:4mm 5mm; margin-bottom:5mm }
+  .alert-lbl{ font-size:9pt; font-weight:bold; text-transform:uppercase; letter-spacing:.5px; margin-bottom:2mm }
+  .alert-txt{ font-size:11pt; line-height:1.6 }
+
+  /* TABLE */
+  table{ width:100%; border-collapse:collapse; font-size:10pt }
+  th{ background:#000; color:#fff; padding:3mm 4mm; text-align:left; font-size:9pt; text-transform:uppercase; letter-spacing:.3px }
+  td{ padding:3mm 4mm; border-bottom:1px solid #e0e0e0; vertical-align:top }
+  tr:nth-child(even) td{ background:#f8f8f8 }
+  .tc{ text-align:center; font-weight:bold }
+  .tn{ font-style:italic; color:#555 }
+
+  /* PIED */
+  .footer{ position:absolute; bottom:16mm; left:18mm; right:18mm; border-top:1px solid #000; padding-top:4mm; display:flex; justify-content:space-between; font-size:9pt; color:#555 }
+
+  /* NO PRINT */
+  .no-print{ position:fixed; bottom:20px; right:20px; display:flex; gap:10px; font-family:Arial,sans-serif }
+  .btn-p{ background:#000; color:#fff; border:none; padding:12px 24px; border-radius:4px; font-size:14px; font-weight:700; cursor:pointer }
+  .btn-c{ background:#fff; color:#000; border:1px solid #ccc; padding:12px 20px; border-radius:4px; font-size:14px; cursor:pointer }
+
+  @media print{ .no-print{ display:none } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hd">
+    <div>
+      <div class="hd-logo-name">MediNova</div>
+      <div class="hd-logo-sub">Cabinet médical · Alger, Algérie<br>Tél : +213 21 XX XX XX</div>
+    </div>
+    <div class="hd-right">
+      <div class="hd-doc-title">Fiche Patient Complète</div>
+      <div class="hd-doc-ref">N° DM-${dos?.id_dossier || '—'}</div>
+      <div class="hd-doc-date">${dateNow}</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">Informations personnelles</div>
+    <div class="info-grid">
+      <div class="info-box">
+        <div class="info-lbl">Nom complet</div>
+        <div class="info-val">${p?.prenom || '—'} ${p?.nom || '—'}</div>
+      </div>
+      <div class="info-box">
+        <div class="info-lbl">Date de naissance</div>
+        <div class="info-val">${dnFormatted}</div>
+      </div>
+      <div class="info-box">
+        <div class="info-lbl">Âge</div>
+        <div class="info-val">${age}</div>
+      </div>
+      <div class="info-box">
+        <div class="info-lbl">Genre</div>
+        <div class="info-val">${(p?.genre) === 'M' ? 'Masculin' : 'Féminin'}</div>
+      </div>
+      <div class="info-box">
+        <div class="info-lbl">Téléphone</div>
+        <div class="info-val">${p?.telephone || '—'}</div>
+      </div>
+      <div class="info-box">
+        <div class="info-lbl">Groupe sanguin</div>
+        <div class="info-val"><span class="blood-val">${p?.groupe_sanguin || 'ND'}</span></div>
+      </div>
+      <div class="info-box" style="grid-column:1/-1">
+        <div class="info-lbl">Adresse</div>
+        <div class="info-val">${p?.adresse || '—'}</div>
+      </div>
+      <div class="info-box" style="grid-column:1/-1">
+        <div class="info-lbl">Email</div>
+        <div class="info-val">${p?.email || '—'}</div>
+      </div>
+    </div>
+  </div>
+
+  ${p?.allergies ? `
+  <div class="sec">
+    <div class="sec-title">Allergies connues</div>
+    <div class="alert-box">
+      <div class="alert-txt">${p.allergies}</div>
+    </div>
+  </div>` : ''}
+
+  ${p?.antecedents_medicaux ? `
+  <div class="sec">
+    <div class="sec-title">Antécédents médicaux</div>
+    <div class="alert-box">
+      <div class="alert-txt">${p.antecedents_medicaux}</div>
+    </div>
+  </div>` : ''}
+
+  <div class="sec">
+    <div class="sec-title">Historique des consultations (${consultations.length})</div>
+    ${consultations.length > 0 ? `
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Diagnostic</th>
+          <th>Traitement</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>${consultsRows}</tbody>
+    </table>` : '<p style="font-style:italic;color:#888">Aucune consultation enregistrée.</p>'}
+  </div>
+
+  <div class="footer">
+    <span>Cabinet MediNova · Alger</span>
+    <span>Document confidentiel — Loi 18-07</span>
+    <span>N° DM-${dos?.id_dossier || '—'} · ${dateNow}</span>
+  </div>
+
+</div>
+<div class="no-print">
+  <button class="btn-p" onclick="window.print()">Imprimer / PDF</button>
+  <button class="btn-c" onclick="window.close()">Fermer</button>
+</div>
+</body></html>`;
+
+    const w = window.open('', '_blank', 'width=900,height=1000');
+    w?.document.write(html);
+    w?.document.close();
   }
 
   genererCartePatient() {
-    const p = this.dossierComplet?.patient || this.auth.user;
+    // Utilise les données du dossier si disponibles, sinon auth.user
+    const patientData = this.dossierComplet?.patient || this.auth.user;
+    this._genCarte(patientData);
+  }
+
+  _genCarte(p: any) {
     const dos = this.dossierComplet?.dossier;
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Carte Patient</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;display:flex;align-items:center;justify-content:center;min-height:100vh}.carte{width:340px;background:linear-gradient(135deg,#0A3D62 0%,#1a5c8a 60%,#00C9A7 100%);border-radius:16px;padding:20px;color:white;box-shadow:0 8px 32px rgba(0,0,0,.3);position:relative;overflow:hidden}.logo{font-size:18px;font-weight:900}.logo span{color:#b3f0e8}.badge{background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:1px}.avatar{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;margin-bottom:8px}.nom{font-size:16px;font-weight:900}.info-row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}.info-box{background:rgba(255,255,255,.12);border-radius:6px;padding:5px 10px}.info-label{font-size:8px;opacity:.7;text-transform:uppercase}.info-val{font-size:12px;font-weight:700}.blood{background:#e74c3c;padding:2px 8px;border-radius:12px;font-size:13px;font-weight:900}@media print{body{background:white}.carte{box-shadow:none}}</style></head><body>
-    <div class="carte"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div class="logo">Medi<span>Nova</span></div><div class="badge">CARTE PATIENT</div></div><div class="avatar">${(p?.prenom||'?')[0]}${(p?.nom||'')[0]}</div><div class="nom">${p?.prenom||''} ${p?.nom||''}</div><div style="font-size:11px;opacity:.75;margin-top:2px">${p?.email||''}</div><div class="info-row"><div class="info-box"><div class="info-label">Groupe sanguin</div><div><span class="blood">${p?.groupe_sanguin||'ND'}</span></div></div><div class="info-box"><div class="info-label">Téléphone</div><div class="info-val">${p?.telephone||'—'}</div></div><div class="info-box"><div class="info-label">Genre</div><div class="info-val">${p?.genre==='M'?'♂':'♀'}</div></div></div>${p?.allergies?`<div style="margin-top:8px;font-size:10px;background:rgba(231,76,60,.3);padding:3px 8px;border-radius:4px">⚠️ ${p.allergies}</div>`:''}<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px"><div style="font-size:10px;opacity:.7">N° DM-${dos?.id_dossier||'—'}<br>Cabinet MediNova · Alger</div><div style="font-size:9px;opacity:.6;text-align:right">Confidentiel<br>Loi 18-07</div></div></div>
-    <script>setTimeout(()=>window.print(),500);</script></body></html>`;
-    const w = window.open('', '_blank'); w?.document.write(html); w?.document.close();
-  }  uploadPhoto(event: any) {
+    const initiales = ((p?.prenom||'?')[0] + (p?.nom||'?')[0]).toUpperCase();
+    let age = '—';
+    if (p?.date_naissance) {
+      const diff = Date.now() - new Date(p.date_naissance).getTime();
+      age = Math.floor(diff / (365.25 * 24 * 3600 * 1000)) + ' ans';
+    }
+    const dnFormatted = p?.date_naissance
+      ? new Date(p.date_naissance).toLocaleDateString('fr-FR')
+      : '—';
+
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Carte Patient — MediNova</title>
+<style>
+  *{ margin:0; padding:0; box-sizing:border-box }
+  body{
+    font-family: Arial, Helvetica, sans-serif;
+    background: #e8e8e8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 24px;
+    padding: 40px 20px;
+  }
+  .label{ font-size:11px; color:#666; }
+
+  /* Carte 85.6mm × 54mm → 323px × 204px @96dpi */
+  .carte, .verso{
+    width: 323px; height: 204px;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* RECTO */
+  .carte{ background: #1B4F8A; color: white; padding: 18px 20px; }
+  .c-orb1{
+    position:absolute; top:-40px; right:-40px;
+    width:120px; height:120px; border-radius:50%;
+    background:rgba(255,255,255,.06);
+  }
+  .c-orb2{
+    position:absolute; bottom:-28px; left:16px;
+    width:80px; height:80px; border-radius:50%;
+    background:rgba(255,255,255,.04);
+  }
+  .c-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; position:relative; z-index:1 }
+  .c-logo{ display:flex; align-items:center; gap:7px; font-size:14px; font-weight:700; }
+  .c-logo-icon{
+    width:24px; height:24px; background:rgba(255,255,255,.15);
+    border:1px solid rgba(255,255,255,.25); border-radius:5px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:900; line-height:1;
+  }
+  .c-badge{
+    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2);
+    padding:2px 8px; border-radius:20px;
+    font-size:7px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+  }
+  .c-patient{ display:flex; align-items:center; gap:10px; margin-bottom:10px; position:relative; z-index:1 }
+  .c-ava{
+    width:38px; height:38px; border-radius:50%;
+    background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.35);
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700; flex-shrink:0;
+  }
+  .c-nom{ font-size:13px; font-weight:700; margin-bottom:2px; }
+  .c-email{ font-size:8.5px; opacity:.65; }
+  .c-fields{ display:flex; gap:6px; position:relative; z-index:1 }
+  .c-field{
+    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15);
+    border-radius:5px; padding:5px 8px; flex:1;
+  }
+  .c-field-lbl{ font-size:6.5px; opacity:.6; text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px }
+  .c-field-val{ font-size:10px; font-weight:700 }
+  .c-blood{ background:#8B1B1B; border-color:transparent; text-align:center; min-width:42px }
+  .c-blood .c-field-val{ font-size:12px; }
+  .c-footer{
+    position:absolute; bottom:12px; left:20px; right:20px;
+    display:flex; justify-content:space-between; align-items:flex-end;
+    border-top:1px solid rgba(255,255,255,.12); padding-top:6px;
+    z-index:1;
+  }
+  .c-ref{ font-size:7.5px; opacity:.4; line-height:1.6 }
+  .c-loi{ font-size:7px; opacity:.35; text-align:right; line-height:1.6 }
+
+  /* VERSO */
+  .verso{ background:#fff; border:1px solid #ddd; }
+  .v-stripe{ width:100%; height:32px; background:#111; margin-top:20px; margin-bottom:14px }
+  .v-body{ padding:0 18px }
+  .v-lbl{ font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#777; margin-bottom:5px }
+  .v-sig{ border-bottom:1px solid #ccc; height:28px; margin-bottom:10px }
+  .v-info{ display:flex; justify-content:space-between; align-items:flex-end }
+  .v-clinic{ font-size:8.5px; color:#555; line-height:1.8 }
+  .v-clinic strong{ color:#000; font-size:9.5px }
+  .v-badge{ background:#1B4F8A; color:white; padding:3px 8px; border-radius:3px; font-size:7.5px; font-weight:700; letter-spacing:.4px }
+  .v-shield{
+    position:absolute; bottom:10px; right:14px;
+    font-size:20px; color:#ddd;
+  }
+
+  .no-print{ display:flex; gap:10px; font-family:Arial,sans-serif }
+  .btn-p{ background:#1B4F8A; color:#fff; border:none; padding:10px 22px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer }
+  .btn-c{ background:#fff; color:#000; border:1px solid #ccc; padding:10px 18px; border-radius:6px; font-size:13px; cursor:pointer }
+
+  @media print{
+    body{ background:#fff; gap:8mm; padding:10mm }
+    .no-print{ display:none }
+    .carte,.verso{ box-shadow:none }
+  }
+</style>
+</head>
+<body>
+
+<p class="label">Recto</p>
+
+<div class="carte">
+  <div class="c-orb1"></div>
+  <div class="c-orb2"></div>
+
+  <div class="c-top">
+    <div class="c-logo">
+      <div class="c-logo-icon">+</div>
+      MediNova
+    </div>
+    <div class="c-badge">Carte Patient</div>
+  </div>
+
+  <div class="c-patient">
+    <div class="c-ava">${initiales}</div>
+    <div>
+      <div class="c-nom">${p?.prenom || '—'} ${p?.nom || '—'}</div>
+      <div class="c-email">${p?.email || '—'}</div>
+    </div>
+  </div>
+
+  <div class="c-fields">
+    <div class="c-field">
+      <div class="c-field-lbl">Naissance</div>
+      <div class="c-field-val">${dnFormatted}</div>
+    </div>
+    <div class="c-field">
+      <div class="c-field-lbl">Âge</div>
+      <div class="c-field-val">${age}</div>
+    </div>
+    <div class="c-field c-blood">
+      <div class="c-field-lbl">Groupe</div>
+      <div class="c-field-val">${p?.groupe_sanguin || 'ND'}</div>
+    </div>
+    <div class="c-field" style="text-align:center;min-width:36px">
+      <div class="c-field-lbl">Sexe</div>
+      <div class="c-field-val">${(p?.genre) === 'M' ? 'M' : 'F'}</div>
+    </div>
+  </div>
+
+  <div class="c-footer">
+    <div class="c-ref">N° DM-${dos?.id_dossier || '—'}<br>Cabinet MediNova · Alger</div>
+    <div class="c-loi">Confidentiel<br>Loi 18-07</div>
+  </div>
+</div>
+
+<p class="label">Verso</p>
+
+<div class="verso">
+  <div class="v-stripe"></div>
+  <div class="v-body">
+    <div class="v-lbl">Signature du titulaire</div>
+    <div class="v-sig"></div>
+    <div class="v-info">
+      <div class="v-clinic">
+        <strong>Cabinet MediNova</strong><br>
+        Alger, Algérie
+      </div>
+      <div class="v-badge">Loi 18-07</div>
+    </div>
+  </div>
+</div>
+
+<div class="no-print">
+  <button class="btn-p" onclick="window.print()">Imprimer</button>
+  <button class="btn-c" onclick="window.close()">Fermer</button>
+</div>
+
+</body></html>`;
+
+    const w = window.open('', '_blank', 'width=560,height=760');
+    w?.document.write(html);
+    w?.document.close();
+  }
+
+    uploadPhoto(event: any) {
     const file = event.target.files[0];
     if (!file) return;
     if (file.size > 1024 * 1024) { this.toast.error('Image trop grande (max 1MB)'); return; }
@@ -538,9 +1129,8 @@ Soins infirmiers: ${soins.length}
     }
     this.loading["rdv-form"] = true;
 
-    // rdvHeure contient en réalité l'id_disponibilite sélectionné
-    const dispo = this.rdvDispos.find(d => String(d.id_disponibilite) === String(this.rdvHeure));
-    const heureRdv = dispo ? dispo.heure_debut : "08:00";
+    // Utiliser l'heure exacte du slot sélectionné
+    const heureRdv = this.rdvSlotSelected?.heure || "08:00";
 
     this.api.prendreRdv({
       id_patient: this.auth.userId(),
@@ -597,6 +1187,27 @@ Soins infirmiers: ${soins.length}
     });
   }
 
+  sauvegarderMedical() {
+    this.medicalLoading = true;
+    this.medicalError = "";
+    this.api.updateMedical(this.auth.userId(), {
+      groupe_sanguin:      this.profilGroupeSanguin,
+      date_naissance:      this.profilDateNaissance,
+      adresse:             this.profilAdresse,
+      allergies:           this.profilAllergies,
+      antecedents_medicaux: this.profilAntecedents,
+    }).subscribe({
+      next: () => {
+        this.medicalLoading = false;
+        this.medicalSuccess = "Informations médicales mises à jour.";
+        this.chargerDonneesMedicales();
+        this.chargerDossier();
+        setTimeout(() => this.medicalSuccess = "", 4000);
+      },
+      error: e => { this.medicalLoading = false; this.medicalError = e.error?.message || "Erreur sauvegarde."; }
+    });
+  }
+
   changerMotDePasse() {
     this.pwError = ""; this.pwSuccess = "";
     if (!this.pwAncien || !this.pwNouveau || !this.pwConfirm) { this.pwError = "Tous les champs sont obligatoires."; return; }
@@ -607,6 +1218,13 @@ Soins infirmiers: ${soins.length}
       next: () => { this.pwLoading = false; this.pwSuccess = "Mot de passe changé !"; this.pwAncien = ""; this.pwNouveau = ""; this.pwConfirm = ""; },
       error: e => { this.pwLoading = false; this.pwError = e.error?.message || "Ancien mot de passe incorrect."; }
     });
+  }
+
+  getAge(): string {
+    const dn = this.patientMedical?.date_naissance || this.dossierComplet?.patient?.date_naissance;
+    if (!dn) return '—';
+    const diff = Date.now() - new Date(dn).getTime();
+    return Math.floor(diff / (365.25 * 24 * 3600 * 1000)) + ' ans';
   }
 
   countRdvStatut(s: string): number { return this.rdvList.filter(r => r.statut?.toLowerCase() === s).length; }

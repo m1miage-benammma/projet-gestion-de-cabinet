@@ -50,6 +50,18 @@ Route::get('/ordonnance-publique/{id}', function (int $id) {
     return response()->json(array_merge((array)$o, ['medicaments' => $meds]));
 });
 
+// RDV récents pour la home page (public)
+Route::get('/rdv-recents', function () {
+    $rdvs = DB::table('rendez_vous as rv')
+        ->join('utilisateurs as u', 'rv.id_patient', '=', 'u.id_utilisateur')
+        ->whereNotIn('rv.statut', ['annule'])
+        ->orderBy('rv.date_rdv', 'desc')
+        ->limit(5)
+        ->select('rv.date_rdv', 'rv.heure_rdv', 'rv.motif', 'rv.statut', 'u.nom', 'u.prenom')
+        ->get();
+    return response()->json($rdvs);
+});
+
 // Route contact publique (sans auth)
 Route::post('/contact', function (Request $r) {
     DB::table('messages_contact')->insert([
@@ -157,21 +169,43 @@ Route::middleware('auth.middleware')->group(function () {
     // ── Profil utilisateur ────────────────────────────────────────
     Route::get('/utilisateurs/{id}',              [UtilisateurController::class, 'show']);
     Route::put('/utilisateurs/{id}',              [UtilisateurController::class, 'update']);
+    Route::patch('/patients/{id}/medical', function(\Illuminate\Http\Request $r, int $id) {
+        $data = [];
+        if ($r->has('groupe_sanguin'))      $data['groupe_sanguin']      = $r->groupe_sanguin;
+        if ($r->has('date_naissance'))      $data['date_naissance']      = $r->date_naissance ?: null;
+        if ($r->has('adresse'))             $data['adresse']             = $r->adresse;
+        if ($r->has('allergies'))           $data['allergies']           = $r->allergies;
+        if ($r->has('antecedents_medicaux')) $data['antecedents_medicaux'] = $r->antecedents_medicaux;
+        if (!empty($data)) {
+            \Illuminate\Support\Facades\DB::table('patients')
+                ->where('id_utilisateur', $id)
+                ->update($data);
+        }
+        return response()->json(['message' => 'Infos médicales mises à jour.']);
+    });
     Route::put('/utilisateurs/{id}/mot-de-passe', [UtilisateurController::class, 'changerMotDePasse']);
 
     // ── Patients ──────────────────────────────────────────────────
     // Patients du médecin connecté (seulement ceux qui ont eu un RDV avec lui)
     // ── FACTURATION ───────────────────────────────────────────────
     Route::get('/factures', function (Request $r) {
-        $idMed = (int) $r->attributes->get('id_utilisateur');
         if (!Schema::hasTable('factures')) return response()->json([]);
-        return response()->json(
-            DB::table('factures as f')
-                ->leftJoin('utilisateurs as u', 'u.id_utilisateur', '=', 'f.id_patient')
-                ->where('f.id_medecin', $idMed)
-                ->select('f.*', DB::raw("CONCAT(u.prenom,' ',u.nom) as nom_patient"))
-                ->orderBy('f.created_at', 'desc')->get()
-        );
+        $factures = DB::table('factures as f')
+            ->leftJoin('utilisateurs as u', 'u.id_utilisateur', '=', 'f.id_patient')
+            ->leftJoin('utilisateurs as m', 'm.id_utilisateur', '=', 'f.id_medecin')
+            ->select('f.*',
+                DB::raw("CONCAT(u.prenom,' ',u.nom) as patient_nom_complet"),
+                DB::raw("CONCAT(m.prenom,' ',m.nom) as medecin_nom_complet"))
+            ->orderBy('f.created_at', 'desc')
+            ->get()
+            ->map(function($f) {
+                // Use patient_nom_complet if nom_patient is null
+                if (empty($f->nom_patient)) {
+                    $f->nom_patient = $f->patient_nom_complet;
+                }
+                return $f;
+            });
+        return response()->json($factures);
     });
 
     Route::post('/factures', function (Request $r) {
@@ -194,7 +228,7 @@ Route::middleware('auth.middleware')->group(function () {
         // Notifier le patient
         DB::table('notifications')->insert([
             'id_utilisateur' => (int) $r->input('id_patient'),
-            'message' => "💰 Nouvelle facture de {$med?->prenom} {$med?->nom} : " . number_format((float)$r->input('montant'), 0, ',', ' ') . " DA",
+            'message' => "Nouvelle facture de {$med?->prenom} {$med?->nom} : " . number_format((float)$r->input('montant'), 0, ',', ' ') . " DA",
             'type' => 'facture', 'lu' => false, 'created_at' => now(), 'updated_at' => now(),
         ]);
         return response()->json(['id' => $id, 'message' => 'Facture créée.']);
@@ -573,7 +607,17 @@ Route::middleware('auth.middleware')->group(function () {
             ]);
             $dossier = DB::table('dossiers_medicaux')->where('id_dossier', $id)->first();
         }
-        return response()->json($dossier);
+        // Enrichir avec les données médicales du patient
+        $patient = DB::table('utilisateurs as u')
+            ->join('patients as p', 'p.id_utilisateur', '=', 'u.id_utilisateur')
+            ->where('u.id_utilisateur', $idUtilisateur)
+            ->select('u.nom','u.prenom','u.email','u.telephone','u.genre',
+                     'p.date_naissance','p.groupe_sanguin','p.adresse',
+                     'p.allergies','p.antecedents_medicaux','p.numero_cni')
+            ->first();
+        $result = (array) $dossier;
+        $result['patient'] = $patient;
+        return response()->json($result);
     });
 
     // ── Consultations ─────────────────────────────────────────────
@@ -593,10 +637,6 @@ Route::middleware('auth.middleware')->group(function () {
     Route::post('/ordonnances',                  [OrdonnanceController::class, 'store']);
     Route::get('/ordonnances/patient/{id}',      [OrdonnanceController::class, 'byPatient']);
     Route::get('/ordonnances/consultation/{id}', [OrdonnanceController::class, 'byConsultation']);
-    Route::get('/ordonnances/{id}',              [OrdonnanceController::class, 'show']);
-    Route::put('/ordonnances/{id}',              [OrdonnanceController::class, 'update']);
-
-    // Ordonnances par id_utilisateur du patient
     Route::get('/ordonnances/utilisateur/{id}', function (int $id) {
         $dossier = DB::table('dossiers_medicaux')->where('id_patient', $id)->first();
         if (!$dossier) return response()->json([]);
@@ -616,6 +656,10 @@ Route::middleware('auth.middleware')->group(function () {
         }
         return response()->json($result);
     });
+    Route::get('/ordonnances/{id}',              [OrdonnanceController::class, 'show']);
+    Route::put('/ordonnances/{id}',              [OrdonnanceController::class, 'update']);
+
+    // Ordonnances par id_utilisateur du patient
 
     // ── Médicaments ───────────────────────────────────────────────
     Route::post('/medicaments',                [MedicamentController::class, 'store']);
@@ -624,9 +668,9 @@ Route::middleware('auth.middleware')->group(function () {
 
     // ── Soins ─────────────────────────────────────────────────────
     Route::post('/soins',                [SoinsController::class, 'store']);
-    Route::get('/soins/{id}',            [SoinsController::class, 'show']);
     Route::get('/soins/patient/{id}',    [SoinsController::class, 'byPatient']);
     Route::get('/soins/infirmiere/{id}', [SoinsController::class, 'byInfirmiere']);
+    Route::get('/soins/{id}',            [SoinsController::class, 'show']);
 
     // Soins du patient connecté
     Route::get('/mes-soins-patient', function (Request $r) {
@@ -681,24 +725,32 @@ Route::middleware('auth.middleware')->group(function () {
             return response()->json(['message' => 'Service IA non configuré.'], 500);
         }
 
-        $client = new \GuzzleHttp\Client();
-        $response = $client->post('https://api.groq.com/openai/v1/chat/completions', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $apiKey,
-                'Content-Type'  => 'application/json',
+        $payload = json_encode([
+            'model'      => 'llama-3.1-8b-instant',
+            'max_tokens' => 1000,
+            'messages' => [
+                ['role' => 'system', 'content' => 'Tu es un assistant medical algerien. Reponds UNIQUEMENT en JSON valide sans markdown. Format: {"urgence":"FAIBLE|MOYENNE|HAUTE","specialite":"nom","diagnostic_possible":"desc","recommandations":["conseil"],"medicaments":["med"],"avertissement":"Analyse indicative."} Si charabia retourne {"erreur":true,"message":"Decrivez vos symptomes en francais"}'],
+                ['role' => 'user', 'content' => "Symptomes: {$symptomes}"]
             ],
-            'json' => [
-                'model'      => 'llama-3.1-8b-instant',
-                'max_tokens' => 1000,
-                'messages' => [
-                    ['role' => 'system', 'content' => 'Tu es un assistant medical algerien. Reponds UNIQUEMENT en JSON valide sans markdown. Format: {"urgence":"FAIBLE|MOYENNE|HAUTE","specialite":"nom","diagnostic_possible":"desc","recommandations":["conseil"],"medicaments":["med"],"avertissement":"Analyse indicative."} Si charabia retourne {"erreur":true,"message":"Decrivez vos symptomes en francais"}'],
-                    ['role' => 'user', 'content' => "Symptomes: {$symptomes}"]
-                ],
-            ],
-            'http_errors' => false,
         ]);
 
-        $body = json_decode($response->getBody()->getContents(), true);
+        $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json',
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $body = json_decode($response, true);
+        if (!$body || isset($body['error'])) {
+            \Illuminate\Support\Facades\Log::error('Groq error: ' . $response);
+            return response()->json(['erreur' => true, 'message' => $body['error']['message'] ?? 'Erreur Groq.']);
+        }
         $text = $body['choices'][0]['message']['content'] ?? '{"erreur":true,"message":"Erreur analyse."}';
         $clean = preg_replace('/```json|```/', '', $text);
         $result = json_decode(trim($clean), true);
@@ -713,17 +765,166 @@ Route::middleware('auth.middleware')->group(function () {
         $ordonnance   = DB::table('ordonnances')->where('id_ordonnance', $idOrdonnance)->first();
         if (!$ordonnance) return response()->json(['message' => 'Ordonnance introuvable.'], 404);
 
-        \Illuminate\Support\Facades\Log::info("Ordonnance #{$idOrdonnance} envoyée à {$email}");
+        $medicaments = DB::table('medicaments')->where('id_ordonnance', $idOrdonnance)->get();
 
-        DB::table('notifications')->insert([
-            'id_utilisateur' => $r->attributes->get('id_utilisateur'),
-            'message'        => "Ordonnance ORD-{$idOrdonnance} envoyée par email à {$email}.",
-            'type'           => 'ordonnance_envoyee',
-            'lu'             => false,
-            'created_at'     => now(), 'updated_at' => now(),
-        ]);
+        try {
+            // Récupérer infos médecin via consultation → ordonnance
+            $infos = DB::table('ordonnances as o')
+                ->join('consultations as c', 'c.id_consultation', '=', 'o.id_consultation')
+                ->join('utilisateurs as m', 'c.id_medecin', '=', 'm.id_utilisateur')
+                ->where('o.id_ordonnance', $idOrdonnance)
+                ->select('m.nom as med_nom', 'm.prenom as med_prenom')
+                ->first();
 
-        return response()->json(['message' => "Ordonnance envoyée à {$email}."]);
+            // Récupérer infos patient via email
+            $patient = DB::table('utilisateurs')->where('email', $email)->first();
+
+            $medecinNom = $infos ? "Dr. {$infos->med_prenom} {$infos->med_nom}" : "Votre médecin";
+            $patientNom = $patient ? "{$patient->prenom} {$patient->nom}" : $email;
+
+            $medsRows = '';
+            foreach ($medicaments as $med) {
+                $medsRows .= "
+                <tr>
+                  <td style='padding:10px 16px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#1a1a2e;'>{$med->nom}</td>
+                  <td style='padding:10px 16px;border-bottom:1px solid #f0f0f0;color:#555;'>{$med->dosage}</td>
+                  <td style='padding:10px 16px;border-bottom:1px solid #f0f0f0;color:#555;'>{$med->duree}</td>
+                </tr>";
+            }
+
+            $body = "
+<!DOCTYPE html>
+<html lang='fr'>
+<head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'></head>
+<body style='margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;'>
+  <table width='100%' cellpadding='0' cellspacing='0' style='background:#f4f6f9;padding:40px 0;'>
+    <tr><td align='center'>
+      <table width='600' cellpadding='0' cellspacing='0' style='background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);'>
+
+        <!-- HEADER -->
+        <tr>
+          <td style='background:linear-gradient(135deg,#c0392b 0%,#922b21 100%);padding:32px 40px;text-align:center;'>
+            <h1 style='margin:0;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:2px;'>MediNova</h1>
+            <p style='margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;letter-spacing:1px;'>CABINET MÉDICAL · ALGER</p>
+          </td>
+        </tr>
+
+        <!-- BADGE ORDONNANCE -->
+        <tr>
+          <td style='background:#fdf2f2;padding:20px 40px;border-bottom:2px solid #f5c6c6;'>
+            <table width='100%'><tr>
+              <td>
+                <span style='background:#c0392b;color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:1px;'>ORDONNANCE MÉDICALE</span>
+                <h2 style='margin:10px 0 4px;color:#1a1a2e;font-size:20px;'>ORD-{$idOrdonnance}</h2>
+                <p style='margin:0;color:#666;font-size:13px;'>Émise le {$ordonnance->date_emission}</p>
+              </td>
+              <td align='right'>
+                <p style='margin:0;color:#555;font-size:13px;'><strong>Prescrit par</strong></p>
+                <p style='margin:4px 0 0;color:#c0392b;font-size:15px;font-weight:700;'>{$medecinNom}</p>
+              </td>
+            </tr></table>
+          </td>
+        </tr>
+
+        <!-- PATIENT -->
+        <tr>
+          <td style='padding:24px 40px 0;'>
+            <table width='100%' style='background:#f8f9fa;border-radius:8px;padding:16px;border-left:4px solid #c0392b;'>
+              <tr>
+                <td>
+                  <p style='margin:0;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px;'>Patient</p>
+                  <p style='margin:6px 0 0;font-size:17px;font-weight:700;color:#1a1a2e;'>{$patientNom}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- MEDICAMENTS -->
+        <tr>
+          <td style='padding:24px 40px 0;'>
+            <p style='margin:0 0 12px;font-size:13px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:1px;'>Médicaments prescrits</p>
+            <table width='100%' style='border-radius:8px;overflow:hidden;border:1px solid #f0f0f0;'>
+              <tr style='background:#f8f9fa;'>
+                <th style='padding:10px 16px;text-align:left;font-size:12px;color:#666;font-weight:600;text-transform:uppercase;'>Médicament</th>
+                <th style='padding:10px 16px;text-align:left;font-size:12px;color:#666;font-weight:600;text-transform:uppercase;'>Dosage</th>
+                <th style='padding:10px 16px;text-align:left;font-size:12px;color:#666;font-weight:600;text-transform:uppercase;'>Durée</th>
+              </tr>
+              {$medsRows}
+            </table>
+          </td>
+        </tr>
+
+        <!-- INSTRUCTIONS -->
+        <tr>
+          <td style='padding:20px 40px 0;'>
+            <p style='margin:0 0 8px;font-size:13px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:1px;'>Instructions</p>
+            <p style='margin:0;font-size:14px;color:#444;line-height:1.6;background:#fffbf0;border-radius:8px;padding:14px 16px;border-left:3px solid #f39c12;'>{$ordonnance->instructions}</p>
+          </td>
+        </tr>
+
+        <!-- WARNING -->
+        <tr>
+          <td style='padding:20px 40px;'>
+            <p style='margin:0;font-size:12px;color:#999;background:#f8f9fa;padding:12px 16px;border-radius:8px;line-height:1.5;'>
+              ⚠️ Ce document est strictement confidentiel et destiné uniquement au patient mentionné. Ne pas partager sans autorisation médicale.
+            </p>
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style='background:#1a1a2e;padding:24px 40px;text-align:center;'>
+            <p style='margin:0;color:rgba(255,255,255,0.5);font-size:12px;'>© 2026 MediNova — Cabinet Médical · Alger</p>
+            <p style='margin:6px 0 0;color:rgba(255,255,255,0.3);font-size:11px;'>Ce message a été généré automatiquement, merci de ne pas y répondre.</p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>";
+
+            $payload = json_encode([
+                'from'    => 'onboarding@resend.dev',
+                'to'      => [$email],
+                'subject' => "Votre ordonnance ORD-{$idOrdonnance} — MediNova",
+                'html'    => $body,
+            ]);
+
+            $ch = curl_init('https://api.resend.com/emails');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Authorization: Bearer ' . env('MAIL_PASSWORD'),
+                'Content-Type: application/json',
+            ]);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            $resendResult = json_decode($response, true);
+            if (!isset($resendResult['id'])) {
+                throw new \Exception('Resend error: ' . $response);
+            }
+
+            \Illuminate\Support\Facades\Log::info("Ordonnance #{$idOrdonnance} envoyée à {$email} via Resend");
+
+            DB::table('notifications')->insert([
+                'id_utilisateur' => $r->attributes->get('id_utilisateur'),
+                'message'        => "Ordonnance ORD-{$idOrdonnance} envoyée par email à {$email}.",
+                'type'           => 'ordonnance_envoyee',
+                'lu'             => false,
+                'created_at'     => now(), 'updated_at' => now(),
+            ]);
+
+            return response()->json(['message' => "Ordonnance envoyée à {$email}."]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Erreur envoi email: " . $e->getMessage());
+            return response()->json(['message' => 'Erreur envoi email: ' . $e->getMessage()], 500);
+        }
     });
 
     // ── Rappels RDV ───────────────────────────────────────────────
@@ -735,7 +936,8 @@ Route::middleware('auth.middleware')->group(function () {
             ->join('utilisateurs as um', 'd.id_medecin', '=', 'um.id_utilisateur')
             ->where('rv.date_rdv', $demain)
             ->whereNotIn('rv.statut', ['annule', 'termine'])
-            ->select('rv.*', 'u.nom', 'u.prenom', 'u.email',
+            ->select('rv.id_rdv', 'rv.id_patient', 'rv.date_rdv', 'rv.heure_rdv', 'rv.statut',
+                     'u.nom', 'u.prenom', 'u.email',
                      'um.nom as medecin_nom', 'um.prenom as medecin_prenom')
             ->get();
 
@@ -746,6 +948,7 @@ Route::middleware('auth.middleware')->group(function () {
                 ->whereDate('created_at', now()->toDateString())
                 ->exists();
             if (!$exists) {
+                // Notification in-app
                 DB::table('notifications')->insert([
                     'id_utilisateur' => $rdv->id_patient,
                     'message'        => "Rappel : Rendez-vous demain le {$rdv->date_rdv} à {$rdv->heure_rdv} avec Dr. {$rdv->medecin_prenom} {$rdv->medecin_nom}.",
@@ -753,6 +956,45 @@ Route::middleware('auth.middleware')->group(function () {
                     'lu'             => false,
                     'created_at'     => now(), 'updated_at' => now(),
                 ]);
+
+                // Email via Resend
+                $heure = substr($rdv->heure_rdv ?? '00:00', 0, 5);
+                $body = "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto'>
+                    <div style='background:#1B4F8A;padding:24px 28px;border-radius:10px 10px 0 0'>
+                        <h1 style='color:white;margin:0;font-size:20px'>+ MediNova</h1>
+                        <p style='color:rgba(255,255,255,.75);margin:4px 0 0;font-size:13px'>Cabinet médical · Alger</p>
+                    </div>
+                    <div style='background:white;padding:28px;border:1px solid #e0e6ef;border-top:none;border-radius:0 0 10px 10px'>
+                        <h2 style='color:#1a1f2e;margin:0 0 8px;font-size:18px'>Rappel de rendez-vous</h2>
+                        <p style='color:#4a5568;font-size:14px;margin:0 0 20px'>Bonjour <strong>{$rdv->prenom} {$rdv->nom}</strong>,</p>
+                        <div style='background:#ebf4fd;border-left:4px solid #1B4F8A;border-radius:0 8px 8px 0;padding:16px;margin-bottom:20px'>
+                            <p style='margin:0;font-size:14px;color:#1B4F8A;font-weight:700'>Votre rendez-vous est prévu demain</p>
+                            <p style='margin:8px 0 0;font-size:13px;color:#4a5568'>
+                                📅 <strong>{$rdv->date_rdv}</strong> à <strong>{$heure}</strong><br>
+                                👨‍⚕️ Dr. <strong>{$rdv->medecin_prenom} {$rdv->medecin_nom}</strong>
+                            </p>
+                        </div>
+                        <p style='color:#8e9ab5;font-size:12px;margin:0'>Si vous ne pouvez pas vous présenter, veuillez annuler votre rendez-vous depuis votre espace patient.</p>
+                    </div>
+                </div>";
+
+                $payload = json_encode([
+                    'from'    => 'onboarding@resend.dev',
+                    'to'      => [$rdv->email],
+                    'subject' => "Rappel RDV demain — Cabinet MediNova",
+                    'html'    => $body,
+                ]);
+                $ch = curl_init('https://api.resend.com/emails');
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Authorization: Bearer ' . env('MAIL_PASSWORD'),
+                    'Content-Type: application/json',
+                ]);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                curl_exec($ch);
+                curl_close($ch);
             }
         }
 
@@ -764,19 +1006,25 @@ Route::middleware('auth.middleware')->group(function () {
         Route::get('/admin/utilisateurs',                   [AdminController::class, 'utilisateurs']);
         Route::post('/admin/utilisateurs', function (Request $r) {
             $role = $r->input('role', 'patient');
-            $hash = bcrypt($r->input('password'));
+            $hash = \Illuminate\Support\Facades\Hash::make($r->input('password'));
             $id = DB::table('utilisateurs')->insertGetId([
                 'nom' => $r->input('nom'), 'prenom' => $r->input('prenom'),
-                'email' => $r->input('email'), 'password' => $hash,
+                'email' => $r->input('email'), 'mot_de_passe' => $hash,
+                'telephone' => $r->input('telephone', ''),
+                'genre' => $r->input('genre', 'M'),
                 'role' => $role, 'actif' => true,
                 'created_at' => now(), 'updated_at' => now(),
             ]);
             if ($role === 'medecin') {
-                DB::table('medecins')->insert(['id_utilisateur' => $id, 'numero_ordre' => 'ORD-' . $id, 'created_at' => now(), 'updated_at' => now()]);
+                DB::table('medecins')->insert([
+                    'id_utilisateur' => $id,
+                    'specialite'     => $r->input('specialite', 'Médecine générale'),
+                    'numero_ordre'   => $r->input('numero_ordre', 'ORD-' . $id),
+                ]);
             } elseif ($role === 'patient') {
-                DB::table('patients')->insert(['id_utilisateur' => $id, 'created_at' => now(), 'updated_at' => now()]);
+                DB::table('patients')->insert(['id_utilisateur' => $id]);
             } elseif ($role === 'infirmiere') {
-                DB::table('infirmieres')->insert(['id_utilisateur' => $id, 'created_at' => now(), 'updated_at' => now()]);
+                DB::table('infirmieres')->insert(['id_utilisateur' => $id]);
             }
             return response()->json(['message' => 'Compte créé.', 'id' => $id]);
         });
@@ -841,5 +1089,14 @@ Route::middleware('auth.middleware')->group(function () {
             return response()->json(['message' => 'Supprimé.']);
         });
         Route::get('/admin/rapport',                        [AdminController::class, 'rapport']);
+        Route::get('/admin/factures', function () {
+            return response()->json(
+                DB::table('factures as f')
+                    ->leftJoin('utilisateurs as u', 'u.id_utilisateur', '=', 'f.id_patient')
+                    ->select('f.*', 'u.prenom as patient_prenom', 'u.nom as patient_nom')
+                    ->orderBy('f.created_at', 'desc')
+                    ->get()
+            );
+        });
     });
 });

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { Router } from '@angular/router';
 
 export const API = 'http://localhost:8000/api';
 
@@ -17,7 +18,7 @@ export class AuthService {
   private readonly TOKEN_KEY = 'medinova_token';
   private readonly USER_KEY  = 'medinova_user';
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private router: Router) {
     // Restaurer session
     const token = localStorage.getItem(this.TOKEN_KEY);
     const user  = localStorage.getItem(this.USER_KEY);
@@ -111,7 +112,16 @@ export class AuthService {
   }
 
   // ── Navigation ────────────────────────────────────────────────────
-  navigate(page: string): void { this.pageSubject.next(page); }
+  navigate(page: string): void {
+    // Support both old page names and new routes
+    const routeMap: any = {
+      'home': '/', 'login': '/login', 'register': '/register',
+      'patient': '/patient', 'medecin': '/medecin',
+      'infirmiere': '/infirmiere', 'admin': '/admin'
+    };
+    const route = routeMap[page] || '/' + page;
+    this.router.navigateByUrl(route);
+  }
 
   redirectToDashboard(): void {
     const role = this.user?.role;

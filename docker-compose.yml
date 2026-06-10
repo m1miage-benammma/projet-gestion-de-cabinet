@@ -8,7 +8,7 @@ services:
     container_name: gestion-cabinet-frontend
     restart: unless-stopped
     ports:
-      - "4200:80"
+      - "0.0.0.0:4200:80"
     networks:
       - pc_project
 
@@ -31,7 +31,15 @@ services:
       DB_DATABASE: gestion_cabinet
       DB_USERNAME: laravel
       DB_PASSWORD: secret
-      ANTHROPIC_API_KEY: "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"
+      ANTHROPIC_API_KEY: "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"
+      MAIL_MAILER: smtp
+      MAIL_HOST: smtp.resend.com
+      MAIL_PORT: "465"
+      MAIL_USERNAME: resend
+      MAIL_PASSWORD: re_YK8ttP37_7KND2EHSaTXhPVnvraBEanst
+      MAIL_ENCRYPTION: tls
+      MAIL_FROM_ADDRESS: onboarding@resend.dev
+      MAIL_FROM_NAME: MediNova
     depends_on:
       db:
         condition: service_healthy

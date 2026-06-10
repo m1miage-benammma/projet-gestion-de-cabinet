@@ -1,51 +1,401 @@
-<div class="site">
-  <nav class="navbar">
-    <div class="nb-wrap">
-      <div class="nb-logo">
-        <div class="nb-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2v18M2 11h18" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+<div class="hm-page">
+
+  <!-- NAVBAR -->
+  <nav class="hm-nav">
+    <div class="hm-nav-wrap">
+      <div class="hm-logo">
+        <div class="hm-logo-icon">
+          <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
+            <path d="M11 2v18M2 11h18" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
         <span>MediNova</span>
       </div>
-      <div class="nb-actions">
-        <button class="nb-reg" (click)="goRegister()">S'inscrire</button>
-        <button class="nb-login" (click)="goLogin()">Se connecter</button>
+      <div class="hm-nav-actions">
+        <button class="hm-btn-outline" (click)="goLogin()">Se connecter</button>
+        <button class="hm-btn-solid" (click)="goRegister()">Créer un compte</button>
       </div>
     </div>
   </nav>
-  <section class="hero">
-    <div class="hero-wrap">
-      <div class="hero-text">
-        <div class="hero-badge"><span class="hb-dot"></span>Cabinet médical · Alger, Algérie</div>
-        <h1>Votre santé,<br><em>notre priorité</em></h1>
-        <p>Prenez rendez-vous en ligne avec nos médecins spécialistes, consultez vos dossiers médicaux et gérez vos ordonnances — simplement.</p>
-        <div class="hero-btns">
-          <button class="btn-hero-p" (click)="goRegister()">Créer un compte</button>
-          <button class="btn-hero-s" (click)="goLogin()">Se connecter</button>
+
+  <!-- HERO -->
+  <section class="hm-hero">
+  <div class="hm-hero-bg">
+    <div class="hm-hero-orb hm-orb1"></div>
+    <div class="hm-hero-orb hm-orb2"></div>
+    <div class="hm-hero-orb hm-orb3"></div>
+    <div class="hm-hero-grid"></div>
+  </div>
+    <div class="hm-hero-wrap">
+      <div class="hm-hero-left">
+        <div class="hm-hero-tag">
+          <span class="hm-tag-dot"></span>
+          Cabinet médical numérique · Alger, Algérie
         </div>
-        <div class="hero-trust">
-          <div class="ht-item"><span class="ht-num">2400+</span><span class="ht-lab">Patients</span></div>
-          <div class="ht-sep"></div>
-          <div class="ht-item"><span class="ht-num">15+</span><span class="ht-lab">Médecins</span></div>
-          <div class="ht-sep"></div>
-          <div class="ht-item"><span class="ht-num">98%</span><span class="ht-lab">Satisfaction</span></div>
+        <h1 class="hm-hero-title hm-fade-in">
+          La santé de vos patients,<br>
+          <span class="hm-hero-em">centralisée et sécurisée</span>
+        </h1>
+        <p class="hm-hero-desc">
+          Gérez les rendez-vous, dossiers médicaux, ordonnances et soins depuis une seule plateforme conforme à la loi 18-07.
+        </p>
+        <div class="hm-hero-btns">
+          <button class="hm-cta-p" (click)="goRegister()">
+            Ouvrir un compte patient
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="hm-cta-s" (click)="goLogin()">Se connecter</button>
+        </div>
+        <div class="hm-hero-stats">
+          <div class="hm-stat">
+            <div class="hm-stat-val">{{ stats?.total_medecins || medecins.length || '2' }}+</div>
+            <div class="hm-stat-lbl">Médecins actifs</div>
+          </div>
+          <div class="hm-stat">
+            <div class="hm-stat-val">{{ stats?.total_rendez_vous || '9' }}+</div>
+            <div class="hm-stat-lbl">Rendez-vous</div>
+          </div>
+          <div class="hm-stat">
+            <div class="hm-stat-val">{{ stats?.total_patients || '2' }}+</div>
+            <div class="hm-stat-lbl">Patients</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hero Right - Dashboard dynamique -->
+      <div class="hm-hero-right">
+        <div class="hm-dashboard-card">
+
+          <!-- Header -->
+          <div class="hm-db-header">
+            <div class="hm-db-dots">
+              <span style="background:#FF5F57"></span>
+              <span style="background:#FFBD2E"></span>
+              <span style="background:#28CA41"></span>
+            </div>
+            <span class="hm-db-title">Cabinet MediNova · Aujourd'hui</span>
+          </div>
+
+          <!-- KPIs -->
+          <div class="hm-db-kpis">
+            <div class="hm-db-kpi">
+              <div class="hm-db-kpi-val">{{ rdvDashboard.length || '0' }}</div>
+              <div class="hm-db-kpi-lbl">RDV récents</div>
+            </div>
+            <div class="hm-db-kpi">
+              <div class="hm-db-kpi-val" style="color:#0A6E4A">{{ medecins.length || '0' }}</div>
+              <div class="hm-db-kpi-lbl">Médecins</div>
+            </div>
+            <div class="hm-db-kpi">
+              <div class="hm-db-kpi-val" style="color:#1B4F8A">{{ rdvDashboard.length > 0 ? 'Live' : '—' }}</div>
+              <div class="hm-db-kpi-lbl">Temps réel</div>
+            </div>
+          </div>
+
+          <div style="height:1px;background:#E0E6EF;margin:0 16px"></div>
+
+          <!-- Titre section RDV -->
+          <div style="padding:12px 16px 6px;font-size:11px;font-weight:700;color:#8E9AB5;text-transform:uppercase;letter-spacing:.5px">
+            Rendez-vous récents
+          </div>
+
+          <!-- RDV dynamiques -->
+          <div class="hm-db-list">
+            <div class="hm-db-row" *ngFor="let rdv of rdvDashboard; let i=index">
+              <div class="hm-db-ava" [style.background]="rdvColors[i % rdvColors.length]">
+                {{ rdv.prenom?.[0] }}{{ rdv.nom?.[0] }}
+              </div>
+              <div class="hm-db-info">
+                <div class="hm-db-name">{{ rdv.prenom }} {{ rdv.nom }}</div>
+                <div class="hm-db-detail">{{ rdv.heure_rdv?.slice(0,5) }} · {{ rdv.motif || 'Consultation' }}</div>
+              </div>
+              <span class="hm-db-badge" [ngClass]="'hm-badge-' + rdv.statut">{{ formatStatut(rdv.statut) }}</span>
+            </div>
+            <!-- Skeleton si vide -->
+            <div *ngIf="rdvDashboard.length === 0" class="hm-db-row" style="justify-content:center;color:#8E9AB5;font-size:13px;padding:20px">
+              <span>Aucun RDV aujourd'hui</span>
+            </div>
+          </div>
+
+          <!-- Footer carte -->
+          <div class="hm-db-footer">
+            <div class="hm-db-ai">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <span>IA active · Analyse des symptômes disponible</span>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
   </section>
-  <section class="section" id="medecins">
-    <div class="sw">
-      <div class="sec-head"><h2>Nos médecins spécialistes</h2></div>
-      <div class="loading-state" *ngIf="loading['medecins']"><div class="sp"></div><p>Chargement...</p></div>
-      <div class="doctors-grid" *ngIf="!loading['medecins'] && medecins.length > 0">
-        <div class="doc-card" *ngFor="let m of medecins">
-          <div class="doc-ava">👨‍⚕️</div>
-          <h4 class="doc-name">Dr. {{ m.prenom }} {{ m.nom }}</h4>
-          <span class="doc-spec">{{ m.specialite }}</span>
-          <div class="doc-footer">
-            <span class="doc-dispo"><span class="dot-green"></span>Disponible</span>
-            <button class="btn-reserver" (click)="goLogin()">Réserver</button>
+
+  <!-- FEATURES -->
+  <section class="hm-features">
+    <div class="hm-section-wrap">
+      <div class="hm-section-head hm-animate">
+        <div class="hm-section-tag">Fonctionnalités</div>
+        <h2>Une plateforme complète pour votre cabinet</h2>
+        <p>Tous les outils dont vous avez besoin, réunis en une seule interface.</p>
+      </div>
+      <div class="hm-feats-grid">
+
+        <div class="hm-feat-card hm-animate">
+          <div class="hm-feat-ico" style="background:#EBF4FD">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B4F8A" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+          </div>
+          <h3>Prise de rendez-vous</h3>
+          <p>Réservez en quelques clics auprès de votre médecin. Confirmation instantanée, rappel automatique 24h avant.</p>
+        </div>
+
+        <div class="hm-feat-card hm-animate hm-delay-1">
+          <div class="hm-feat-ico" style="background:#E8F5F1">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A6E4A" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <h3>Dossier médical numérique</h3>
+          <p>Accédez à l'intégralité de votre historique médical, consultations et ordonnances en toute sécurité.</p>
+        </div>
+
+        <div class="hm-feat-card hm-animate hm-delay-2">
+          <div class="hm-feat-ico" style="background:#F2ECF9">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B2C8D" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          </div>
+          <h3>Ordonnances & QR Code</h3>
+          <p>Vos prescriptions médicales disponibles en ligne avec QR code de vérification d'authenticité.</p>
+        </div>
+
+        <div class="hm-feat-card hm-animate hm-delay-3">
+          <div class="hm-feat-ico" style="background:#FFF8E6">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#875C00" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <h3>Analyse IA des symptômes</h3>
+          <p>Décrivez vos symptômes et obtenez une orientation vers la bonne spécialité médicale instantanément.</p>
+        </div>
+
+        <div class="hm-feat-card hm-animate hm-delay-4">
+          <div class="hm-feat-ico" style="background:#FDF0F0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B1B1B" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          <h3>Soins infirmiers</h3>
+          <p>Suivi des soins paramédicaux, gestion des actes infirmiers et communication inter-professionnelle.</p>
+        </div>
+
+        <div class="hm-feat-card hm-animate">
+          <div class="hm-feat-ico" style="background:#EBF4FD">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B4F8A" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <h3>Notifications & Rappels</h3>
+          <p>Recevez des rappels automatiques 24h avant chaque rendez-vous et suivez vos notifications en temps réel.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS COMPTEURS -->
+  <section class="hm-stats-section">
+    <div class="hm-section-wrap">
+      <div class="hm-stats-grid">
+        <div class="hm-stat-card hm-animate">
+          <div class="hm-stat-card-val" id="stat-rdv">{{ stats?.total_rendez_vous || 9 }}</div>
+          <div class="hm-stat-card-lbl">Rendez-vous pris</div>
+          <div class="hm-stat-card-ico">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+        </div>
+        <div class="hm-stat-card hm-animate hm-delay-1">
+          <div class="hm-stat-card-val">{{ medecins.length || 2 }}</div>
+          <div class="hm-stat-card-lbl">Médecins spécialistes</div>
+          <div class="hm-stat-card-ico">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+        </div>
+        <div class="hm-stat-card hm-animate hm-delay-2">
+          <div class="hm-stat-card-val">{{ stats?.total_patients || 2 }}</div>
+          <div class="hm-stat-card-lbl">Patients suivis</div>
+          <div class="hm-stat-card-ico">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+        </div>
+        <div class="hm-stat-card hm-animate hm-delay-3">
+          <div class="hm-stat-card-val">98%</div>
+          <div class="hm-stat-card-lbl">Satisfaction patients</div>
+          <div class="hm-stat-card-ico">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </div>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- MÉDECINS -->
+  <section class="hm-doctors" *ngIf="medecins.length > 0">
+    <div class="hm-section-wrap">
+      <div class="hm-section-head">
+        <div class="hm-section-tag">Équipe médicale</div>
+        <h2>Nos médecins spécialistes</h2>
+        <p>Consultez les disponibilités et prenez rendez-vous en ligne.</p>
+      </div>
+      <div class="hm-docs-grid">
+        <div class="hm-doc-card" *ngFor="let m of medecins; let i=index">
+          <div class="hm-doc-ava" [style.background]="color(i)">{{ initiales(m) }}</div>
+          <div class="hm-doc-name">Dr. {{ m.prenom }} {{ m.nom }}</div>
+          <div class="hm-doc-spec">{{ m.specialite || 'Médecine générale' }}</div>
+          <div class="hm-doc-dispo">
+            <span class="hm-dispo-dot"></span>
+            Disponible
+          </div>
+          <button class="hm-doc-btn" (click)="goLogin()">Prendre rendez-vous</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RÔLES -->
+  <section class="hm-roles">
+    <div class="hm-section-wrap">
+      <div class="hm-section-head">
+        <div class="hm-section-tag">Accès par rôle</div>
+        <h2>Une interface adaptée à chaque utilisateur</h2>
+        <p>Patient, médecin, infirmière ou administrateur — chacun a son espace dédié.</p>
+      </div>
+      <div class="hm-roles-grid">
+        <div class="hm-role-card" *ngFor="let r of roles">
+          <div class="hm-role-ico" [style.background]="r.bg" [style.color]="r.color">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <h3>{{ r.title }}</h3>
+          <p>{{ r.desc }}</p>
+          <ul class="hm-role-list">
+            <li *ngFor="let item of r.items">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              {{ item }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section style="padding:80px 28px;background:white">
+    <div class="hm-section-wrap">
+      <div class="hm-section-head">
+        <div class="hm-section-tag">Contact</div>
+        <h2>Envoyez-nous un message</h2>
+        <p>Une question ? Notre équipe vous répond rapidement.</p>
+      </div>
+      <div class="hm-contact-form">
+        <div class="hm-contact-row">
+          <div class="hm-contact-field">
+            <label>Votre nom</label>
+            <input type="text" [(ngModel)]="contactNom" placeholder="Nom complet"/>
+          </div>
+          <div class="hm-contact-field">
+            <label>Adresse email</label>
+            <input type="email" [(ngModel)]="contactEmail" placeholder="email@domaine.com"/>
+          </div>
+        </div>
+        <div class="hm-contact-field">
+          <label>Sujet</label>
+          <input type="text" [(ngModel)]="contactSujet" placeholder="Objet du message"/>
+        </div>
+        <div class="hm-contact-field">
+          <label>Message</label>
+          <textarea [(ngModel)]="contactMessage" placeholder="Votre message..." rows="4"></textarea>
+        </div>
+        <div class="hm-contact-alert hm-contact-success" *ngIf="contactSuccess">Message envoyé avec succès.</div>
+        <div class="hm-contact-alert hm-contact-error" *ngIf="contactError">{{ contactError }}</div>
+        <button class="hm-cta-p" (click)="envoyerContact()" [disabled]="contactLoading">
+          <span *ngIf="contactLoading">Envoi...</span>
+          <span *ngIf="!contactLoading">Envoyer le message</span>
+          <svg *ngIf="!contactLoading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TÉMOIGNAGES -->
+  <section class="hm-testimonials">
+    <div class="hm-section-wrap">
+      <div class="hm-section-head hm-animate">
+        <div class="hm-section-tag">Témoignages</div>
+        <h2>Ce que disent nos patients</h2>
+        <p>Des milliers de patients font confiance à MediNova pour leur santé.</p>
+      </div>
+      <div class="hm-testi-grid">
+        <div class="hm-testi-card hm-animate" *ngFor="let a of avis; let i=index" [class]="'hm-delay-' + i">
+          <div class="hm-testi-stars">
+            <svg *ngFor="let s of [1,2,3,4,5]" width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <p class="hm-testi-text">"{{ a.texte }}"</p>
+          <div class="hm-testi-author">
+            <div class="hm-testi-ava">{{ a.initiales }}</div>
+            <div>
+              <div class="hm-testi-name">{{ a.nom }}</div>
+              <div class="hm-testi-date">{{ a.date }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="hm-cta-section">
+    <div class="hm-section-wrap">
+      <div class="hm-cta-box">
+        <div class="hm-cta-left">
+          <h2>Prêt à moderniser votre cabinet ?</h2>
+          <p>Créez votre compte patient dès maintenant, ou contactez-nous pour intégrer MediNova dans votre cabinet.</p>
+        </div>
+        <div class="hm-cta-btns">
+          <button class="hm-cta-p" (click)="goRegister()">
+            Commencer gratuitement
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="hm-cta-s hm-cta-s-light" (click)="goLogin()">Se connecter</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="hm-footer">
+    <div class="hm-section-wrap">
+      <div class="hm-footer-inner">
+        <div class="hm-footer-brand">
+          <div class="hm-logo">
+            <div class="hm-logo-icon">
+              <svg width="16" height="16" viewBox="0 0 22 22" fill="none">
+                <path d="M11 2v18M2 11h18" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span>MediNova</span>
+          </div>
+          <p>Plateforme médicale numérique conforme à la loi 17-08 — Alger, Algérie</p>
+        </div>
+        <div class="hm-footer-links">
+          <div>
+            <h5>Produit</h5>
+            <a>Fonctionnalités</a>
+            <a>Sécurité</a>
+            <a>Conformité</a>
+          </div>
+          <div>
+            <h5>Légal</h5>
+            <a>Confidentialité</a>
+            <a>Conditions</a>
+            <a>Loi 18-07</a>
+          </div>
+        </div>
+      </div>
+      <div class="hm-footer-bottom">
+        <p>© 2026 MediNova. Tous droits réservés.</p>
+      </div>
+    </div>
+  </footer>
+
 </div>

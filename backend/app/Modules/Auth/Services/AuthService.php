@@ -122,7 +122,10 @@ final class AuthService
 
     public function logout(int $idUtilisateur): void
     {
-        DB::table('personal_access_tokens')->where('tokenable_id', $idUtilisateur)->delete();
+        DB::table('personal_access_tokens')
+            ->where('tokenable_id', $idUtilisateur)
+            ->where('tokenable_type', 'utilisateur')
+            ->delete();
     }
 
     public function reinitialiserMotDePasse(string $email): void

@@ -1,59 +1,45 @@
 import { Component, OnInit } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from './core/services/auth.service';
-import { LoginComponent } from './pages/login/login.component';
-import { RegisterComponent } from './pages/register/register.component';
-import { MedecinComponent } from './pages/medecin/medecin.component';
-import { PatientComponent } from './pages/patient/patient.component';
-import { InfirmiereComponent } from './pages/infirmiere/infirmiere.component';
-import { AdminComponent } from './pages/admin/admin.component';
-import { HomeComponent } from './pages/home/home.component';
-import { OrdonnancePubliqueComponent } from './pages/ordonnance-publique/ordonnance-publique.component';
+import { ToastService } from './core/services/toast.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [
-    CommonModule,
-    LoginComponent,
-    RegisterComponent,
-    MedecinComponent,
-    PatientComponent,
-    InfirmiereComponent,
-    AdminComponent,
-    HomeComponent,
-    OrdonnancePubliqueComponent,
-  ],
+  imports: [RouterOutlet, CommonModule],
   template: `
-    <app-ordonnance-publique *ngIf="page==='ordonnance'" [ordonnanceId]="ordonnanceId"></app-ordonnance-publique>
-    <app-home       *ngIf="page==='home'"></app-home>
-    <app-login      *ngIf="page==='login'"></app-login>
-    <app-register   *ngIf="page==='register'"></app-register>
-    <app-medecin    *ngIf="page==='medecin'"></app-medecin>
-    <app-patient    *ngIf="page==='patient'"></app-patient>
-    <app-infirmiere *ngIf="page==='infirmiere'"></app-infirmiere>
-    <app-admin      *ngIf="page==='admin'"></app-admin>
+    <router-outlet></router-outlet>
+    <div class="toast-container">
+      <div *ngFor="let t of toast.toasts"
+           class="toast"
+           [class.success]="t.type==='success'"
+           [class.error]="t.type==='error'"
+           [class.warning]="t.type==='warning'">
+        <span class="toast-icon">{{ t.type==='success' ? '✅' : t.type==='error' ? '❌' : '⚠️' }}</span>
+        <span>{{ t.message }}</span>
+      </div>
+    </div>
   `,
   styleUrls: ['./app.css']
 })
 export class AppComponent implements OnInit {
-  page = 'home';
-  ordonnanceId = 0;
-
-  constructor(private auth: AuthService) {}
+  constructor(private auth: AuthService, public toast: ToastService) {}
 
   ngOnInit() {
-    // Vérifier si URL contient ?ordonnance=ID (pour QR code scan)
+    // Dark mode
+    const dark = localStorage.getItem('medinova_dark') === '1';
+    document.body.classList.toggle('dark-mode', dark);
+
+    // QR code ordonnance
     const params = new URLSearchParams(window.location.search);
     const ordId = params.get('ordonnance');
     if (ordId && !isNaN(+ordId)) {
-      this.ordonnanceId = +ordId;
-      this.page = 'ordonnance';
+      this.auth.navigate('/ordonnance?ordonnance=' + ordId);
       return;
     }
 
-    // Sinon comportement normal
-    this.auth.page$.subscribe(p => this.page = p);
+    // Rediriger si déjà connecté
     if (this.auth.isLoggedIn()) {
       this.auth.redirectToDashboard();
     }

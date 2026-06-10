@@ -5,7 +5,6 @@ import { SidebarComponent } from "../../shared/sidebar/sidebar.component";
 import { HeaderComponent } from "../../shared/header/header.component";
 import { AuthService } from "../../core/services/auth.service";
 import { ApiService } from "../../core/services/api.service";
-import { LangService } from "../../core/services/lang.service";
 import { ToastService } from "../../core/services/toast.service";
 
 @Component({
@@ -21,7 +20,6 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
     { id: "planning",       label: "Mon planning",       icon: "calendar" },
     { id: "consultation",   label: "Consultation",       icon: "activity" },
     { id: "dossiers",       label: "Dossiers patients",  icon: "folder" },
-    { id: "facturation",    label: "Facturation",        icon: "credit-card" },
     { id: "chat",           label: "Messages",           icon: "message-circle" },
     { id: "disponibilites", label: "Disponibilités",     icon: "clock" },
     { id: "notifications",  label: "Notifications",      icon: "bell" },
@@ -81,7 +79,7 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
   ajouterVaccin() {
     if (!this.vaccinForm.nom_vaccin || !this.vaccinForm.date_administration || !this.rdvSelectionne) return;
     this.api.ajouterVaccin({ ...this.vaccinForm, id_patient: this.rdvSelectionne.id_patient || this.rdvSelectionne.id_utilisateur }).subscribe({
-      next: () => { this.toast.success('💉 Vaccin enregistré !'); this.vaccinForm = { nom_vaccin: '', date_administration: '', date_rappel: '' }; },
+      next: () => { this.toast.success(' Vaccin enregistré !'); this.vaccinForm = { nom_vaccin: '', date_administration: '', date_rappel: '' }; },
       error: () => this.toast.error('Erreur ajout vaccin.')
     });
   }
@@ -89,7 +87,7 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
   ajouterAnalyse() {
     if (!this.analyseForm.type_analyse || !this.rdvSelectionne) return;
     this.api.ajouterAnalyse({ ...this.analyseForm, id_patient: this.rdvSelectionne.id_patient || this.rdvSelectionne.id_utilisateur, id_patient_user: this.rdvSelectionne.id_utilisateur, date_analyse: this.analyseForm.date_analyse || new Date().toISOString().split('T')[0] }).subscribe({
-      next: () => { this.toast.success('🧪 Analyse enregistrée !'); this.analyseForm = { type_analyse: '', date_analyse: '', statut: 'normal', note: '' }; },
+      next: () => { this.toast.success(' Analyse enregistrée !'); this.analyseForm = { type_analyse: '', date_analyse: '', statut: 'normal', note: '' }; },
       error: () => this.toast.error('Erreur ajout analyse.')
     });
   }
@@ -97,7 +95,7 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
   ajouterConsentement() {
     if (!this.consentementForm.type_acte || !this.rdvSelectionne) return;
     this.api.ajouterConsentement({ ...this.consentementForm, id_patient: this.rdvSelectionne.id_utilisateur }).subscribe({
-      next: () => { this.toast.success('📋 Consentement enregistré !'); this.consentementForm = { type_acte: '', signe: false }; },
+      next: () => { this.toast.success(' Consentement enregistré !'); this.consentementForm = { type_acte: '', signe: false }; },
       error: () => this.toast.error('Erreur consentement.')
     });
   }
@@ -149,7 +147,7 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
     <div class="header"><div><div class="logo">Medi<span>Nova</span></div><div style="font-size:12px;color:#999;margin-top:4px">Cabinet médical · Alger, Algérie</div></div>
     <div style="text-align:right"><div style="font-size:22px;font-weight:900;color:#0A3D62">FACTURE</div>
     <div style="font-size:13px;color:#999">N° F-${String(f.id).padStart(4,'0')}</div>
-    <div class="badge" style="margin-top:8px">${f.statut==='payé'?'✅ PAYÉE':'⏳ EN ATTENTE'}</div></div></div>
+    <div class="badge" style="margin-top:8px">${f.statut==='payé'?' PAYÉE':' EN ATTENTE'}</div></div></div>
     <div class="grid">
     <div class="section"><div class="label">Patient</div><div class="val">${f.nom_patient||'—'}</div></div>
     <div class="section"><div class="label">Date</div><div class="val">${new Date(f.created_at||Date.now()).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</div></div>
@@ -186,8 +184,7 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
   constructor(
     public auth: AuthService,
     private api: ApiService,
-    public toast: ToastService,
-    public lang: LangService
+    public toast: ToastService
   ) {}
 
   // Alerte urgence
@@ -216,12 +213,15 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   verifierUrgences() {
+    if (!this.auth.userId()) return;
     this.api.getNotifications(this.auth.userId()).subscribe({
       next: (notifs: any[]) => {
-        const urgences = notifs.filter((n: any) => n.type === 'urgence' && !n.lu && !this.urgencesVues.has(n.id));
+        const urgences = notifs.filter((n: any) =>
+          n.type === 'urgence' && !n.lu && !this.urgencesVues.has(n.id_notification)
+        );
         if (urgences.length > 0 && !this.alerteUrgence) {
           this.alerteUrgence = urgences[0];
-          this.urgencesVues.add(urgences[0].id);
+          this.urgencesVues.add(urgences[0].id_notification);
           localStorage.setItem('urgences_vues', JSON.stringify([...this.urgencesVues]));
           // Son d'alerte
           try {
@@ -242,7 +242,10 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   fermerAlerteUrgence() {
-    if (this.alerteUrgence) this.api.marquerLue(this.alerteUrgence.id).subscribe({ next: () => {}, error: () => {} });
+    if (this.alerteUrgence) {
+      this.api.marquerLue(this.alerteUrgence.id_notification).subscribe({ next: () => {}, error: () => {} });
+      this.urgencesVues.add(this.alerteUrgence.id_notification);
+    }
     this.alerteUrgence = null;
   }
 
@@ -297,7 +300,6 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (tab === "disponibilites") this.chargerDispos();
     if (tab === "notifications") this.chargerNotifications();
     if (tab === "dossiers") this.chargerPatients();
-    if (tab === "facturation") { this.chargerFactures(); this.chargerPatients(); }
     if (tab === "chat") {
       this.chargerPatients();
       if (this.chatPatientId) this.chargerChatMessages();
@@ -326,7 +328,7 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   chargerDispos() {
     this.loading["dispos"] = true;
-    this.api.getDispoMedecin(this.auth.userId()).subscribe({
+    this.api.getDispos(this.auth.userId()).subscribe({
       next: d => { this.disponibilites = d; this.loading["dispos"] = false; },
       error: () => this.loading["dispos"] = false
     });
@@ -373,12 +375,12 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
       if (field === 'traitement') this.consultForm.traitement += (this.consultForm.traitement ? ' ' : '') + t;
       if (field === 'note') this.consultForm.note += (this.consultForm.note ? ' ' : '') + t;
       this.isRecording = false; this.recordingField = '';
-      this.toast.success('✅ Dictée enregistrée !');
+      this.toast.success(' Dictée enregistrée !');
     };
     this.recognition.onerror = () => { this.isRecording = false; this.recordingField = ''; };
     this.recognition.onend = () => { this.isRecording = false; this.recordingField = ''; };
     this.recognition.start();
-    this.toast.success('🎤 Parlez maintenant...');
+    this.toast.success(' Parlez maintenant...');
   }
 
   marquerToutesLues() {
@@ -399,8 +401,10 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
       next: (m: any[]) => { this.chatMessages = m || []; this.scrollChat(); },
       error: () => {}
     });
-    // Refresh toutes les 5 secondes
-    setTimeout(() => { if (this.activeTab === 'chat') this.chargerChatMessages(); }, 5000);
+    // Refresh seulement si on est sur l'onglet chat
+    if (this.activeTab === 'chat') {
+      setTimeout(() => this.chargerChatMessages(), 5000);
+    }
   }
 
   envoyerMessageChat() {
@@ -661,20 +665,24 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   getJoursSemaine(): Date[] {
     const jours = [];
-    const debut = new Date(this.semaineCourante);
-    const jour = debut.getDay();
+    const base = new Date(this.semaineCourante);
+    const jour = base.getDay();
     const diff = jour === 0 ? -6 : 1 - jour;
-    debut.setDate(debut.getDate() + diff);
+    const lundi = new Date(base);
+    lundi.setDate(base.getDate() + diff);
     for (let i = 0; i < 7; i++) {
-      const d = new Date(debut);
-      d.setDate(debut.getDate() + i);
+      const d = new Date(lundi);
+      d.setDate(lundi.getDate() + i);
       jours.push(d);
     }
     return jours;
   }
 
   getRdvDuJour(date: Date): any[] {
-    const dateStr = date.toISOString().split('T')[0];
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
     return this.planning.filter(r => r.date_rdv === dateStr).sort((a: any, b: any) => a.heure_rdv?.localeCompare(b.heure_rdv));
   }
 

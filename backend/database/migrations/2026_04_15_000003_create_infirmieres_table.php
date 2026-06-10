@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('infirmieres', function (Blueprint $table) {
             $table->unsignedBigInteger('id_utilisateur')->primary();
-            $table->string('numero_employe')->unique();
-            $table->date('date_embauche');
+            $table->string('numero_employe')->nullable()->unique();
+            $table->date('date_embauche')->nullable();
             $table->foreign('id_utilisateur')
                   ->references('id_utilisateur')
                   ->on('utilisateurs')

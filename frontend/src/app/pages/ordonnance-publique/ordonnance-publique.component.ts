@@ -1,6 +1,7 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-ordonnance-publique',
@@ -139,9 +140,15 @@ export class OrdonnancePubliqueComponent implements OnInit {
   loading = true;
   error = '';
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private route: ActivatedRoute) {}
 
   ngOnInit() {
+    // Get ID from URL query params (?ordonnance=X) or Input
+    const params = new URLSearchParams(window.location.search);
+    const urlId = params.get('ordonnance');
+    if (urlId && !isNaN(+urlId)) {
+      this.ordonnanceId = +urlId;
+    }
     if (!this.ordonnanceId) {
       this.loading = false;
       this.error = 'ID ordonnance manquant.';

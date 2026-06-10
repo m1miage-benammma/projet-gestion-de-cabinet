@@ -4,7 +4,6 @@ import { FormsModule } from "@angular/forms";
 import { AuthService } from "../../core/services/auth.service";
 import { ApiService } from "../../core/services/api.service";
 import { ToastService } from "../../core/services/toast.service";
-import { LangService } from "../../core/services/lang.service";
 import { SidebarComponent } from "../../shared/sidebar/sidebar.component";
 import { HeaderComponent } from "../../shared/header/header.component";
 
@@ -19,7 +18,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   TABS = [
     { id: "dashboard",    label: "Tableau de bord",   icon: "bar-chart-2" },
     { id: "utilisateurs", label: "Utilisateurs",      icon: "users" },
-    { id: "stock",        label: "Stock médicaments", icon: "package" },
+    
     { id: "rappels",      label: "Rappels RDV",       icon: "bell" },
     { id: "messages",     label: "Messages contact",  icon: "mail" },
   ];
@@ -35,8 +34,8 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   utilisateurs: any[] = [];
   utilisateursFiltres_: any[] = [];
-  searchQuery = "";
-  roleFilter = "";
+  filterSearch = "";
+  filterRole = "";
   createNom = ""; createPrenom = ""; createEmail = "";
   createPassword = ""; createRole = "patient";
   createError = ""; createSuccess = "";
@@ -58,13 +57,12 @@ export class AdminComponent implements OnInit, OnDestroy {
   constructor(
     public auth: AuthService,
     private api: ApiService,
-    public toast: ToastService,
-    public lang: LangService
+    public toast: ToastService
   ) {}
 
   ngOnInit() {
     const vars: any = {
-      "--primary": "#991B1B", "--primary-dark": "#7f1d1d",
+      "--primary": "#1B4F8A", "--primary-dark": "#163d6e",
       "--primary-mid": "#b91c1c", "--primary-light": "#FEE2E2",
       "--primary-border": "#FCA5A5", "--accent": "#f87171"
     };
@@ -72,7 +70,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.chargerRapport();
     this.chargerUtilisateurs();
     this.chargerStock();
-    this.api.getFactures().subscribe({ next: (f: any[]) => this.factures = f || [], error: () => {} });
+    this.api.getAdminFactures().subscribe({ next: (f: any[]) => this.factures = f || [], error: () => {} });
     this.updateTime();
     this.clockInterval = setInterval(() => this.updateTime(), 1000);
   }
@@ -134,9 +132,9 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   utilisateursFiltres(): any[] {
     return this.utilisateurs.filter(u => {
-      const q = this.searchQuery.toLowerCase();
+      const q = this.filterSearch.toLowerCase();
       const matchSearch = !q || u.nom?.toLowerCase().includes(q) || u.prenom?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
-      const matchRole = !this.roleFilter || u.role === this.roleFilter;
+      const matchRole = !this.filterRole || u.role === this.filterRole;
       return matchSearch && matchRole;
     });
   }
@@ -173,6 +171,21 @@ export class AdminComponent implements OnInit, OnDestroy {
       next: () => { u.actif = false; this.toast.success("Compte désactivé."); },
       error: () => {}
     });
+  }
+
+  formatRole(role: string): string {
+    const map: any = { medecin: 'Médecin', infirmiere: 'Infirmière', patient: 'Patient', admin: 'Admin' };
+    return map[role] || role;
+  }
+
+  roleColor(role: string): { bg: string; text: string } {
+    const map: any = {
+      medecin:    { bg: '#EBF4FD', text: '#1B4F8A' },
+      infirmiere: { bg: '#FFF8E6', text: '#875C00' },
+      patient:    { bg: '#E8F5F1', text: '#0A6E4A' },
+      admin:      { bg: '#F2ECF9', text: '#5B2C8D' },
+    };
+    return map[role] || { bg: '#F5F7FA', text: '#4A5568' };
   }
 
   supprimerCompte(u: any) {
@@ -289,22 +302,22 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   // ── FACTURATION ───────────────────────────────────────────────
-  getTotalFactures(): number { return this.factures.reduce((s, f) => s + Number(f.montant), 0); }
+  getTotalFactures(): number { return this.factures.filter(f => f.statut?.includes("pay")).reduce((s, f) => s + Number(f.montant), 0); }
   getTodayRevenue(): number {
     const today = new Date().toISOString().split("T")[0];
-    return this.factures.filter(f => f.statut === "payé" && f.created_at?.startsWith(today)).reduce((s, f) => s + Number(f.montant), 0);
+    return this.factures.filter(f => f.statut?.includes("pay") && f.created_at?.startsWith(today)).reduce((s, f) => s + Number(f.montant), 0);
   }
-  getTodayPending(): number { return this.factures.filter(f => f.statut !== "payé").length; }
+  getTodayPending(): number { return this.factures.filter(f => !f.statut?.includes("pay")).length; }
 
   // ── GRAPHIQUES ────────────────────────────────────────────────
   getMoisStats(): any[] {
     const mois = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
-    const total = this.rapport?.total_rdv || 0;
-    const base = Math.max(1, Math.floor(total / 12));
     const currentMonth = new Date().getMonth();
+    const rdvParMois: number[] = this.rapport?.rdv_par_mois || [];
+    const max = Math.max(...rdvParMois, 1);
     return mois.map((label, i) => {
-      const val = Math.max(0, base + Math.floor(Math.sin(i) * base * 0.5));
-      return { label, val, h: Math.min(100, val * 8), actif: i <= currentMonth };
+      const val = rdvParMois[i] || 0;
+      return { label, val, h: Math.min(100, Math.round((val / max) * 100)), actif: i <= currentMonth };
     });
   }
 

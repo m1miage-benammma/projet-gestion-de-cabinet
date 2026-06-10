@@ -29,7 +29,6 @@ export class ApiService {
   /** Disponibilités publiques d'un médecin */
   getDispos(id: number): Observable<any[]>       { return this.http.get<any[]>(`${API}/disponibilites/medecin/${id}`, this.h); }
   /** Disponibilités (avec auth) */
-  getDispoMedecin(id: number): Observable<any[]> { return this.http.get<any[]>(`${API}/disponibilites/medecin/${id}`, this.h); }
   ajouterDispo(data: any): Observable<any>       { return this.http.post<any>(`${API}/disponibilites`, data, this.h); }
   supprimerDispo(id: number): Observable<any>    { return this.http.delete(`${API}/disponibilites/${id}`, this.h); }
 
@@ -88,6 +87,7 @@ export class ApiService {
 
   // ── Profil utilisateur ────────────────────────────────────────────────────
   updateProfil(id: number, data: any): Observable<any> { return this.http.put<any>(`${API}/utilisateurs/${id}`, data, this.h); }
+  updateMedical(id: number, data: any): Observable<any> { return this.http.patch<any>(`${API}/patients/${id}/medical`, data, this.h); }
   changerMotDePasse(id: number, data: any): Observable<any> { return this.http.put<any>(`${API}/utilisateurs/${id}/mot-de-passe`, data, this.h); }
 
   // ── IA Triage ─────────────────────────────────────────────────────────────
@@ -103,9 +103,6 @@ export class ApiService {
   desactiverUtilisateur(id: number): Observable<any> { return this.http.patch(`${API}/admin/utilisateurs/${id}/desactiver`, {}, this.h); }
   supprimerUtilisateur(id: number): Observable<any>  { return this.http.delete(`${API}/admin/utilisateurs/${id}`, this.h); }
   getRapport(): Observable<any>                  { return this.http.get<any>(`${API}/admin/rapport`, this.h); }
-  activerCompte(id: number): Observable<any>     { return this.http.patch(`${API}/admin/utilisateurs/${id}/activer`, {}, this.h); }
-  desactiverCompte(id: number): Observable<any>  { return this.http.patch(`${API}/admin/utilisateurs/${id}/desactiver`, {}, this.h); }
-  supprimerCompte(id: number): Observable<any>   { return this.http.delete(`${API}/admin/utilisateurs/${id}`, this.h); }
-  creerCompte(data: any): Observable<any>        { return this.http.post<any>(`${API}/register`, data, this.h); }
-  rappels(): Observable<any>                     { return this.http.get<any>(`${API}/rappels-rdv`, this.h); }
+
+  getAdminFactures(): Observable<any> { return this.http.get<any>(`${API}/admin/factures`, this.h); }
 }

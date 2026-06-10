@@ -20,13 +20,20 @@ final class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'nom'          => 'required|string|max:100',
-            'prenom'       => 'required|string|max:100',
-            'email'        => 'required|email:rfc,dns',
-            'telephone'    => ['required', 'regex:/^(05|06|07)[0-9]{8}$/'],
-            'genre'        => 'required|in:M,F',
-            'mot_de_passe' => 'required|string|min:6',
-            'role'         => 'nullable|in:patient,medecin,infirmiere',
+            'nom'            => 'required|string|max:100',
+            'prenom'         => 'required|string|max:100',
+            'email'          => 'required|email',
+            'telephone'      => ['required', 'regex:/^(05|06|07)[0-9]{8}$/'],
+            'genre'          => 'required|in:M,F',
+            'mot_de_passe'   => 'required|string|min:6',
+            'role'           => 'nullable|in:patient,medecin,infirmiere',
+            'date_naissance' => 'nullable|date',
+            'groupe_sanguin' => 'nullable|string|max:5',
+            'adresse'        => 'nullable|string|max:255',
+            'allergies'      => 'nullable|string',
+            'antecedents'    => 'nullable|string',
+            'urgence_nom'    => 'nullable|string|max:100',
+            'urgence_tel'    => 'nullable|string|max:20',
         ]);
 
         try {
@@ -55,9 +62,9 @@ final class AuthController extends Controller
     // POST /logout
     public function logout(Request $request): JsonResponse
     {
-        $user = $request->attributes->get('auth_user');
-        if ($user) {
-            $this->service->logout($user->id_utilisateur);
+        $idUtilisateur = $request->attributes->get('id_utilisateur');
+        if ($idUtilisateur) {
+            $this->service->logout((int) $idUtilisateur);
         }
         return response()->json(['message' => 'Déconnecté avec succès.']);
     }

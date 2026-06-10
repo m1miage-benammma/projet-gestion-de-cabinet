@@ -6,7 +6,7 @@
     </div>
     <h2 class="auth-title">Connexion</h2>
     <p class="auth-sub">Accédez à votre espace de santé</p>
-    <div class="af-inp"><label>Email</label><input type="email" [(ngModel)]="email" name="em" placeholder="vous@exemple.com" (keyup.enter)="login()"/></div>
+    <div class="af-inp"><label>Email</label><input type="email" [(ngModel)]="email" name="em" placeholder="exemple@gmail.com" (keyup.enter)="login()"/></div>
     <div class="af-inp"><label>Mot de passe</label><input type="password" [(ngModel)]="password" name="pw" placeholder="••••••••" (keyup.enter)="login()"/></div>
     <div class="error-msg" *ngIf="error">{{ error }}</div>
     <button class="btn-prim" style="width:100%;margin-top:8px" (click)="login()" [disabled]="loading">

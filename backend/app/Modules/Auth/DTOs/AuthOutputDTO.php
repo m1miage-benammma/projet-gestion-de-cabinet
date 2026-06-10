@@ -15,11 +15,12 @@ final class AuthOutputDTO
         public string $genre,
         public string $role,
         public string $token,
+        public array  $extra = [],
     ) {}
 
     public function toArray(): array
     {
-        return [
+        return array_merge([
             'id'        => $this->id,
             'nom'       => $this->nom,
             'prenom'    => $this->prenom,
@@ -28,6 +29,6 @@ final class AuthOutputDTO
             'genre'     => $this->genre,
             'role'      => $this->role,
             'token'     => $this->token,
-        ];
+        ], $this->extra);
     }
 }

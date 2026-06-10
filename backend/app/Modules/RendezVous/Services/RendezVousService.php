@@ -6,7 +6,7 @@ namespace App\Modules\RendezVous\Services;
 
 use App\Modules\RendezVous\DTOs\CreateRendezVousDTO;
 use App\Modules\RendezVous\DTOs\RendezVousOutputDTO;
-use App\Modules\RendezVous\Entities\RendezVousEntity;
+use App\Modules\RendezVous\Entity\RendezVousEntity;
 use App\Modules\RendezVous\Exceptions\StatutInvalideException;
 use App\Modules\RendezVous\Manager\RendezVousManager;
 use Illuminate\Support\Facades\DB;
@@ -27,10 +27,12 @@ final class RendezVousService
             throw new \Exception("Créneau introuvable.");
         }
 
-        // Vérifier si le créneau est déjà réservé
+        // Vérifier si ce créneau est déjà réservé pour cette date ET heure précises
         $existe = DB::table('rendez_vous')
             ->where('id_disponibilite', $dto->id_disponibilite)
-            ->whereNotIn('statut', ['ANNULE'])
+            ->where('date_rdv', $dto->date_rdv)
+            ->where('heure_rdv', $dto->heure_rdv)
+            ->whereNotIn('statut', ['annule'])
             ->exists();
 
         if ($existe) {
@@ -105,7 +107,7 @@ final class RendezVousService
     {
         $entity = $this->manager->getById($id);
 
-        if ($entity->getStatut() === 'ANNULE') {
+        if ($entity->getStatut() === 'annule') {
             throw StatutInvalideException::make($entity->getStatut());
         }
 
@@ -120,6 +122,14 @@ final class RendezVousService
             type: 'rdv_annule'
         );
 
+        return RendezVousOutputDTO::fromEntity($result);
+    }
+
+    public function modifier(int $id, string $dateRdv, string $heureRdv, string $motif): RendezVousOutputDTO
+    {
+        $entity = $this->manager->getById($id);
+        $entity->modifier($dateRdv, $heureRdv, $motif);
+        $result = $this->manager->update($entity);
         return RendezVousOutputDTO::fromEntity($result);
     }
 
