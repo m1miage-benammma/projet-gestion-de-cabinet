@@ -150,7 +150,7 @@
                 <label class="form-label">Patient <span class="req">*</span></label>
                 <select class="form-select" [(ngModel)]="soinPatientId" name="sp">
                   <option [value]="0">-- Sélectionner --</option>
-                  <option *ngFor="let r of patientsUniques" [value]="r.id_patient">{{ r.prenom }} {{ r.nom }}</option>
+                  <option *ngFor="let r of patients" [value]="r.id_utilisateur">{{ r.prenom }} {{ r.nom }}</option>
                 </select>
               </div>
               <div class="form-group">
@@ -254,7 +254,7 @@
                 <label class="form-label">Patient <span class="req">*</span></label>
                 <select class="form-select" [(ngModel)]="facturePatientId" name="fp">
                   <option [value]="0">-- Sélectionner --</option>
-                  <option *ngFor="let r of patientsUniques" [value]="r.id_patient">{{ r.prenom }} {{ r.nom }}</option>
+                  <option *ngFor="let r of patients" [value]="r.id_utilisateur">{{ r.prenom }} {{ r.nom }}</option>
                 </select>
               </div>
               <div class="form-group">
