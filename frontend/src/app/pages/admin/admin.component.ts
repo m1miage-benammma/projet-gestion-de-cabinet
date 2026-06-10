@@ -188,11 +188,11 @@ export class AdminComponent implements OnInit, OnDestroy {
     return map[role] || { bg: '#F5F7FA', text: '#4A5568' };
   }
 
-  supprimerCompte(u: any) {
+  supprimerCompte(id: number) {
     if (!confirm("Supprimer ce compte ?")) return;
-    this.api.supprimerUtilisateur(u.id_utilisateur).subscribe({
-      next: () => { this.utilisateurs = this.utilisateurs.filter(x => x.id_utilisateur !== u.id_utilisateur); },
-      error: () => {}
+    this.api.supprimerUtilisateur(id).subscribe({
+      next: () => { this.utilisateurs = this.utilisateurs.filter(x => x.id_utilisateur !== id); },
+      error: (e: any) => { alert('Erreur suppression: ' + (e.error?.message || e.status)); }
     });
   }
 
