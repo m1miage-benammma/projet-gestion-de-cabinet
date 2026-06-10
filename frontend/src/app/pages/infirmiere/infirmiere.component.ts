@@ -253,6 +253,7 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
       id_patient:    this.soinPatientId,
       id_infirmiere: this.auth.userId(),
       type_soin:     this.soinType,
+      fiche_soin:    this.soinType,
       observation:   this.soinObs,
       date:          this.soinDate
     }).subscribe({
