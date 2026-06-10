@@ -334,7 +334,7 @@
               <div class="form-group">
                 <label class="form-label">Diagnostic <span class="req">*</span></label>
                 <div style="position:relative">
-                  <textarea class="form-textarea" [(ngModel)]="consultForm.diagnostic" name="diag" placeholder="Diagnostic clinique..." style="padding-right:48px"></textarea>
+                  <textarea class="form-textarea" [(ngModel)]="consultForm.diagnostic" name="diag" placeholder="Diagnostic..." style="padding-right:48px"></textarea>
                   <button type="button" (click)="startDictation('diagnostic')"
                     [style.color]="isRecording && recordingField==='diagnostic' ? 'var(--danger)' : 'var(--muted)'"
                     [style.background]="isRecording && recordingField==='diagnostic' ? '#fee2e2' : 'var(--bg)'"
@@ -358,7 +358,7 @@
                 </div>
               </div>
               <div class="form-group">
-                <label class="form-label">Notes cliniques</label>
+                <label class="form-label">Notes du cabinet</label>
                 <div style="position:relative">
                   <textarea class="form-textarea" [(ngModel)]="consultForm.note" name="note" placeholder="Observations, notes..." style="padding-right:48px"></textarea>
                   <button type="button" (click)="startDictation('note')"
@@ -702,7 +702,7 @@
                         <div class="dossier-detail-block" *ngIf="c.note">
                           <div class="dossier-detail-label">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
-                            Notes cliniques
+                            Notes du cabinet
                           </div>
                           <div class="dossier-detail-val">{{ c.note }}</div>
                         </div>
