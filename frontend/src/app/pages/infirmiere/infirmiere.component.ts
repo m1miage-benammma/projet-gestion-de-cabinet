@@ -352,11 +352,14 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
     }
     this.factureLoading = true;
     this.factureError = '';
+    const patientObj = this.patients.find((p: any) => p.id_utilisateur === +this.facturePatientId);
+    const nomPatient = patientObj ? (patientObj.prenom + ' ' + patientObj.nom) : '';
     this.api.creerFacture({
       id_patient: this.facturePatientId,
+      nom_patient: nomPatient,
       montant: this.factureMontant,
       description: this.factureDesc,
-      statut: 'en_attente'
+      statut: 'impayé'
     }).subscribe({
       next: () => {
         this.factureLoading = false;
