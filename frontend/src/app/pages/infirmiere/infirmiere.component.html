@@ -298,10 +298,10 @@
                 <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ f.description || 'Consultation' }} · {{ f.created_at | date:'dd/MM/yyyy HH:mm' }}</div>
               </div>
               <div style="font-size:18px;font-weight:900;color:var(--primary)">{{ f.montant | number }} DA</div>
-              <span class="statut" [ngClass]="f.statut === 'payé' ? 'statut-confirme' : 'statut-en_attente'">
-                {{ f.statut === 'payé' ? 'Payé' : 'En attente' }}
+              <span class="statut" [ngClass]="f.statut?.includes('pay') ? 'statut-confirme' : 'statut-en_attente'">
+                {{ f.statut?.includes('pay') ? 'Payé' : 'Impayé' }}
               </span>
-              <button *ngIf="f.statut !== 'payé'"
+              <button *ngIf="!f.statut?.includes('pay')"
                       class="btn btn-primary btn-sm"
                       (click)="marquerPayee(f.id)">
                 Marquer payée
