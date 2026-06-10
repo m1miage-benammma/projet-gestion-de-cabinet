@@ -86,9 +86,15 @@ export class MedecinComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ajouterAnalyse() {
     if (!this.analyseForm.type_analyse || !this.rdvSelectionne) return;
-    this.api.ajouterAnalyse({ ...this.analyseForm, id_patient: this.rdvSelectionne.id_patient || this.rdvSelectionne.id_utilisateur, id_patient_user: this.rdvSelectionne.id_utilisateur, date_analyse: this.analyseForm.date_analyse || new Date().toISOString().split('T')[0] }).subscribe({
+    const idPatient = this.rdvSelectionne.id_patient || this.rdvSelectionne.id_utilisateur;
+    this.api.ajouterAnalyse({ 
+      ...this.analyseForm, 
+      id_patient: idPatient,
+      id_patient_user: idPatient,
+      date_analyse: this.analyseForm.date_analyse || new Date().toISOString().split('T')[0]
+    }).subscribe({
       next: () => { this.toast.success(' Analyse enregistrée !'); this.analyseForm = { type_analyse: '', date_analyse: '', statut: 'normal', note: '' }; },
-      error: () => this.toast.error('Erreur ajout analyse.')
+      error: (e: any) => { console.error('Analyse error:', e); this.toast.error('Erreur ajout analyse.'); }
     });
   }
 
