@@ -2162,3 +2162,58 @@ button { cursor: pointer; }
 .fiche-blood    { background: #C0392B; color: white; padding: 2px 12px; border-radius: 20px; font-size: 13px; display: inline-block; }
 .fiche-stat-blue  { font-size: 20px; font-weight: 900; color: #1B4F8A; }
 .fiche-stat-green { font-size: 20px; font-weight: 900; color: #0A6E4A; }
+
+/* ═══ FIXES ALIGNEMENT NOTIFICATIONS / MESSAGES / PROFIL ═══ */
+
+/* Notifications - fix hover débordement */
+.notif-item:hover {
+  background: var(--bg-hover);
+  margin: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  border-radius: 8px;
+}
+
+/* Card body overflow fix */
+.card-body { overflow: hidden; }
+
+/* Profil grid responsive */
+.prf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .prf-grid { grid-template-columns: 1fr; }
+}
+
+/* Identity card fix */
+.prf-identity-card {
+  overflow: hidden;
+  flex-wrap: wrap;
+}
+.prf-id-stats {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Chat fix */
+#chat-messages {
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+/* Message bubble fix */
+.chat-bubble {
+  max-width: 70%;
+  word-break: break-word;
+}
+
+/* Notification card fix */
+.notif-item {
+  overflow: hidden;
+}
+.notif-msg {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
