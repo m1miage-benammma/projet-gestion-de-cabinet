@@ -239,6 +239,11 @@ Route::middleware('auth.middleware')->group(function () {
         return response()->json(['message' => 'Payée.']);
     });
 
+    Route::patch('/factures/{id}/impayer', function (int $id) {
+        DB::table('factures')->where('id', $id)->update(['statut' => 'impayé', 'updated_at' => now()]);
+        return response()->json(['message' => 'Marquée en attente.']);
+    });
+
     // ── VACCINS ───────────────────────────────────────────────────
     Route::get('/mes-vaccins', function (Request $r) {
         $id = (int) $r->attributes->get('id_utilisateur');

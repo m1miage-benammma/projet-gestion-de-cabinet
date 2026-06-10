@@ -381,4 +381,11 @@ export class InfirmiereComponent implements OnInit, OnDestroy {
       error: () => {}
     });
   }
+
+  marquerImpayee(id: number) {
+    this.api.marquerFactureImpayee(id).subscribe({
+      next: () => this.chargerFactures(),
+      error: () => {}
+    });
+  }
 }

@@ -14,7 +14,8 @@ export class ApiService {
   envoyerContact(data: any): Observable<any>     { return this.http.post(`${API}/contact`, data); }
   getFactures(): Observable<any[]>               { return this.http.get<any[]>(`${API}/factures`, this.h); }
   creerFacture(data: any): Observable<any>       { return this.http.post(`${API}/factures`, data, this.h); }
-  marquerFacturePayee(id: number): Observable<any> { return this.http.patch(`${API}/factures/${id}/payer`, {}, this.h); }
+  marquerFacturePayee(id: number): Observable<any>  { return this.http.patch(`${API}/factures/${id}/payer`, {}, this.h); }
+  marquerFactureImpayee(id: number): Observable<any> { return this.http.patch(`${API}/factures/${id}/impayer`, {}, this.h); }
   getStock(): Observable<any[]>                  { return this.http.get<any[]>(`${API}/admin/stock`, this.h); }
   ajouterStock(data: any): Observable<any>       { return this.http.post(`${API}/admin/stock`, data, this.h); }
   modifierStock(id: number, q: number): Observable<any> { return this.http.patch(`${API}/admin/stock/${id}`, { quantite: q }, this.h); }
