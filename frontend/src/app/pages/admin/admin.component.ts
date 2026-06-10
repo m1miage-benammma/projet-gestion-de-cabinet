@@ -302,12 +302,12 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   // ── FACTURATION ───────────────────────────────────────────────
-  getTotalFactures(): number { return this.factures.filter(f => f.statut?.includes("pay")).reduce((s, f) => s + Number(f.montant), 0); }
+  getTotalFactures(): number { return this.factures.filter(f => !f.statut?.includes("impay")).reduce((s, f) => s + Number(f.montant), 0); }
   getTodayRevenue(): number {
     const today = new Date().toISOString().split("T")[0];
-    return this.factures.filter(f => f.statut?.includes("pay") && f.created_at?.startsWith(today)).reduce((s, f) => s + Number(f.montant), 0);
+    return this.factures.filter(f => !f.statut?.includes("impay") && f.created_at?.startsWith(today)).reduce((s, f) => s + Number(f.montant), 0);
   }
-  getTodayPending(): number { return this.factures.filter(f => !f.statut?.includes("pay")).length; }
+  getTodayPending(): number { return this.factures.filter(f => !!f.statut?.includes("impay")).length; }
 
   // ── GRAPHIQUES ────────────────────────────────────────────────
   getMoisStats(): any[] {
