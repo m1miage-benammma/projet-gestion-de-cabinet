@@ -479,72 +479,6 @@
               </div>
             </div>
 
-              <!-- Score de santé IA -->
-              <div class="card" style="margin-top:16px">
-                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-                  <div class="card-title">Score de santé IA</div>
-                  <button class="btn btn-primary btn-sm" (click)="genererScoreIA()" [disabled]="scoreLoading">
-                    <div class="spinner spinner-sm" *ngIf="scoreLoading"></div>
-                    {{ scoreLoading ? 'Analyse...' : 'Analyser mon dossier' }}
-                  </button>
-                </div>
-                <div class="card-body">
-                  <div *ngIf="!scoreIA && !scoreLoading" style="text-align:center;padding:20px;color:var(--muted)">
-                    <div style="font-size:40px;margin-bottom:8px"></div>
-                    <p>Cliquez sur "Analyser" pour obtenir votre score de santé basé sur votre dossier médical complet</p>
-                  </div>
-
-                  <div *ngIf="scoreIA" style="animation:fadeUp .5s ease both">
-                    <!-- Score principal -->
-                    <div style="display:flex;align-items:center;gap:24px;margin-bottom:20px;flex-wrap:wrap">
-                      <!-- Cercle score -->
-                      <div style="position:relative;flex-shrink:0">
-                        <svg width="120" height="120" viewBox="0 0 120 120">
-                          <circle cx="60" cy="60" r="50" fill="none" stroke="#f0f0f0" stroke-width="10"/>
-                          <circle cx="60" cy="60" r="50" fill="none"
-                            [attr.stroke]="scoreIA.couleur" stroke-width="10"
-                            stroke-linecap="round"
-                            [attr.stroke-dasharray]="(scoreIA.score / 100 * 314) + ' 314'"
-                            stroke-dashoffset="78.5"
-                            transform="rotate(-90 60 60)"
-                            style="transition:stroke-dasharray 1.5s ease"/>
-                          <text x="60" y="56" text-anchor="middle" font-size="26" font-weight="900" [attr.fill]="scoreIA.couleur">{{ scoreIA.score }}</text>
-                          <text x="60" y="72" text-anchor="middle" font-size="11" fill="#999">/100</text>
-                        </svg>
-                      </div>
-                      <div style="flex:1">
-                        <div style="font-size:22px;font-weight:900;" [style.color]="scoreIA.couleur">{{ scoreIA.niveau }}</div>
-                        <div style="font-size:14px;color:var(--text);margin-top:6px;line-height:1.6">{{ scoreIA.resume }}</div>
-                      </div>
-                    </div>
-
-                    <!-- Points forts / Attention -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-                      <div style="background:#f0fdf4;border-radius:12px;padding:14px">
-                        <div style="font-size:12px;font-weight:800;color:#166534;margin-bottom:8px"> Points forts</div>
-                        <div *ngFor="let p of scoreIA.points_forts" style="font-size:13px;color:#166534;margin-bottom:4px">• {{ p }}</div>
-                      </div>
-                      <div style="background:#fef3c7;border-radius:12px;padding:14px">
-                        <div style="font-size:12px;font-weight:800;color:#92400e;margin-bottom:8px"> À surveiller</div>
-                        <div *ngFor="let p of scoreIA.points_attention" style="font-size:13px;color:#92400e;margin-bottom:4px">• {{ p }}</div>
-                      </div>
-                    </div>
-
-                    <!-- Conseils -->
-                    <div style="background:#f8fafc;border-radius:12px;padding:14px">
-                      <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px"> Conseils personnalisés</div>
-                      <div *ngFor="let c of scoreIA.conseils" style="font-size:13px;color:var(--text);margin-bottom:6px;display:flex;gap:8px">
-                        <span style="color:var(--primary)"></span>{{ c }}
-                      </div>
-                    </div>
-
-                    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px">
-                       Score indicatif uniquement — consultez votre médecin pour un avis médical officiel
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <!-- Graphique santé -->
               <div class="card" style="margin-top:16px" *ngIf="dossierComplet?.consultations?.length > 1">
                 <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
@@ -1068,7 +1002,7 @@
             </div>
           </div>
 
+        </div>
       </div>
-    </div>
   </main>
 </div>
